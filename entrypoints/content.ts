@@ -28,9 +28,15 @@ const SEASON_TINTS: Record<string, { r: number; g: number; b: number }> = {
   winter: { r: 200, g: 210, b: 230 },    // 冬：淡蓝白
 };
 
-// 🔢 粒子目标数量 — 同屏维持的飘落粒子数
-// 季节切换时，当前粒子不会被清除，新季节粒子会叠加出现
-const PARTICLE_COUNTS = { spring: 22, summer: 33, autumn: 48, winter: 60 };
+// 🔢 粒子数目预设值 — 每分钟生成粒子数（个/分钟）
+// 滑块范围 10~1800，预设值在范围内选取
+const PARTICLE_RATE_MAP: Record<string, number> = {
+  minimal: 10,           // 微量
+  few: 20,              // 少量
+  medium: 50,           // 中等（默认）
+  heavy: 120,           // 大量
+  'custom-particle': 50, // 自定义（实际值由 customParticleCount 字段决定）
+};
 
 // ---- Particle types ----
 
@@ -62,6 +68,17 @@ function getIntensityValue(settings: Settings): number {
   return INTENSITY_MAP[settings.intensity] ?? 1.0;
 }
 
+function getParticleRate(settings: Settings): number {
+  // 设置值为 个/分钟，内部转换为 个/秒
+  let perMinute: number;
+  if (settings.particleCount === 'custom-particle') {
+    perMinute = settings.customParticleCount;
+  } else {
+    perMinute = PARTICLE_RATE_MAP[settings.particleCount] ?? 50;
+  }
+  return perMinute / 60;
+}
+
 // ---- AtmosphereRenderer ----
 
 class AtmosphereRenderer {
@@ -74,6 +91,8 @@ class AtmosphereRenderer {
   private settings: Settings | null = null;
   private weights: SeasonWeights = { spring: 1, summer: 0, autumn: 0, winter: 0 };
   private intensity = 1.0;
+  private particleRate = 50 / 60; // 每秒生成粒子数（由 个/分钟 转换）
+  private spawnAccumulator = 0; // 生成累加器（秒）
   private frameId = 0;
   private width = 0;
   private height = 0;
@@ -137,10 +156,10 @@ class AtmosphereRenderer {
     this.settings = settings;
     this.weights = getSeasonWeights(settings.season, settings.customMonth);
     this.intensity = getIntensityValue(settings);
+    this.particleRate = getParticleRate(settings);
 
     this.updateOverlay();
     this.updateLensFlare();
-    this.updateParticles();
   }
 
   // ---- Color Overlay ----
@@ -189,28 +208,27 @@ class AtmosphereRenderer {
 
   // ---- Particles ----
 
-  private updateParticles() {
-    // Never clear existing particles — they naturally fall and fade.
-    // Only spawn new ones to match the current season target.
+  // 根据生成速率和季节权重，每帧决定是否生成新粒子
+  private spawnParticles(dt: number) {
+    if (!this.settings) return;
     const { spring, summer, autumn, winter } = this.weights;
 
-    const currentLeaf = this.particles.filter((p) => p.type === 'leaf').length;
-    const currentSnow = this.particles.filter((p) => p.type === 'snow').length;
+    // 生成速率按季节权重分配：叶子和雪花各自的比例
+    const leafWeight = spring + summer + autumn;
+    const snowWeight = winter;
 
-    const targetLeaf = Math.round(
-      PARTICLE_COUNTS.spring * spring +
-      PARTICLE_COUNTS.summer * summer +
-      PARTICLE_COUNTS.autumn * autumn,
-    );
-    const targetSnow = Math.round(PARTICLE_COUNTS.winter * winter);
+    // 累加器推进
+    this.spawnAccumulator += dt * this.particleRate;
 
-    if (currentLeaf < targetLeaf) {
-      for (let i = 0; i < targetLeaf - currentLeaf; i++) {
+    // 每积累1个粒子就生成一个
+    while (this.spawnAccumulator >= 1) {
+      this.spawnAccumulator -= 1;
+
+      // 按权重随机决定生成叶子还是雪花
+      const rand = Math.random() * (leafWeight + snowWeight);
+      if (rand < leafWeight) {
         this.particles.push(this.createLeaf());
-      }
-    }
-    if (currentSnow < targetSnow) {
-      for (let i = 0; i < targetSnow - currentSnow; i++) {
+      } else {
         this.particles.push(this.createSnow());
       }
     }
@@ -375,26 +393,9 @@ class AtmosphereRenderer {
       }
     }
 
-    // Replenish particles if below target
-    this.replenishParticles();
+    // 根据生成速率生成新粒子
+    this.spawnParticles(dt);
   };
-
-  private replenishParticles() {
-    if (!this.settings) return;
-    const { spring, summer, autumn, winter } = this.weights;
-    const targetLeaf = Math.round(
-      PARTICLE_COUNTS.spring * spring +
-      PARTICLE_COUNTS.summer * summer +
-      PARTICLE_COUNTS.autumn * autumn,
-    );
-    const targetSnow = Math.round(PARTICLE_COUNTS.winter * winter);
-
-    const currentLeaf = this.particles.filter((p) => p.type === 'leaf').length;
-    const currentSnow = this.particles.filter((p) => p.type === 'snow').length;
-
-    if (currentLeaf < targetLeaf) this.particles.push(this.createLeaf());
-    if (currentSnow < targetSnow) this.particles.push(this.createSnow());
-  }
 
   // ---- Resize ----
 

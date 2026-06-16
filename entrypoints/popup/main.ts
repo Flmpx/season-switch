@@ -14,6 +14,20 @@ const customIntensitySlider = document.getElementById(
 const customIntensityValue = document.getElementById(
   'customIntensityValue',
 )!;
+const customParticleRow = document.getElementById('customParticleRow')!;
+const customParticleSlider = document.getElementById(
+  'customParticleSlider',
+) as HTMLInputElement;
+const customParticleValue = document.getElementById(
+  'customParticleValue',
+)!;
+const customParticleSizeRow = document.getElementById('customParticleSizeRow')!;
+const customParticleSizeSlider = document.getElementById(
+  'customParticleSizeSlider',
+) as HTMLInputElement;
+const customParticleSizeValue = document.getElementById(
+  'customParticleSizeValue',
+)!;
 
 // ---- Apply active state to option buttons ----
 function applyActiveState(key: string, value: string): void {
@@ -31,6 +45,26 @@ function updateIntensitySlider(intensity: string, customValue?: number): void {
   if (customValue !== undefined) {
     customIntensitySlider.value = String(customValue);
     customIntensityValue.textContent = `${customValue}%`;
+  }
+}
+
+// ---- Show/hide custom particle count slider ----
+function updateParticleSlider(particleCount: string, customValue?: number): void {
+  const show = particleCount === 'custom-particle';
+  customParticleRow.style.display = show ? 'flex' : 'none';
+  if (customValue !== undefined) {
+    customParticleSlider.value = String(customValue);
+    customParticleValue.textContent = `${customValue}个/分钟`;
+  }
+}
+
+// ---- Show/hide custom particle size slider ----
+function updateParticleSizeSlider(particleSize: string, customValue?: number): void {
+  const show = particleSize === 'custom-size';
+  customParticleSizeRow.style.display = show ? 'flex' : 'none';
+  if (customValue !== undefined) {
+    customParticleSizeSlider.value = String(customValue);
+    customParticleSizeValue.textContent = `${customValue}%`;
   }
 }
 
@@ -66,6 +100,12 @@ function initOptionGrids(settings: Settings): void {
         if (key === 'intensity') {
           updateIntensitySlider(value, settings.customIntensity);
         }
+        if (key === 'particleCount') {
+          updateParticleSlider(value, settings.customParticleCount);
+        }
+        if (key === 'particleSize') {
+          updateParticleSizeSlider(value, settings.customParticleSize);
+        }
 
         await saveSettings(settings);
       });
@@ -96,6 +136,26 @@ function initSlider(settings: Settings): void {
   });
 }
 
+// ---- Bind custom particle count slider ----
+function initParticleSlider(settings: Settings): void {
+  customParticleSlider.addEventListener('input', async () => {
+    const val = parseInt(customParticleSlider.value, 10);
+    settings.customParticleCount = val;
+    customParticleValue.textContent = `${val}个/分钟`;
+    await saveSettings(settings);
+  });
+}
+
+// ---- Bind custom particle size slider ----
+function initParticleSizeSlider(settings: Settings): void {
+  customParticleSizeSlider.addEventListener('input', async () => {
+    const val = parseInt(customParticleSizeSlider.value, 10);
+    settings.customParticleSize = val;
+    customParticleSizeValue.textContent = `${val}%`;
+    await saveSettings(settings);
+  });
+}
+
 // ---- Main ----
 async function main(): Promise<void> {
   const settings = await loadSettings();
@@ -104,13 +164,19 @@ async function main(): Promise<void> {
   applyActiveState('season', settings.season);
   applyActiveState('timeOfDay', settings.timeOfDay);
   applyActiveState('intensity', settings.intensity);
+  applyActiveState('particleCount', settings.particleCount);
+  applyActiveState('particleSize', settings.particleSize);
   updateIntensitySlider(settings.intensity, settings.customIntensity);
+  updateParticleSlider(settings.particleCount, settings.customParticleCount);
+  updateParticleSizeSlider(settings.particleSize, settings.customParticleSize);
   updateMonthSelector(settings.season, settings.customMonth);
 
   // Bind interactions
   initOptionGrids(settings);
   initMonthGrid(settings);
   initSlider(settings);
+  initParticleSlider(settings);
+  initParticleSizeSlider(settings);
 }
 
 main();

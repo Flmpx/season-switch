@@ -80,6 +80,56 @@
             <span id="customIntensityValue" class="intensity-value">50%</span>
           </div>
         </section>
+
+        <!-- 粒子 -->
+        <section class="setting-section">
+          <h2 class="section-title">粒子</h2>
+
+          <!-- 粒子数目 -->
+          <div class="sub-setting">
+            <h3 class="sub-title">粒子数目</h3>
+            <div class="option-grid" data-key="particleCount">
+              <button class="option-btn" data-value="minimal">微量</button>
+              <button class="option-btn" data-value="few">少量</button>
+              <button class="option-btn" data-value="medium">中等</button>
+              <button class="option-btn" data-value="heavy">大量</button>
+              <button class="option-btn" data-value="custom-particle">自定义</button>
+            </div>
+            <div class="custom-row" id="customParticleRow" style="display:none;">
+              <input
+                type="range"
+                id="customParticleSlider"
+                min="10"
+                max="1800"
+                value="50"
+                class="intensity-slider"
+              />
+              <span id="customParticleValue" class="intensity-value">50个/分钟</span>
+            </div>
+          </div>
+
+          <!-- 粒子大小 -->
+          <div class="sub-setting">
+            <h3 class="sub-title">粒子大小</h3>
+            <div class="option-grid" data-key="particleSize">
+              <button class="option-btn" data-value="small">小</button>
+              <button class="option-btn" data-value="medium">中</button>
+              <button class="option-btn" data-value="large">大</button>
+              <button class="option-btn" data-value="custom-size">自定义</button>
+            </div>
+            <div class="custom-row" id="customParticleSizeRow" style="display:none;">
+              <input
+                type="range"
+                id="customParticleSizeSlider"
+                min="0"
+                max="100"
+                value="50"
+                class="intensity-slider"
+              />
+              <span id="customParticleSizeValue" class="intensity-value">50%</span>
+            </div>
+          </div>
+        </section>
       </main>
     </div>
     <script type="module" src="./main.ts"></script>

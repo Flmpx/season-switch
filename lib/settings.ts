@@ -4,6 +4,10 @@ export interface Settings {
   timeOfDay: string;
   intensity: string; // 'misty' | 'light' | 'medium' | 'deep' | 'custom-intensity'
   customIntensity: number; // 0-100
+  particleCount: string; // 'minimal' | 'few' | 'medium' | 'heavy' | 'custom-particle'
+  customParticleCount: number; // particles per second
+  particleSize: string; // 'small' | 'medium' | 'large' | 'custom-size'
+  customParticleSize: number; // 0-100
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -12,6 +16,10 @@ export const DEFAULT_SETTINGS: Settings = {
   timeOfDay: 'system-time',
   intensity: 'medium',
   customIntensity: 50,
+  particleCount: 'medium',
+  customParticleCount: 50,
+  particleSize: 'medium',
+  customParticleSize: 50,
 };
 
 export async function loadSettings(): Promise<Settings> {

@@ -86,7 +86,8 @@ body {
 }
 
 /* ---- Custom Intensity Slider ---- */
-.custom-intensity-row {
+.custom-intensity-row,
+.custom-row {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -166,4 +167,18 @@ body {
   background: rgba(108, 140, 255, 0.12);
   color: #6c8cff;
   font-weight: 600;
+}
+
+/* ---- Sub Setting ---- */
+.sub-setting {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sub-title {
+  font-size: 11px;
+  font-weight: 500;
+  color: #6a6f88;
+  letter-spacing: 0.5px;
 }
