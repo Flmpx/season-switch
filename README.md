@@ -32,13 +32,19 @@
 
 ### 环境要求
 
-- [Node.js](https://nodejs.org/) 18+ 
+- [Node.js](https://nodejs.org/) 18+
 - npm（随 Node.js 安装）
 
-### 安装依赖
+### 快速开始
+
+Clone 项目后，**必须先安装依赖**才能运行任何命令（否则会报 `wxt is not recognized` 错误）：
 
 ```bash
+# 1. 安装依赖（只需执行一次，会自动执行 wxt prepare 生成类型声明）
 npm install
+
+# 2. 启动开发模式
+npm run dev
 ```
 
 ### 开发模式
