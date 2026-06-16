@@ -166,3 +166,58 @@ tool-free/
 
 - 时间（清晨/上午/...）和显示程度的效果暂未实现，设置面板可操作但无页面效果
 - 底部静态堆积已移除，粒子到达底部后自然渐隐
+
+---
+
+## 2026-06-16 增加粒子数目设置功能
+
+### 完成内容
+
+1. **Popup 新增粒子设置分区**
+   - 粒子作为一级选项，粒子数目和粒子大小作为二级选项
+   - 粒子数目：微量 / 少量 / 中等 / 大量 / 自定义
+   - 选择"自定义"时展开进度条滑块（10~1800 个/分钟），单位显示为"X个/分钟"
+   - 新增 `.sub-setting`、`.sub-title` 样式，二级标题更小更淡
+
+2. **粒子大小设置入口（UI 已添加，功能未实现）**
+   - 小 / 中 / 大 / 自定义（选择自定义时展开百分比滑块 0~100%）
+
+3. **`lib/settings.ts` 新增字段**
+   - `particleCount`：字符串选项（`minimal` / `few` / `medium` / `heavy` / `custom-particle`），默认 `medium`
+   - `customParticleCount`：数字，自定义粒子数目（个/分钟），默认 50
+   - `particleSize`：字符串选项（`small` / `medium` / `large` / `custom-size`），默认 `medium`
+   - `customParticleSize`：数字，自定义粒子大小百分比，默认 50
+
+4. **内容脚本粒子系统改为基于生成速率**
+   - 删除旧的 `PARTICLE_COUNTS`（固定同屏数量）和 `updateParticles()` / `replenishParticles()`
+   - 新增 `PARTICLE_RATE_MAP`：预设值 微量=10 / 少量=20 / 中等=50 / 大量=120（个/分钟）
+   - 新增 `getParticleRate()` 函数：读取设置值（个/分钟），除以 60 转换为 个/秒
+   - 新增 `spawnAccumulator` 累加器机制：每帧按 `dt × particleRate` 累加，每积累1个粒子就生成一个
+   - 生成粒子按季节权重随机分配叶子或雪花
+   - 改变粒子数目时已在飘落的粒子不受影响，仅改变新生成速率
+
+### 文件结构
+
+```
+tool-free/
+├── wxt.config.ts
+├── tsconfig.json
+├── package.json
+├── lib/
+│   ├── settings.ts              # 新增 particleCount / customParticleCount / particleSize / customParticleSize
+│   └── season-weights.ts
+├── entrypoints/
+│   ├── content.ts                # 粒子系统改为基于生成速率
+│   └── popup/
+│       ├── index.html            # 新增粒子分区（粒子数目+粒子大小）
+│       ├── style.css             # 新增 sub-setting / sub-title 样式
+│       └── main.ts               # 新增粒子数目/大小交互逻辑
+├── README.md
+├── process.md
+└── project.md
+```
+
+### 备注
+
+- 粒子大小设置 UI 已完成，功能效果未实现
+- 时间（清晨/上午/...）和显示程度的效果仍未实现
