@@ -1,0 +1,169 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 320px;
+  font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif;
+  background: #1b1f2a;
+  color: #e0e0e0;
+}
+
+.popup {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Header ---- */
+.popup-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid #2a2f3e;
+}
+
+.popup-header h1 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 1px;
+}
+
+/* ---- Body ---- */
+.popup-body {
+  padding: 12px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ---- Section ---- */
+.setting-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #8a8fa8;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ---- Option Grid ---- */
+.option-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.option-btn {
+  padding: 5px 12px;
+  font-size: 13px;
+  border: 1px solid #3a3f52;
+  border-radius: 6px;
+  background: transparent;
+  color: #b0b4c8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+.option-btn:hover {
+  border-color: #5a5f72;
+  color: #e0e0e0;
+  background: #252a3a;
+}
+
+.option-btn.active {
+  border-color: #6c8cff;
+  background: rgba(108, 140, 255, 0.12);
+  color: #6c8cff;
+  font-weight: 600;
+}
+
+/* ---- Custom Intensity Slider ---- */
+.custom-intensity-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.intensity-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: #3a3f52;
+  outline: none;
+}
+
+.intensity-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #6c8cff;
+  cursor: pointer;
+  border: none;
+}
+
+.intensity-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #6c8cff;
+  cursor: pointer;
+  border: none;
+}
+
+.intensity-value {
+  font-size: 12px;
+  color: #6c8cff;
+  min-width: 36px;
+  text-align: right;
+  font-weight: 600;
+}
+
+/* ---- Custom Month Selector ---- */
+.custom-month-row {
+  margin-top: 4px;
+}
+
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.month-btn {
+  padding: 4px 0;
+  font-size: 12px;
+  border: 1px solid #3a3f52;
+  border-radius: 4px;
+  background: transparent;
+  color: #b0b4c8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  text-align: center;
+}
+
+.month-btn:hover {
+  border-color: #5a5f72;
+  color: #e0e0e0;
+  background: #252a3a;
+}
+
+.month-btn.active {
+  border-color: #6c8cff;
+  background: rgba(108, 140, 255, 0.12);
+  color: #6c8cff;
+  font-weight: 600;
+}

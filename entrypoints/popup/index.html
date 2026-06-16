@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>氛围场景设置</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="popup">
+      <header class="popup-header">
+        <h1>氛围场景</h1>
+      </header>
+
+      <main class="popup-body">
+        <!-- 季节 -->
+        <section class="setting-section">
+          <h2 class="section-title">季节</h2>
+          <div class="option-grid" data-key="season">
+            <button class="option-btn" data-value="spring">春</button>
+            <button class="option-btn" data-value="summer">夏</button>
+            <button class="option-btn" data-value="autumn">秋</button>
+            <button class="option-btn" data-value="winter">冬</button>
+            <button class="option-btn" data-value="custom-season">自定义</button>
+            <button class="option-btn" data-value="system-season">跟随系统</button>
+          </div>
+          <div class="custom-month-row" id="customMonthRow" style="display:none;">
+            <div class="month-grid">
+              <button class="month-btn" data-month="1">1月</button>
+              <button class="month-btn" data-month="2">2月</button>
+              <button class="month-btn" data-month="3">3月</button>
+              <button class="month-btn" data-month="4">4月</button>
+              <button class="month-btn" data-month="5">5月</button>
+              <button class="month-btn" data-month="6">6月</button>
+              <button class="month-btn" data-month="7">7月</button>
+              <button class="month-btn" data-month="8">8月</button>
+              <button class="month-btn" data-month="9">9月</button>
+              <button class="month-btn" data-month="10">10月</button>
+              <button class="month-btn" data-month="11">11月</button>
+              <button class="month-btn" data-month="12">12月</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 时间 -->
+        <section class="setting-section">
+          <h2 class="section-title">时间</h2>
+          <div class="option-grid" data-key="timeOfDay">
+            <button class="option-btn" data-value="dawn">清晨</button>
+            <button class="option-btn" data-value="morning">上午</button>
+            <button class="option-btn" data-value="noon">中午</button>
+            <button class="option-btn" data-value="afternoon">下午</button>
+            <button class="option-btn" data-value="dusk">傍晚</button>
+            <button class="option-btn" data-value="evening">晚上</button>
+            <button class="option-btn" data-value="midnight">深夜</button>
+            <button class="option-btn" data-value="custom-time">自定义</button>
+            <button class="option-btn" data-value="system-time">跟随系统</button>
+          </div>
+        </section>
+
+        <!-- 显示程度 -->
+        <section class="setting-section">
+          <h2 class="section-title">显示程度</h2>
+          <div class="option-grid" data-key="intensity">
+            <button class="option-btn" data-value="misty">朦朦</button>
+            <button class="option-btn" data-value="light">浅</button>
+            <button class="option-btn" data-value="medium">中</button>
+            <button class="option-btn" data-value="deep">深</button>
+            <button class="option-btn" data-value="custom-intensity">自定义</button>
+          </div>
+          <div class="custom-intensity-row" id="customIntensityRow" style="display:none;">
+            <input
+              type="range"
+              id="customIntensitySlider"
+              min="0"
+              max="100"
+              value="50"
+              class="intensity-slider"
+            />
+            <span id="customIntensityValue" class="intensity-value">50%</span>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
