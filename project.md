@@ -238,3 +238,18 @@ tool-free/
 
 - 插件名称统一为 Season Switch
 - 插件重命名和 commit.md 的增加已在前序提交完成
+
+---
+
+## 2026-06-16 README 增加快速开始步骤
+
+### 完成内容
+
+1. **README 开发与构建章节优化**
+   - 合并"安装依赖"和"开发模式"为"快速开始"章节
+   - 明确标注 clone 后必须先执行 `npm install`，否则会报 `wxt is not recognized` 错误
+   - 补充说明 `npm install` 会自动执行 `wxt prepare` 生成类型声明
+
+### 备注
+
+- 原因：clone 后没有 `node_modules` 目录，`wxt` 命令不在 PATH 中，必须先安装依赖
