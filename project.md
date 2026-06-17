@@ -253,3 +253,55 @@ tool-free/
 ### 备注
 
 - 原因：clone 后没有 `node_modules` 目录，`wxt` 命令不在 PATH 中，必须先安装依赖
+
+---
+
+## 2026-06-16 增加粒子大小设置功能
+
+### 完成内容
+
+1. **新增粒子大小常量表**
+   - 新增 `PARTICLE_SIZE_MAP`：预设缩放系数 小=0.6 / 中=1.0 / 大=1.5
+   - 新增 `LEAF_SIZE_RANGES`：将各季节叶子尺寸 Min/Max 从 `createLeaf` 内联提取为常量表（春 4-8 / 夏 5-9 / 秋 5-10）
+   - 新增 `SNOW_SIZE_RANGE`：为雪花新增尺寸 Min/Max 变量（3-10），之前雪花没有 Min/Max 变量
+
+2. **新增 `getParticleSizeScale()` 函数**
+   - 自定义 0-100% 分段线性插值：0%→0.3、50%→1.0（中等）、100%→1.8
+   - 保证 50% 恰好为 1.0，与"中等"预设一致
+
+3. **`AtmosphereRenderer` 类集成粒子大小**
+   - 新增 `particleSizeScale` 字段，`applySettings` 中调用 `getParticleSizeScale` 更新
+   - `createLeaf()` 改为从 `LEAF_SIZE_RANGES` 取尺寸范围，乘以缩放系数得到实际 min/max
+   - `createSnow()` 改为用 `SNOW_SIZE_RANGE` 常量，乘以缩放系数得到实际 min/max
+
+4. **设计原则**
+   - 以当前默认尺寸为"中等"（缩放系数 1.0）
+   - 缩放系数同时改变 Min 和 Max 两个边界，保持尺寸范围的宽度比例
+   - 不同季节粒子大小本来就不同，各自独立缩放
+   - 已在飘落的粒子不受影响，仅新生成粒子按新尺寸生成
+
+### 文件结构
+
+```
+tool-free/
+├── wxt.config.ts
+├── tsconfig.json
+├── package.json
+├── lib/
+│   ├── settings.ts
+│   └── season-weights.ts
+├── entrypoints/
+│   ├── content.ts                # 新增粒子大小缩放系统
+│   └── popup/
+│       ├── index.html
+│       ├── style.css
+│       └── main.ts
+├── README.md
+├── process.md
+└── project.md
+```
+
+### 备注
+
+- 粒子大小设置 UI 在前序提交中已完成，本次补齐功能效果
+- 时间（清晨/上午/...）和显示程度的效果仍未实现
