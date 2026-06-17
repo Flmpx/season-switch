@@ -38,6 +38,26 @@ const PARTICLE_RATE_MAP: Record<string, number> = {
   'custom-particle': 50, // 自定义（实际值由 customParticleCount 字段决定）
 };
 
+// 📏 粒子大小预设值 — 尺寸缩放系数（1.0 = 当前默认大小，即"中等"）
+// 小=0.6 / 中=1.0 / 大=1.5
+const PARTICLE_SIZE_MAP: Record<string, number> = {
+  small: 0.6,        // 小
+  medium: 1.0,       // 中（默认）
+  large: 1.5,        // 大
+  'custom-size': 1.0, // 自定义（实际值由 customParticleSize 字段决定）
+};
+
+// 🍃 各季节叶子尺寸范围（像素）— 中等大小基准
+// 粒子大小设置通过缩放系数同时改变 min 和 max
+const LEAF_SIZE_RANGES: Record<string, { min: number; max: number }> = {
+  spring: { min: 4, max: 8 },   // 春叶
+  summer: { min: 5, max: 9 },   // 夏叶
+  autumn: { min: 5, max: 10 },  // 秋叶
+};
+
+// ❄️ 雪花尺寸范围（像素）— 中等大小基准
+const SNOW_SIZE_RANGE = { min: 3, max: 10 };
+
 // ---- Particle types ----
 
 interface FallingParticle {
@@ -79,6 +99,19 @@ function getParticleRate(settings: Settings): number {
   return perMinute / 60;
 }
 
+function getParticleSizeScale(settings: Settings): number {
+  // 自定义 0-100%：0%→0.3, 50%→1.0（中等）, 100%→1.8
+  // 分段线性插值，保证 50% 恰好为 1.0
+  if (settings.particleSize === 'custom-size') {
+    const v = settings.customParticleSize;
+    if (v <= 50) {
+      return 0.3 + (v / 50) * 0.7; // 0→0.3, 50→1.0
+    }
+    return 1.0 + ((v - 50) / 50) * 0.8; // 50→1.0, 100→1.8
+  }
+  return PARTICLE_SIZE_MAP[settings.particleSize] ?? 1.0;
+}
+
 // ---- AtmosphereRenderer ----
 
 class AtmosphereRenderer {
@@ -92,6 +125,7 @@ class AtmosphereRenderer {
   private weights: SeasonWeights = { spring: 1, summer: 0, autumn: 0, winter: 0 };
   private intensity = 1.0;
   private particleRate = 50 / 60; // 每秒生成粒子数（由 个/分钟 转换）
+  private particleSizeScale = 1.0; // 粒子尺寸缩放系数（1.0 = 中等）
   private spawnAccumulator = 0; // 生成累加器（秒）
   private frameId = 0;
   private width = 0;
@@ -157,6 +191,7 @@ class AtmosphereRenderer {
     this.weights = getSeasonWeights(settings.season, settings.customMonth);
     this.intensity = getIntensityValue(settings);
     this.particleRate = getParticleRate(settings);
+    this.particleSizeScale = getParticleSizeScale(settings);
 
     this.updateOverlay();
     this.updateLensFlare();
@@ -239,18 +274,20 @@ class AtmosphereRenderer {
     // 根据当前季节权重随机选择叶子属于哪个季节的色板
     const rand = Math.random() * (spring + summer + autumn);
     let colors: string[];
-    let sizeMin: number, sizeMax: number;
+    let sizeRange: { min: number; max: number };
     if (rand < spring) {
       colors = LEAF_COLORS.spring;
-      sizeMin = 4; sizeMax = 8;     // 🍃 春叶尺寸范围（像素）
+      sizeRange = LEAF_SIZE_RANGES.spring;     // 🍃 春叶尺寸范围
     } else if (rand < spring + summer) {
       colors = LEAF_COLORS.summer;
-      sizeMin = 5; sizeMax = 9;     // 🍃 夏叶尺寸范围（像素）
+      sizeRange = LEAF_SIZE_RANGES.summer;     // 🍃 夏叶尺寸范围
     } else {
       colors = LEAF_COLORS.autumn;
-      sizeMin = 5; sizeMax = 10;    // 🍃 秋叶尺寸范围（像素）
+      sizeRange = LEAF_SIZE_RANGES.autumn;     // 🍃 秋叶尺寸范围
     }
-
+    // 应用粒子大小缩放系数到 min/max 边界
+    const sizeMin = sizeRange.min * this.particleSizeScale;
+    const sizeMax = sizeRange.max * this.particleSizeScale;
     return {
       x: Math.random() * this.width,
       y: -20 - Math.random() * this.height,  // 初始位置：屏幕上方随机高度
@@ -268,10 +305,15 @@ class AtmosphereRenderer {
   }
 
   private createSnow(): FallingParticle {
+    // 应用粒子大小缩放系数到雪花 min/max 边界
+    const sizeMin = SNOW_SIZE_RANGE.min * this.particleSizeScale;
+    const sizeMax = SNOW_SIZE_RANGE.max * this.particleSizeScale;
     return {
       x: Math.random() * this.width,
       y: -20 - Math.random() * this.height,
-      size: 3 + Math.random() * 7,            // ❄️ 雪花尺寸范围 3~10（像素）
+      size: sizeMin + Math.random() * (sizeMax - sizeMin),  // ❄️ 雪花尺寸范围（应用缩放）
+
+
       speedY: 10 + Math.random() * 20,         // 下落速度（像素/秒），比叶子慢
       rotation: 0,
       rotSpeed: 0,                              // 雪花不旋转
