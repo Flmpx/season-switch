@@ -7,6 +7,7 @@ import {
 
 // ---- DOM refs ----
 const customMonthRow = document.getElementById('customMonthRow')!;
+const customHourRow = document.getElementById('customHourRow')!;
 const customIntensityRow = document.getElementById('customIntensityRow')!;
 const customIntensitySlider = document.getElementById(
   'customIntensitySlider',
@@ -73,10 +74,24 @@ function updateMonthSelector(season: string, customMonth?: number): void {
   const show = season === 'custom-season';
   customMonthRow.style.display = show ? 'block' : 'none';
   if (show && customMonth !== undefined) {
-    document.querySelectorAll('.month-btn').forEach((btn) => {
+    document.querySelectorAll('.month-btn[data-month]').forEach((btn) => {
       btn.classList.toggle(
         'active',
         (btn as HTMLElement).dataset.month === String(customMonth),
+      );
+    });
+  }
+}
+
+// ---- Show/hide hour selector ----
+function updateHourSelector(timeOfDay: string, customHour?: number): void {
+  const show = timeOfDay === 'custom-time';
+  customHourRow.style.display = show ? 'block' : 'none';
+  if (show && customHour !== undefined) {
+    document.querySelectorAll('.hour-btn').forEach((btn) => {
+      btn.classList.toggle(
+        'active',
+        (btn as HTMLElement).dataset.hour === String(customHour),
       );
     });
   }
@@ -97,6 +112,9 @@ function initOptionGrids(settings: Settings): void {
         if (key === 'season') {
           updateMonthSelector(value, settings.customMonth);
         }
+        if (key === 'timeOfDay') {
+          updateHourSelector(value, settings.customHour);
+        }
         if (key === 'intensity') {
           updateIntensitySlider(value, settings.customIntensity);
         }
@@ -115,11 +133,24 @@ function initOptionGrids(settings: Settings): void {
 
 // ---- Bind month selector ----
 function initMonthGrid(settings: Settings): void {
-  document.querySelectorAll('.month-btn').forEach((btn) => {
+  document.querySelectorAll('.month-btn[data-month]').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const month = parseInt((btn as HTMLElement).dataset.month!, 10);
       settings.customMonth = month;
-      document.querySelectorAll('.month-btn').forEach((b) => b.classList.remove('active'));
+      document.querySelectorAll('.month-btn[data-month]').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      await saveSettings(settings);
+    });
+  });
+}
+
+// ---- Bind hour selector ----
+function initHourGrid(settings: Settings): void {
+  document.querySelectorAll('.hour-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const hour = parseInt((btn as HTMLElement).dataset.hour!, 10);
+      settings.customHour = hour;
+      document.querySelectorAll('.hour-btn').forEach((b) => b.classList.remove('active'));
       btn.classList.add('active');
       await saveSettings(settings);
     });
@@ -170,10 +201,12 @@ async function main(): Promise<void> {
   updateParticleSlider(settings.particleCount, settings.customParticleCount);
   updateParticleSizeSlider(settings.particleSize, settings.customParticleSize);
   updateMonthSelector(settings.season, settings.customMonth);
+  updateHourSelector(settings.timeOfDay, settings.customHour);
 
   // Bind interactions
   initOptionGrids(settings);
   initMonthGrid(settings);
+  initHourGrid(settings);
   initSlider(settings);
   initParticleSlider(settings);
   initParticleSizeSlider(settings);

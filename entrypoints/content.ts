@@ -58,6 +58,33 @@ const LEAF_SIZE_RANGES: Record<string, { min: number; max: number }> = {
 // ❄️ 雪花尺寸范围（像素）— 中等大小基准
 const SNOW_SIZE_RANGE = { min: 3, max: 10 };
 
+// 🌓 时段 → 24小时映射 — 用于计算页面亮度
+// 中午=12点（最亮），深夜=24点（最暗）
+const TIME_OF_DAY_HOURS: Record<string, number> = {
+  dawn: 6,        // 清晨
+  morning: 10,    // 上午
+  noon: 12,       // 中午（最亮，不降低亮度）
+  afternoon: 15,  // 下午
+  dusk: 18,       // 傍晚
+  evening: 21,    // 晚上
+  midnight: 24,   // 深夜（最暗）
+};
+
+// ⚙️ 可调节的最低亮度系数 — 深夜时页面亮度降低到该值（0~1）
+// 调大 → 深夜更亮；调小 → 深夜更暗（但不应低于 0.5，以免影响网页阅读）
+const MIN_BRIGHTNESS = 0.7;
+
+// 时段预设的亮度系数（1.0 = 不降低亮度）
+const TIME_OF_DAY_BRIGHTNESS: Record<string, number> = {
+  dawn: 0.85,      // 清晨
+  morning: 0.95,   // 上午
+  noon: 1.0,       // 中午（最亮）
+  afternoon: 0.95, // 下午
+  dusk: 0.8,       // 傍晚
+  evening: 0.7,    // 晚上
+  midnight: MIN_BRIGHTNESS, // 深夜（最暗）
+};
+
 // ---- Particle types ----
 
 interface FallingParticle {
@@ -112,6 +139,33 @@ function getParticleSizeScale(settings: Settings): number {
   return PARTICLE_SIZE_MAP[settings.particleSize] ?? 1.0;
 }
 
+// 🌓 根据时间设置计算页面亮度系数（1.0 = 不降低亮度）
+// 自定义时间 / 跟随系统：根据 24 小时实际时间，在中午(12点,亮度1.0)和深夜(24点,亮度MIN_BRIGHTNESS)之间插值
+function getTimeBrightness(settings: Settings): number {
+  // 预设时段直接返回对应亮度
+  if (settings.timeOfDay in TIME_OF_DAY_BRIGHTNESS) {
+    return TIME_OF_DAY_BRIGHTNESS[settings.timeOfDay];
+  }
+
+  // 自定义时间或跟随系统：取 24 小时值
+  let hour: number;
+  if (settings.timeOfDay === 'custom-time') {
+    hour = settings.customHour;
+  } else {
+    // system-time
+    hour = new Date().getHours();
+    if (hour === 0) hour = 24; // 0点视为 24 点（深夜）
+  }
+
+  // 将 0~24 小时映射到亮度系数
+  // 12 点为最亮 (1.0)，0/24 点为最暗 (MIN_BRIGHTNESS)
+  // 使用余弦曲线平滑过渡：cos((hour-12)/24 * 2π) → 12点=1.0, 0/24点=-1.0
+  const normalized = (hour - 12) / 12; // -1 ~ 1
+  const cos = Math.cos(normalized * Math.PI); // 12点=1, 0/24点=-1
+  // 映射到 [MIN_BRIGHTNESS, 1.0]
+  return MIN_BRIGHTNESS + ((cos + 1) / 2) * (1.0 - MIN_BRIGHTNESS);
+}
+
 // ---- AtmosphereRenderer ----
 
 class AtmosphereRenderer {
@@ -119,6 +173,8 @@ class AtmosphereRenderer {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private lensFlare: HTMLDivElement | null = null;
+  // 🌑 亮度遮罩层 — 通过黑色 rgba 降低页面整体亮度，模拟时段光线
+  private brightnessOverlay: HTMLDivElement;
 
   private particles: FallingParticle[] = [];
   private settings: Settings | null = null;
@@ -126,6 +182,8 @@ class AtmosphereRenderer {
   private intensity = 1.0;
   private particleRate = 50 / 60; // 每秒生成粒子数（由 个/分钟 转换）
   private particleSizeScale = 1.0; // 粒子尺寸缩放系数（1.0 = 中等）
+  private timeBrightness = 1.0; // 时间亮度系数（1.0 = 不降低亮度）
+  private currentHour = 12; // 当前小时（1-24），用于判断是否显示夏季光晕
   private spawnAccumulator = 0; // 生成累加器（秒）
   private frameId = 0;
   private width = 0;
@@ -136,9 +194,22 @@ class AtmosphereRenderer {
   constructor(ctx: ContentScriptContext) {
     this.ctxRef = ctx;
 
-    // Color overlay div
+    // Color overlay div (底层：季节色调)
     this.overlay = document.createElement('div');
     Object.assign(this.overlay.style, {
+      position: 'fixed',
+      inset: '0',
+      width: '100%',
+      height: '100%',
+      pointerEvents: 'none',
+      zIndex: '2147483645',
+      transition: 'background-color 1.2s ease',
+    });
+
+    // 🌑 亮度遮罩层 — 黑色 rgba，透明度由时段亮度决定
+    // 位于色调层之上、粒子层之下，这样粒子始终可见
+    this.brightnessOverlay = document.createElement('div');
+    Object.assign(this.brightnessOverlay.style, {
       position: 'fixed',
       inset: '0',
       width: '100%',
@@ -148,7 +219,7 @@ class AtmosphereRenderer {
       transition: 'background-color 1.2s ease',
     });
 
-    // Canvas for particles + pile
+    // Canvas for particles (顶层：粒子)
     this.canvas = document.createElement('canvas');
     Object.assign(this.canvas.style, {
       position: 'fixed',
@@ -162,6 +233,7 @@ class AtmosphereRenderer {
 
     // Append to DOM
     document.documentElement.appendChild(this.overlay);
+    document.documentElement.appendChild(this.brightnessOverlay);
     document.documentElement.appendChild(this.canvas);
 
     // Resize handling
@@ -192,8 +264,19 @@ class AtmosphereRenderer {
     this.intensity = getIntensityValue(settings);
     this.particleRate = getParticleRate(settings);
     this.particleSizeScale = getParticleSizeScale(settings);
+    this.timeBrightness = getTimeBrightness(settings);
+
+    // 计算当前小时（用于判断是否显示夏季光晕，仅在 6-18 点显示）
+    if (settings.timeOfDay === 'custom-time') {
+      this.currentHour = settings.customHour;
+    } else if (settings.timeOfDay === 'system-time') {
+      this.currentHour = new Date().getHours() || 24;
+    } else {
+      this.currentHour = TIME_OF_DAY_HOURS[settings.timeOfDay] ?? 12;
+    }
 
     this.updateOverlay();
+    this.updateBrightnessOverlay();
     this.updateLensFlare();
   }
 
@@ -210,11 +293,22 @@ class AtmosphereRenderer {
     this.overlay.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${a})`;
   }
 
+  // ---- Brightness Overlay (Time of Day) ----
+
+  private updateBrightnessOverlay() {
+    // 🌑 亮度遮罩 — 黑色 rgba，亮度系数越低透明度越高
+    // timeBrightness = 1.0 时（中午）完全透明，不降低亮度
+    // timeBrightness = MIN_BRIGHTNESS 时（深夜）透明度最高
+    const darkness = 1.0 - this.timeBrightness; // 0~(1-MIN_BRIGHTNESS)
+    this.brightnessOverlay.style.backgroundColor = `rgba(0, 0, 0, ${darkness})`;
+  }
+
   // ---- Lens Flare (Summer) ----
 
   private updateLensFlare() {
-    // 夏季镜头炫光 — 当夏权重 > 0.3 时显示
-    const show = this.weights.summer > 0.3;
+    // 夏季镜头炫光 — 当夏权重 > 0.3 且时间为 6-18 点（白天）时显示
+    const isDaytime = this.currentHour >= 6 && this.currentHour <= 18;
+    const show = this.weights.summer > 0.3 && isDaytime;
     if (show && !this.lensFlare) {
       this.lensFlare = document.createElement('div');
       Object.assign(this.lensFlare.style, {
@@ -234,6 +328,7 @@ class AtmosphereRenderer {
     }
     if (this.lensFlare) {
       this.lensFlare.style.opacity = String(this.weights.summer * this.intensity * 0.6);
+      this.lensFlare.style.zIndex = '2147483646';
       if (!show) {
         this.lensFlare.remove();
         this.lensFlare = null;
@@ -456,6 +551,7 @@ class AtmosphereRenderer {
   private destroy() {
     cancelAnimationFrame(this.frameId);
     this.overlay.remove();
+    this.brightnessOverlay.remove();
     this.canvas.remove();
     this.lensFlare?.remove();
     this.unsubscribe?.();

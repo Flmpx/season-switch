@@ -143,6 +143,11 @@ body {
   gap: 4px;
 }
 
+/* ---- Hour Grid (6 列，容纳 24 个按钮) ---- */
+.hour-grid {
+  grid-template-columns: repeat(6, 1fr);
+}
+
 .month-btn {
   padding: 4px 0;
   font-size: 12px;

@@ -1,7 +1,8 @@
 export interface Settings {
   season: string; // 'spring' | 'summer' | 'autumn' | 'winter' | 'custom-season' | 'system-season'
   customMonth: number; // 1-12
-  timeOfDay: string;
+  timeOfDay: string; // 'dawn' | 'morning' | 'noon' | 'afternoon' | 'dusk' | 'evening' | 'midnight' | 'custom-time' | 'system-time'
+  customHour: number; // 1-24，自定义时间使用
   intensity: string; // 'misty' | 'light' | 'medium' | 'deep' | 'custom-intensity'
   customIntensity: number; // 0-100
   particleCount: string; // 'minimal' | 'few' | 'medium' | 'heavy' | 'custom-particle'
@@ -14,6 +15,7 @@ export const DEFAULT_SETTINGS: Settings = {
   season: 'system-season',
   customMonth: new Date().getMonth() + 1,
   timeOfDay: 'system-time',
+  customHour: new Date().getHours() || 24,
   intensity: 'medium',
   customIntensity: 50,
   particleCount: 'medium',
