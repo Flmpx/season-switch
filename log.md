@@ -305,3 +305,58 @@ tool-free/
 
 - 粒子大小设置 UI 在前序提交中已完成，本次补齐功能效果
 - 时间（清晨/上午/...）和显示程度的效果仍未实现
+
+---
+
+## 2026-06-18 增加时间设置功能
+
+### 完成内容
+
+1. **`lib/settings.ts` 新增 `customHour` 字段**
+   - 数字类型，范围 1-24，供时间"自定义"使用
+   - 默认值取当前系统小时（`new Date().getHours() || 24`，0 点视为 24 点）
+
+2. **`entrypoints/content.ts` 新增时间亮度系统**
+   - 新增 `TIME_OF_DAY_HOURS` 常量：时段到 24 小时映射（清晨=6、上午=10、中午=12、下午=15、傍晚=18、晚上=21、深夜=24）
+   - 新增 `MIN_BRIGHTNESS` 常量（默认 0.7）：**可调节的最低亮度系数**，带注释说明不应低于 0.5 以免影响网页阅读
+   - 新增 `TIME_OF_DAY_BRIGHTNESS` 常量：时段预设亮度系数（中午=1.0 最亮，深夜=0.7 最暗）
+   - 新增 `getTimeBrightness()` 函数：预设时段直接返回对应亮度；自定义时间/跟随系统时用余弦曲线在 12 点（最亮 1.0）和 0/24 点（最暗 MIN_BRIGHTNESS）之间平滑插值
+   - 新增 `brightnessOverlay` div 作为亮度遮罩层，z-index 位于色调层（2147483645）和粒子层（2147483647）之间（2147483646），保证粒子始终可见
+   - 新增 `updateBrightnessOverlay()` 方法：通过黑色 rgba 透明度（`1.0 - timeBrightness`）降低页面整体亮度
+   - 新增 `currentHour` 字段（1-24），在 `applySettings` 中根据设置计算
+   - `updateLensFlare()` 增加白天判断：仅在 `currentHour` 为 6-18 且夏权重 > 0.3 时显示镜头炫光
+   - `destroy()` 中清理 `brightnessOverlay`
+
+3. **Popup 新增自定义时间选择器**
+   - `popup/index.html` 新增 1-24 小时选择器（6×4 网格，复用 `month-btn` 样式，新增 `hour-btn` class）
+   - `popup/main.ts` 新增 `updateHourSelector()` 函数：选择"自定义"时展开小时网格
+   - `popup/main.ts` 新增 `initHourGrid()` 函数：绑定小时按钮点击事件，保存至 `settings.customHour`
+   - `popup/style.css` 新增 `.hour-grid` 样式：6 列布局容纳 24 个按钮
+
+### 文件结构
+
+```
+tool-free/
+├── wxt.config.ts
+├── tsconfig.json
+├── package.json
+├── lib/
+│   ├── settings.ts              # 新增 customHour 字段
+│   └── season-weights.ts
+├── entrypoints/
+│   ├── content.ts                # 新增时间亮度系统、亮度遮罩层、白天镜头炫光判断
+│   └── popup/
+│       ├── index.html            # 新增 1-24 小时选择器
+│       ├── style.css             # 新增 hour-grid 6 列样式
+│       └── main.ts               # 新增 updateHourSelector / initHourGrid
+├── README.md
+├── process.md
+└── project.md
+```
+
+### 备注
+
+- 最低亮度可通过修改 `MIN_BRIGHTNESS` 常量调节（建议 0.5-0.8 之间）
+- 亮度遮罩层位于色调层和粒子层之间，粒子始终可见
+- 夏季镜头炫光现在受时间限制，仅白天显示
+- 显示程度的效果仍未实现
