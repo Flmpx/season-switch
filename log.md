@@ -220,7 +220,7 @@ tool-free/
 ### 备注
 
 - 粒子大小设置 UI 已完成，功能效果未实现
-- 时间（清晨/上午/...）和显示程度的效果仍未实现
+- 时间（清晨/上午/...）的效果仍未实现
 
 ---
 
@@ -359,4 +359,61 @@ tool-free/
 - 最低亮度可通过修改 `MIN_BRIGHTNESS` 常量调节（建议 0.5-0.8 之间）
 - 亮度遮罩层位于色调层和粒子层之间，粒子始终可见
 - 夏季镜头炫光现在受时间限制，仅白天显示
-- 显示程度的效果仍未实现
+
+---
+
+## 2026-06-19 季节月份和时间小时改为进度条选择器
+
+### 完成内容
+
+1. **Popup 季节自定义改为进度条**
+   - `popup/index.html` 月份按钮网格（1-12 月 4×3 布局）替换为进度条滑块（min=1, max=12），右侧显示"X月"
+   - `popup/main.ts` 新增 `customMonthSlider` / `customMonthValue` DOM 引用
+   - `popup/main.ts` `updateMonthSelector` 改为设置滑块值和文本
+   - `popup/main.ts` 新增 `initMonthSlider` 绑定 input 事件
+   - 删除旧的 `initMonthGrid` 按钮网格绑定函数
+
+2. **Popup 时间自定义改为进度条**
+   - `popup/index.html` 小时按钮网格（1-24 点 6×4 布局）替换为进度条滑块，范围改为 **0-23**（符合 design.md 要求），右侧显示"X时"
+   - `popup/main.ts` 新增 `customHourSlider` / `customHourValue` DOM 引用
+   - `popup/main.ts` `updateHourSelector` 改为设置滑块值和文本
+   - `popup/main.ts` 新增 `initHourSlider` 绑定 input 事件
+   - 删除旧的 `initHourGrid` 按钮网格绑定函数
+
+3. **小时范围从 1-24 改为 0-23 的同步改动**
+   - `lib/settings.ts` `customHour` 注释改为 0-23，默认值去掉 `|| 24` 转换
+   - `entrypoints/content.ts` `TIME_OF_DAY_HOURS.midnight` 从 24 改为 0，与 0-23 体系一致
+   - `entrypoints/content.ts` `getTimeBrightness` 去掉 0 点转 24 的逻辑，注释更新为 0-23 体系
+   - `entrypoints/content.ts` `currentHour` 字段注释从 1-24 改为 0-23
+   - `entrypoints/content.ts` `applySettings` 中 system-time 去掉 `|| 24` 转换
+
+4. **样式清理**
+   - `popup/style.css` 删除不再使用的 `.custom-month-row`、`.month-grid`、`.hour-grid`、`.month-btn` 及其 hover/active 样式
+
+### 文件结构
+
+```
+tool-free/
+├── wxt.config.ts
+├── tsconfig.json
+├── package.json
+├── lib/
+│   ├── settings.ts              # customHour 范围改为 0-23
+│   └── season-weights.ts
+├── entrypoints/
+│   ├── content.ts                # 时间小时体系改为 0-23
+│   └── popup/
+│       ├── index.html            # 月份和小时改为进度条
+│       ├── style.css             # 删除 month-grid / hour-grid 等样式
+│       └── main.ts               # 月份和小时改为进度条交互
+├── README.md
+├── design.md
+├── process.md
+└── project.md
+```
+
+### 备注
+
+- 季节月份进度条范围 1-12，时间小时进度条范围 0-23（0 时 = 深夜）
+- design.md 中明确要求时间自定义单位格式为"15时、0时、23时"
+- 旧的月份/小时按钮网格样式已全部清理
