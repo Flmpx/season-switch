@@ -7,7 +7,15 @@ import {
 
 // ---- DOM refs ----
 const customMonthRow = document.getElementById('customMonthRow')!;
+const customMonthSlider = document.getElementById(
+  'customMonthSlider',
+) as HTMLInputElement;
+const customMonthValue = document.getElementById('customMonthValue')!;
 const customHourRow = document.getElementById('customHourRow')!;
+const customHourSlider = document.getElementById(
+  'customHourSlider',
+) as HTMLInputElement;
+const customHourValue = document.getElementById('customHourValue')!;
 const customIntensityRow = document.getElementById('customIntensityRow')!;
 const customIntensitySlider = document.getElementById(
   'customIntensitySlider',
@@ -69,31 +77,23 @@ function updateParticleSizeSlider(particleSize: string, customValue?: number): v
   }
 }
 
-// ---- Show/hide month selector ----
+// ---- Show/hide custom month slider ----
 function updateMonthSelector(season: string, customMonth?: number): void {
   const show = season === 'custom-season';
-  customMonthRow.style.display = show ? 'block' : 'none';
-  if (show && customMonth !== undefined) {
-    document.querySelectorAll('.month-btn[data-month]').forEach((btn) => {
-      btn.classList.toggle(
-        'active',
-        (btn as HTMLElement).dataset.month === String(customMonth),
-      );
-    });
+  customMonthRow.style.display = show ? 'flex' : 'none';
+  if (customMonth !== undefined) {
+    customMonthSlider.value = String(customMonth);
+    customMonthValue.textContent = `${customMonth}月`;
   }
 }
 
-// ---- Show/hide hour selector ----
+// ---- Show/hide custom hour slider ----
 function updateHourSelector(timeOfDay: string, customHour?: number): void {
   const show = timeOfDay === 'custom-time';
-  customHourRow.style.display = show ? 'block' : 'none';
-  if (show && customHour !== undefined) {
-    document.querySelectorAll('.hour-btn').forEach((btn) => {
-      btn.classList.toggle(
-        'active',
-        (btn as HTMLElement).dataset.hour === String(customHour),
-      );
-    });
+  customHourRow.style.display = show ? 'flex' : 'none';
+  if (customHour !== undefined) {
+    customHourSlider.value = String(customHour);
+    customHourValue.textContent = `${customHour}时`;
   }
 }
 
@@ -131,29 +131,23 @@ function initOptionGrids(settings: Settings): void {
   });
 }
 
-// ---- Bind month selector ----
-function initMonthGrid(settings: Settings): void {
-  document.querySelectorAll('.month-btn[data-month]').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      const month = parseInt((btn as HTMLElement).dataset.month!, 10);
-      settings.customMonth = month;
-      document.querySelectorAll('.month-btn[data-month]').forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
-      await saveSettings(settings);
-    });
+// ---- Bind custom month slider ----
+function initMonthSlider(settings: Settings): void {
+  customMonthSlider.addEventListener('input', async () => {
+    const val = parseInt(customMonthSlider.value, 10);
+    settings.customMonth = val;
+    customMonthValue.textContent = `${val}月`;
+    await saveSettings(settings);
   });
 }
 
-// ---- Bind hour selector ----
-function initHourGrid(settings: Settings): void {
-  document.querySelectorAll('.hour-btn').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      const hour = parseInt((btn as HTMLElement).dataset.hour!, 10);
-      settings.customHour = hour;
-      document.querySelectorAll('.hour-btn').forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
-      await saveSettings(settings);
-    });
+// ---- Bind custom hour slider ----
+function initHourSlider(settings: Settings): void {
+  customHourSlider.addEventListener('input', async () => {
+    const val = parseInt(customHourSlider.value, 10);
+    settings.customHour = val;
+    customHourValue.textContent = `${val}时`;
+    await saveSettings(settings);
   });
 }
 
@@ -205,8 +199,8 @@ async function main(): Promise<void> {
 
   // Bind interactions
   initOptionGrids(settings);
-  initMonthGrid(settings);
-  initHourGrid(settings);
+  initMonthSlider(settings);
+  initHourSlider(settings);
   initSlider(settings);
   initParticleSlider(settings);
   initParticleSizeSlider(settings);

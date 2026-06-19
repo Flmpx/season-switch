@@ -58,8 +58,8 @@ const LEAF_SIZE_RANGES: Record<string, { min: number; max: number }> = {
 // ❄️ 雪花尺寸范围（像素）— 中等大小基准
 const SNOW_SIZE_RANGE = { min: 3, max: 10 };
 
-// 🌓 时段 → 24小时映射 — 用于计算页面亮度
-// 中午=12点（最亮），深夜=24点（最暗）
+// 🌓 时段 → 小时映射（0-23）— 用于计算页面亮度
+// 中午=12点（最亮），深夜=0点（最暗）
 const TIME_OF_DAY_HOURS: Record<string, number> = {
   dawn: 6,        // 清晨
   morning: 10,    // 上午
@@ -67,7 +67,7 @@ const TIME_OF_DAY_HOURS: Record<string, number> = {
   afternoon: 15,  // 下午
   dusk: 18,       // 傍晚
   evening: 21,    // 晚上
-  midnight: 24,   // 深夜（最暗）
+  midnight: 0,    // 深夜（最暗，0点）
 };
 
 // ⚙️ 可调节的最低亮度系数 — 深夜时页面亮度降低到该值（0~1）
@@ -140,28 +140,27 @@ function getParticleSizeScale(settings: Settings): number {
 }
 
 // 🌓 根据时间设置计算页面亮度系数（1.0 = 不降低亮度）
-// 自定义时间 / 跟随系统：根据 24 小时实际时间，在中午(12点,亮度1.0)和深夜(24点,亮度MIN_BRIGHTNESS)之间插值
+// 自定义时间 / 跟随系统：根据小时（0-23），在中午(12点,亮度1.0)和深夜(0点,亮度MIN_BRIGHTNESS)之间插值
 function getTimeBrightness(settings: Settings): number {
   // 预设时段直接返回对应亮度
   if (settings.timeOfDay in TIME_OF_DAY_BRIGHTNESS) {
     return TIME_OF_DAY_BRIGHTNESS[settings.timeOfDay];
   }
 
-  // 自定义时间或跟随系统：取 24 小时值
+  // 自定义时间或跟随系统：取小时值（0-23）
   let hour: number;
   if (settings.timeOfDay === 'custom-time') {
     hour = settings.customHour;
   } else {
     // system-time
     hour = new Date().getHours();
-    if (hour === 0) hour = 24; // 0点视为 24 点（深夜）
   }
 
-  // 将 0~24 小时映射到亮度系数
-  // 12 点为最亮 (1.0)，0/24 点为最暗 (MIN_BRIGHTNESS)
-  // 使用余弦曲线平滑过渡：cos((hour-12)/24 * 2π) → 12点=1.0, 0/24点=-1.0
+  // 将 0~23 小时映射到亮度系数
+  // 12 点为最亮 (1.0)，0 点为最暗 (MIN_BRIGHTNESS)
+  // 使用余弦曲线平滑过渡：cos((hour-12)/12 * π) → 12点=1.0, 0点=-1.0
   const normalized = (hour - 12) / 12; // -1 ~ 1
-  const cos = Math.cos(normalized * Math.PI); // 12点=1, 0/24点=-1
+  const cos = Math.cos(normalized * Math.PI); // 12点=1, 0点=-1
   // 映射到 [MIN_BRIGHTNESS, 1.0]
   return MIN_BRIGHTNESS + ((cos + 1) / 2) * (1.0 - MIN_BRIGHTNESS);
 }
@@ -183,7 +182,7 @@ class AtmosphereRenderer {
   private particleRate = 50 / 60; // 每秒生成粒子数（由 个/分钟 转换）
   private particleSizeScale = 1.0; // 粒子尺寸缩放系数（1.0 = 中等）
   private timeBrightness = 1.0; // 时间亮度系数（1.0 = 不降低亮度）
-  private currentHour = 12; // 当前小时（1-24），用于判断是否显示夏季光晕
+  private currentHour = 12; // 当前小时（0-23），用于判断是否显示夏季光晕
   private spawnAccumulator = 0; // 生成累加器（秒）
   private frameId = 0;
   private width = 0;
@@ -266,11 +265,11 @@ class AtmosphereRenderer {
     this.particleSizeScale = getParticleSizeScale(settings);
     this.timeBrightness = getTimeBrightness(settings);
 
-    // 计算当前小时（用于判断是否显示夏季光晕，仅在 6-18 点显示）
+    // 计算当前小时（0-23，用于判断是否显示夏季光晕，仅在 6-18 点显示）
     if (settings.timeOfDay === 'custom-time') {
       this.currentHour = settings.customHour;
     } else if (settings.timeOfDay === 'system-time') {
-      this.currentHour = new Date().getHours() || 24;
+      this.currentHour = new Date().getHours();
     } else {
       this.currentHour = TIME_OF_DAY_HOURS[settings.timeOfDay] ?? 12;
     }
