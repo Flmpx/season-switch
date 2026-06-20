@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2026 Flmpx
+ * Licensed under MIT (see LICENSE).
+ */
 import { loadSettings, onSettingsChanged, type Settings } from '../lib/settings';
 import { getSeasonWeights, type SeasonWeights } from '../lib/season-weights';
 

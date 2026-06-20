@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2026 Flmpx
+ * Licensed under MIT (see LICENSE).
+ */
 export interface Settings {
   season: string; // 'spring' | 'summer' | 'autumn' | 'winter' | 'custom-season' | 'system-season'
   customMonth: number; // 1-12
