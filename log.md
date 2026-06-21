@@ -417,3 +417,58 @@ tool-free/
 - 季节月份进度条范围 1-12，时间小时进度条范围 0-23（0 时 = 深夜）
 - design.md 中明确要求时间自定义单位格式为"15时、0时、23时"
 - 旧的月份/小时按钮网格样式已全部清理
+
+---
+
+## 2026-06-21 增加星光功能并发布 v0.5.0
+
+### 完成内容
+
+1. **星光功能实现**
+   - 新增 `STAR_MAX_COUNT` 常量（24 点最大星光数 60）和 `STAR_SIZE_RANGE`（1-3 像素）
+   - 新增 `Star` 接口：位置、尺寸、闪烁相位/频率、基础透明度
+   - 新增 `getStarTargetCount()` 函数：19-23 点线性递增，0 点最大，1-5 点线性递减至 0
+   - 新增 `createStar()`：在屏幕上方 1/3 区域随机生成
+   - 新增 `updateStars()`：增加时保留原有添加新的，减少时随机删除多余
+   - 新增 `drawStar()`：黄白色径向渐变（中心 `rgba(255,250,220,1.0)` → 中间淡黄 → 边缘透明），带闪烁效果（正弦波调制透明度）
+   - 星光数量及绘制透明度受显示程度 `intensity` 影响
+   - animate 循环中调用 `updateStars` 调整数量并更新闪烁相位、绘制
+
+2. **文档更新**
+   - README.md 时间部分增加星光功能说明
+   - design.md 更新星光设计细节（黄白色、由内到外朦胧、闪烁、上方 1/3 区域）
+
+3. **发布 v0.5.0**
+   - `package.json` 和 `package-lock.json` 版本号从 0.4.0 升至 0.5.0
+   - CHANGELOG.md 新增 0.5.0 版本条目
+
+### 文件结构
+
+```
+tool-free/
+├── wxt.config.ts
+├── tsconfig.json
+├── package.json                 # 版本号升至 0.5.0
+├── package-lock.json            # 版本号升至 0.5.0
+├── lib/
+│   ├── settings.ts
+│   └── season-weights.ts
+├── entrypoints/
+│   ├── content.ts                # 新增星光系统
+│   └── popup/
+│       ├── index.html
+│       ├── style.css
+│       └── main.ts
+├── README.md                     # 时间部分增加星光说明
+├── design.md                     # 更新星光设计
+├── CHANGELOG.md                  # 新增 0.5.0 条目
+├── process.md
+└── project.md
+```
+
+### 备注
+
+- 星光仅在 19 点至次日 5 点显示，0 点最多
+- 星光样式类似雪花但颜色为黄白色，由内到外慢慢变得朦胧
+- 星光数量增加时保留原有，减少时随机删除，符合 design.md 设计
+- 显示程度影响星光最大数量及绘制透明度
