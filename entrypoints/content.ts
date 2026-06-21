@@ -62,6 +62,12 @@ const LEAF_SIZE_RANGES: Record<string, { min: number; max: number }> = {
 // ❄️ 雪花尺寸范围（像素）— 中等大小基准
 const SNOW_SIZE_RANGE = { min: 3, max: 10 };
 
+// ⭐ 星光常量
+// STAR_MAX_COUNT: 24点（午夜）时的最大星光数量
+// STAR_SIZE_RANGE: 星光尺寸范围（像素），星光以点的形式呈现，比雪花小
+const STAR_MAX_COUNT = 60;
+const STAR_SIZE_RANGE = { min: 1, max: 3 };
+
 // 🌓 时段 → 小时映射（0-23）— 用于计算页面亮度
 // 中午=12点（最亮），深夜=0点（最暗）
 const TIME_OF_DAY_HOURS: Record<string, number> = {
@@ -104,6 +110,16 @@ interface FallingParticle {
   wobblePhase: number;
   wobbleSpeed: number;
   wobbleAmp: number;
+}
+
+// ⭐ 星光 — 静止于屏幕上方，闪烁
+interface Star {
+  x: number;
+  y: number;
+  size: number;
+  twinklePhase: number;   // 闪烁相位
+  twinkleSpeed: number;   // 闪烁频率
+  baseOpacity: number;    // 基础透明度
 }
 
 // ---- Helpers ----
@@ -169,6 +185,21 @@ function getTimeBrightness(settings: Settings): number {
   return MIN_BRIGHTNESS + ((cos + 1) / 2) * (1.0 - MIN_BRIGHTNESS);
 }
 
+// ⭐ 根据当前小时计算星光目标数量
+// 显示时段：19点 到 次日 5 点；24点（0点）最多，向两端线性递减至 0
+function getStarTargetCount(hour: number, maxCount: number): number {
+  // 19-23 点：从 0 线性增加到 4/5
+  if (hour >= 19 && hour <= 23) {
+    return Math.round(maxCount * (hour - 19) / 5);
+  }
+  // 0-5 点：0 点为最大值，5 点降为 0
+  if (hour >= 0 && hour <= 5) {
+    return Math.round(maxCount * (5 - hour) / 5);
+  }
+  // 其他时段不显示
+  return 0;
+}
+
 // ---- AtmosphereRenderer ----
 
 class AtmosphereRenderer {
@@ -180,6 +211,7 @@ class AtmosphereRenderer {
   private brightnessOverlay: HTMLDivElement;
 
   private particles: FallingParticle[] = [];
+  private stars: Star[] = []; // ⭐ 星光数组
   private settings: Settings | null = null;
   private weights: SeasonWeights = { spring: 1, summer: 0, autumn: 0, winter: 0 };
   private intensity = 1.0;
@@ -484,6 +516,65 @@ class AtmosphereRenderer {
     ctx.restore();
   }
 
+  // ⭐ 星光绘制 — 类似雪花但内部纯白，向外渐变，带闪烁效果
+  private drawStar(
+    ctx: CanvasRenderingContext2D,
+    star: Star,
+  ) {
+    // 闪烁：透明度随正弦波变化
+    const twinkle = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(star.twinklePhase));
+    const opacity = star.baseOpacity * twinkle * Math.min(this.intensity, 1.5);
+
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, opacity);
+
+    // 星光渐变：中心黄白 → 中间淡黄 → 边缘透明，由内到外慢慢变得朦胧
+    const gradient = ctx.createRadialGradient(star.x, star.y, 0, star.x, star.y, star.size);
+    gradient.addColorStop(0, 'rgba(255,250,220,1.0)');
+    gradient.addColorStop(0.4, 'rgba(255,240,180,0.6)');
+    gradient.addColorStop(1, 'rgba(255,235,150,0)');
+
+    ctx.beginPath();
+    ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // ⭐ 创建一颗星光 — 位置在屏幕上方 1/3 区域
+  private createStar(): Star {
+    return {
+      x: Math.random() * this.width,
+      y: Math.random() * (this.height / 3), // 上方 1/3 区域
+      size: STAR_SIZE_RANGE.min + Math.random() * (STAR_SIZE_RANGE.max - STAR_SIZE_RANGE.min),
+      twinklePhase: Math.random() * Math.PI * 2,
+      twinkleSpeed: 0.8 + Math.random() * 2.2, // 闪烁频率 0.8~3.0 rad/s
+      baseOpacity: 0.5 + Math.random() * 0.5,   // 基础透明度 0.5~1.0
+    };
+  }
+
+  // ⭐ 调整星光数量至目标值
+  // 增加：在原有基础上添加新星光，不删除原有
+  // 减少：随机删除多余星光
+  private updateStars() {
+    // 星光数量受显示程度影响
+    const maxStars = Math.round(STAR_MAX_COUNT * Math.min(this.intensity, 1.5));
+    const target = getStarTargetCount(this.currentHour, maxStars);
+
+    if (this.stars.length < target) {
+      // 增加新星光，保留原有
+      while (this.stars.length < target) {
+        this.stars.push(this.createStar());
+      }
+    } else if (this.stars.length > target) {
+      // 随机删除多余星光
+      while (this.stars.length > target) {
+        const idx = Math.floor(Math.random() * this.stars.length);
+        this.stars.splice(idx, 1);
+      }
+    }
+  }
+
   // ---- Animation Loop ----
 
   private lastTime = 0;
@@ -535,6 +626,13 @@ class AtmosphereRenderer {
 
     // 根据生成速率生成新粒子
     this.spawnParticles(dt);
+
+    // ⭐ 星光：调整数量至目标，更新闪烁相位，绘制
+    this.updateStars();
+    for (const star of this.stars) {
+      star.twinklePhase += star.twinkleSpeed * dt;
+      this.drawStar(this.ctx, star);
+    }
   };
 
   // ---- Resize ----
