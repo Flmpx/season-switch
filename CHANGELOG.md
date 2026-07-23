@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+### Changed
+- 代码结构整理：将 `entrypoints/content.ts` 中的渲染逻辑按职责拆分到 `entrypoints/envir/` 各分类目录
+  - `envir/leaf`：叶子颜色、尺寸范围、生成与绘制
+  - `envir/snow`：雪花尺寸范围、生成与绘制
+  - `envir/star`：星光常量、生成、目标数量计算、绘制与数量调整
+  - `envir/halo`：夏季镜头炫光（封装为 `LensFlare` 类）
+  - `envir/light`：时段亮度计算与亮度遮罩层更新
+  - `envir/particle`：飘落粒子类型、数目/大小设置映射与逐帧生成逻辑
+  - `envir/intensity`：显示程度 → 强度系数映射
+- `entrypoints/content.ts` 精简为统一的调度入口（编排各 `envir` 模块），`entrypoints/README.md` 未改动
+
 ## [0.5.0] - 2026-06-21
 
 ### Added
