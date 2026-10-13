@@ -185,6 +185,21 @@ function initParticleSizeSlider(settings: Settings): void {
   });
 }
 
+// ---- Tab switching (4 顶部标签分页) ----
+function initTabs(): void {
+  const tabs = document.querySelectorAll<HTMLButtonElement>('.tab-btn');
+  const panels = document.querySelectorAll<HTMLElement>('.tab-panel');
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab!;
+      tabs.forEach((t) => t.classList.toggle('active', t === tab));
+      panels.forEach((p) =>
+        p.classList.toggle('active', p.dataset.panel === target),
+      );
+    });
+  });
+}
+
 // ---- Main ----
 async function main(): Promise<void> {
   const settings = await loadSettings();
@@ -202,6 +217,7 @@ async function main(): Promise<void> {
   updateHourSelector(settings.timeOfDay, settings.customHour);
 
   // Bind interactions
+  initTabs();
   initOptionGrids(settings);
   initMonthSlider(settings);
   initHourSlider(settings);
