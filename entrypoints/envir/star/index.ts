@@ -1,5 +1,6 @@
 // ⭐ 星光相关：常量、生成、目标数量计算、绘制与数量调整
 // 夜间（19 点至次日 5 点）在屏幕上方 1/3 区域显示的黄白色闪烁星光。
+// 绘制由 particle/renderer.ts 按 elements.json 统一处理。
 
 export const STAR_MAX_COUNT = 60; // 24点（午夜）时的最大星光数量
 export const STAR_SIZE_RANGE = { min: 1, max: 3 }; // 星光尺寸范围（像素），比雪花小
@@ -9,6 +10,7 @@ export interface Star {
   x: number;
   y: number;
   size: number;
+  color: string; // 颜色（径向渐变绘制时未使用，保留以统一粒子结构）
   twinklePhase: number; // 闪烁相位
   twinkleSpeed: number; // 闪烁频率
   baseOpacity: number; // 基础透明度
@@ -35,6 +37,7 @@ export function createStar(width: number, height: number): Star {
     x: Math.random() * width,
     y: Math.random() * (height / 3), // 上方 1/3 区域
     size: STAR_SIZE_RANGE.min + Math.random() * (STAR_SIZE_RANGE.max - STAR_SIZE_RANGE.min),
+    color: '#FFFAD6', // 与 elements.json 中 star 的颜色一致
     twinklePhase: Math.random() * Math.PI * 2,
     twinkleSpeed: 0.8 + Math.random() * 2.2, // 闪烁频率 0.8~3.0 rad/s
     baseOpacity: 0.5 + Math.random() * 0.5, // 基础透明度 0.5~1.0
@@ -67,30 +70,4 @@ export function updateStars(
       stars.splice(idx, 1);
     }
   }
-}
-
-// ⭐ 星光绘制 — 类似雪花但内部纯白，向外渐变，带闪烁效果
-export function drawStar(
-  ctx: CanvasRenderingContext2D,
-  star: Star,
-  intensity: number,
-) {
-  // 闪烁：透明度随正弦波变化
-  const twinkle = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(star.twinklePhase));
-  const opacity = star.baseOpacity * twinkle * Math.min(intensity, 1.5);
-
-  ctx.save();
-  ctx.globalAlpha = Math.max(0, opacity);
-
-  // 星光渐变：中心黄白 → 中间淡黄 → 边缘透明，由内到外慢慢变得朦胧
-  const gradient = ctx.createRadialGradient(star.x, star.y, 0, star.x, star.y, star.size);
-  gradient.addColorStop(0, 'rgba(255,250,220,1.0)');
-  gradient.addColorStop(0.4, 'rgba(255,240,180,0.6)');
-  gradient.addColorStop(1, 'rgba(255,235,150,0)');
-
-  ctx.beginPath();
-  ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-  ctx.fillStyle = gradient;
-  ctx.fill();
-  ctx.restore();
 }

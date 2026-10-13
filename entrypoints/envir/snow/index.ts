@@ -1,5 +1,6 @@
-// ❄️ 雪花相关：尺寸范围、生成与绘制
+// ❄️ 雪花相关：尺寸范围、生成
 // 冬季节点的球状雪花（内白外朦胧）。
+// 绘制由 particle/renderer.ts 按 elements.json 统一处理。
 
 import type { FallingParticle } from '../particle';
 
@@ -28,28 +29,4 @@ export function createSnow(
     wobbleSpeed: 0.4 + Math.random() * 0.8, // 摇摆频率，比叶子慢
     wobbleAmp: 10 + Math.random() * 20, // 摇摆幅度，比叶子小
   };
-}
-
-// ❄️ 雪花绘制 — 球状径向渐变：内白 → 朦胧边
-export function drawSnow(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  size: number,
-  opacity: number,
-) {
-  ctx.save();
-  ctx.globalAlpha = Math.max(0, opacity);
-
-  // 雪花渐变：中心白 0.9 → 中间 0.5 → 边缘透明
-  const gradient = ctx.createRadialGradient(x, y, 0, x, y, size);
-  gradient.addColorStop(0, 'rgba(255,255,255,0.9)');
-  gradient.addColorStop(0.4, 'rgba(255,255,255,0.5)');
-  gradient.addColorStop(1, 'rgba(255,255,255,0)');
-
-  ctx.beginPath();
-  ctx.arc(x, y, size, 0, Math.PI * 2);
-  ctx.fillStyle = gradient;
-  ctx.fill();
-  ctx.restore();
 }

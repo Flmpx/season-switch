@@ -1,5 +1,6 @@
-// 🍃 叶子相关：颜色色板、尺寸范围、生成与绘制
+// 🍃 叶子相关：颜色色板、尺寸范围、生成
 // 春/夏/秋三季的飘落叶子。冬为雪花，见 ../snow。
+// 绘制由 particle/renderer.ts 按 elements.json 统一处理。
 
 import type { SeasonWeights } from '../../../lib/season-weights';
 import type { FallingParticle } from '../particle';
@@ -63,38 +64,4 @@ export function createLeaf(
     wobbleSpeed: 0.8 + Math.random() * 1.2, // 摇摆频率
     wobbleAmp: 15 + Math.random() * 25, // 摇摆幅度（像素）
   };
-}
-
-// 🍃 叶子绘制 — 贝塞尔曲线叶形 + 中线叶脉
-export function drawLeaf(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  size: number,
-  color: string,
-  angle: number,
-  opacity: number,
-) {
-  ctx.save();
-  ctx.globalAlpha = Math.max(0, opacity);
-  ctx.translate(x, y);
-  ctx.rotate(angle);
-
-  // Leaf body
-  ctx.beginPath();
-  ctx.moveTo(0, -size);
-  ctx.bezierCurveTo(size * 0.6, -size * 0.3, size * 0.6, size * 0.3, 0, size);
-  ctx.bezierCurveTo(-size * 0.6, size * 0.3, -size * 0.6, -size * 0.3, 0, -size);
-  ctx.fillStyle = color;
-  ctx.fill();
-
-  // 叶脉中线
-  ctx.beginPath();
-  ctx.moveTo(0, -size * 0.7);
-  ctx.lineTo(0, size * 0.7);
-  ctx.strokeStyle = 'rgba(0,0,0,0.12)'; // 叶脉颜色：淡黑
-  ctx.lineWidth = 0.5; // 叶脉粗细
-  ctx.stroke();
-
-  ctx.restore();
 }

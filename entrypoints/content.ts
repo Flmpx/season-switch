@@ -13,9 +13,8 @@ import {
   updateBrightnessOverlay,
 } from './envir/light';
 import { LensFlare } from './envir/halo';
-import { drawLeaf } from './envir/leaf';
-import { drawSnow } from './envir/snow';
-import { updateStars, drawStar, type Star } from './envir/star';
+import { updateStars, type Star } from './envir/star';
+import { drawParticle } from './envir/particle/renderer';
 
 // 🎨 季节色调 — 用于整个页面的淡淡色彩覆盖层 (RGB)
 const SEASON_TINTS: Record<string, { r: number; g: number; b: number }> = {
@@ -194,13 +193,16 @@ class AtmosphereRenderer {
         continue;
       }
 
-      // Draw
-      const drawOpacity = p.opacity * Math.min(this.intensity, 1.5);
-      if (p.type === 'leaf') {
-        drawLeaf(this.ctx, p.x, p.y, p.size, p.color, p.rotation, drawOpacity);
-      } else {
-        drawSnow(this.ctx, p.x, p.y, p.size, drawOpacity);
-      }
+      // Draw（统一渲染器按 elements.json 描述符绘制）
+      drawParticle(this.ctx, {
+        type: p.type,
+        x: p.x,
+        y: p.y,
+        size: p.size,
+        rotation: p.rotation,
+        opacity: p.opacity * Math.min(this.intensity, 1.5),
+        color: p.color,
+      });
     }
 
     // 根据生成速率生成新粒子
@@ -217,9 +219,20 @@ class AtmosphereRenderer {
 
     // ⭐ 星光：调整数量至目标，更新闪烁相位，绘制
     updateStars(this.stars, this.currentHour, this.intensity, this.width, this.height);
+    const drawIntensity = Math.min(this.intensity, 1.5);
     for (const star of this.stars) {
       star.twinklePhase += star.twinkleSpeed * dt;
-      drawStar(this.ctx, star, this.intensity);
+      const twinkle = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(star.twinklePhase));
+      const opacity = star.baseOpacity * twinkle * drawIntensity;
+      drawParticle(this.ctx, {
+        type: 'star',
+        x: star.x,
+        y: star.y,
+        size: star.size,
+        rotation: 0,
+        opacity,
+        color: star.color,
+      });
     }
   };
 
