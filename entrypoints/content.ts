@@ -8,14 +8,12 @@ import { getSeasonWeights, type SeasonWeights } from '../lib/season-weights';
 import { getIntensityValue } from './envir/intensity';
 import { getParticleRate, getParticleSizeScale } from './envir/particle';
 import { ParticleManager } from './envir/particle/manager';
-import { type TwinklingParticle } from './envir/particle/particle';
 import {
   TIME_OF_DAY_HOURS,
   getTimeBrightness,
   updateBrightnessOverlay,
 } from './envir/light';
 import { LensFlare } from './envir/halo';
-import { updateStars } from './envir/star';
 
 // 🎨 季节色调 — 用于整个页面的淡淡色彩覆盖层 (RGB)
 const SEASON_TINTS: Record<string, { r: number; g: number; b: number }> = {
@@ -36,8 +34,7 @@ class AtmosphereRenderer {
   // 🌑 亮度遮罩层 — 通过黑色 rgba 降低页面整体亮度，模拟时段光线
   private brightnessOverlay: HTMLDivElement;
 
-  private particleManager: ParticleManager; // 🍃❄️ 飘落粒子统一管理器
-  private stars: TwinklingParticle[] = []; // ⭐ 星光数组（后续步骤将并入 ParticleManager）
+  private particleManager: ParticleManager; // 🍃❄️⭐ 粒子统一管理器（飘落粒子 + 星光）
   private settings: Settings | null = null;
   private weights: SeasonWeights = { spring: 1, summer: 0, autumn: 0, winter: 0 };
   private intensity = 1.0;
@@ -178,12 +175,10 @@ class AtmosphereRenderer {
     );
     this.particleManager.step(dt, this.height, this.intensity);
 
-    // ⭐ 星光：调整数量至目标（updateStars 管理），闪烁更新与绘制收归 TwinklingParticle
-    updateStars(this.stars, this.currentHour, this.intensity, this.width, this.height);
-    for (const star of this.stars) {
-      star.update(dt); // 仅更新闪烁相位，不移动
-      star.draw(this.ctx, this.intensity);
-    }
+    // ⭐ 星光：按当前时段与显示程度维持目标数量（由 ParticleManager 统一管理）
+    this.particleManager.maintainStars(this.currentHour, this.intensity, this.width, this.height);
+    // 🍃❄️⭐ 统一更新 + 绘制（飘落粒子的下落/摆动/渐隐 + 星光的闪烁）
+    this.particleManager.step(dt, this.height, this.intensity);
   };
 
   // ---- Resize ----

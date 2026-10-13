@@ -1,4 +1,4 @@
-// ⭐ 星光相关：常量、生成、目标数量计算与数量调整
+// ⭐ 星光相关：常量、生成与目标数量计算
 // 夜间（19 点至次日 5 点）在屏幕上方 1/3 区域显示的黄白色闪烁星光。
 // 星光为 TwinklingParticle 派生（静止 + 闪烁），绘制由 particle/renderer.ts 按 elements.json 处理。
 
@@ -43,30 +43,3 @@ export function createStar(width: number, height: number): TwinklingParticle {
   });
 }
 
-// ⭐ 调整星光数量至目标值（就地修改传入数组）
-// 增加：在原有基础上添加新星光，不删除原有
-// 减少：随机删除多余星光
-export function updateStars(
-  stars: TwinklingParticle[],
-  currentHour: number,
-  intensity: number,
-  width: number,
-  height: number,
-): void {
-  // 星光数量受显示程度影响
-  const maxStars = Math.round(STAR_MAX_COUNT * Math.min(intensity, 1.5));
-  const target = getStarTargetCount(currentHour, maxStars);
-
-  if (stars.length < target) {
-    // 增加新星光，保留原有
-    while (stars.length < target) {
-      stars.push(createStar(width, height));
-    }
-  } else if (stars.length > target) {
-    // 随机删除多余星光
-    while (stars.length > target) {
-      const idx = Math.floor(Math.random() * stars.length);
-      stars.splice(idx, 1);
-    }
-  }
-}

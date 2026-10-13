@@ -34,12 +34,12 @@ entrypoints/
     ├── intensity/        # 显示程度 → 强度系数（影响色调/粒子/星光/光晕浓度）
     ├── particle/         # 粒子系统：Particle 抽象基类 + FallingParticle/TwinklingParticle 派生（update/draw 收归粒子自身）、数目/大小映射、统一渲染器 renderer.ts（读 elements.json 绘制）、ParticleManager 生命周期管理
     │   ├── particle.ts    # Particle 基类与派生类（fall / twinkle 行为）
-    │   ├── manager.ts     # ParticleManager：飘落粒子的生成/更新/绘制/消失统一管理
+    │   ├── manager.ts     # ParticleManager：飘落粒子与星光的生成/更新/绘制/消失统一管理（maintainStars 维持星光数量）
     │   ├── renderer.ts    # 统一绘制入口 drawParticle（按 elements.json 描述符）
     │   └── elements.json  # 元素外观/参数数据契约（SVG 几何或 emoji）
     ├── leaf/             # 叶子：颜色色板、尺寸范围、createLeaf（返回 FallingParticle）
     ├── snow/             # 雪花：尺寸范围、createSnow（返回 FallingParticle）
-    ├── star/             # 星光：常量、createStar（返回 TwinklingParticle）、getStarTargetCount、updateStars（数量管理，后续并入 ParticleManager）
+    ├── star/             # 星光：常量、createStar（返回 TwinklingParticle）、getStarTargetCount（数量维持已并入 ParticleManager.maintainStars）
     ├── halo/             # 夏季镜头炫光（封装为 LensFlare 类，自管 DOM）
     └── light/            # 时段亮度：getTimeBrightness、updateBrightnessOverlay、时段映射常量
 
@@ -76,8 +76,9 @@ lib/                      # 共享逻辑（被 content 与 popup 共用）
                  计算出 weights / intensity / timeBrightness / particleRate ...
                           │
               AtmosphereRenderer 持有这些状态，在 animate() 中：
-                • spawnParticles() 生成 leaf/snow
-                • updateStars() 调整星光数量
+                • particleManager.spawnStep() 生成 leaf/snow
+                • particleManager.maintainStars() 维持星光目标数量
+                • particleManager.step() 统一更新+绘制（飘落粒子下落/摆动/渐隐 + 星光闪烁）
                 • drawParticle() 按 elements.json 描述符逐帧绘制（统一渲染器）
                 • lensFlare.update() / updateBrightnessOverlay() 更新 DOM 层
 ```
@@ -130,7 +131,7 @@ lib/                      # 共享逻辑（被 content 与 popup 共用）
 | `particle` | `FallingParticle`(类型), `getParticleRate(s)`, `getParticleSizeScale(s)`, `spawnParticles(...)` → number（累加器） | 粒子系统核心 |
 | `leaf` | `LEAF_COLORS`, `LEAF_SIZE_RANGES`, `createLeaf(w,h,scale,weights)` | 叶子（绘制见 particle/renderer） |
 | `snow` | `SNOW_SIZE_RANGE`, `createSnow(w,h,scale)` | 雪花（绘制见 particle/renderer） |
-| `star` | `STAR_MAX_COUNT`, `STAR_SIZE_RANGE`, `Star`(类型), `getStarTargetCount(hour,max)`, `createStar(w,h)`, `updateStars(stars,hour,intensity,w,h)` | 星光（绘制见 particle/renderer） |
+| `star` | `STAR_MAX_COUNT`, `STAR_SIZE_RANGE`, `getStarTargetCount(hour,max)`, `createStar(w,h)` | 星光（数量维持见 `particle/manager.ts` 的 `maintainStars`，绘制见 `particle/renderer`） |
 | `halo` | `class LensFlare`：`update(weights,intensity,hour)` / `remove()` | 夏季光晕 |
 | `light` | `TIME_OF_DAY_HOURS`, `MIN_BRIGHTNESS`, `TIME_OF_DAY_BRIGHTNESS`, `getTimeBrightness(s)`, `updateBrightnessOverlay(div,brightness)` | 亮度 |
 
