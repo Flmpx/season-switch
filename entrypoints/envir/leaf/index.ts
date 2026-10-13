@@ -3,7 +3,7 @@
 // 绘制由 particle/renderer.ts 按 elements.json 统一处理。
 
 import type { SeasonWeights } from '../../../lib/season-weights';
-import type { FallingParticle } from '../particle';
+import { FallingParticle } from '../particle/particle';
 
 // 叶子颜色 — 每个季节的色板，增删颜色直接影响叶子多样性
 export const LEAF_COLORS = {
@@ -50,7 +50,8 @@ export function createLeaf(
   // 应用粒子大小缩放系数到 min/max 边界
   const sizeMin = sizeRange.min * particleSizeScale;
   const sizeMax = sizeRange.max * particleSizeScale;
-  return {
+  return new FallingParticle({
+    type: 'leaf',
     x: Math.random() * width,
     y: -20 - Math.random() * height, // 初始位置：屏幕上方随机高度
     size: sizeMin + Math.random() * (sizeMax - sizeMin),
@@ -58,10 +59,9 @@ export function createLeaf(
     rotation: Math.random() * Math.PI * 2, // 初始旋转角度
     rotSpeed: (Math.random() - 0.5) * 1.5, // 旋转速度（弧度/秒）
     opacity: 0.5 + Math.random() * 0.5, // 初始透明度 0.5~1.0
-    type: 'leaf',
     color: pick(colors), // 从对应季节色板中随机取色
     wobblePhase: Math.random() * Math.PI * 2, // 摇摆初始相位
     wobbleSpeed: 0.8 + Math.random() * 1.2, // 摇摆频率
     wobbleAmp: 15 + Math.random() * 25, // 摇摆幅度（像素）
-  };
+  });
 }

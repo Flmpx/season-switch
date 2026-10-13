@@ -6,15 +6,15 @@ import { loadSettings, onSettingsChanged, type Settings } from '../lib/settings'
 import { getSeasonWeights, type SeasonWeights } from '../lib/season-weights';
 
 import { getIntensityValue } from './envir/intensity';
-import { getParticleRate, getParticleSizeScale, spawnParticles, type FallingParticle } from './envir/particle';
+import { getParticleRate, getParticleSizeScale, spawnParticles } from './envir/particle';
+import { FallingParticle, type TwinklingParticle } from './envir/particle/particle';
 import {
   TIME_OF_DAY_HOURS,
   getTimeBrightness,
   updateBrightnessOverlay,
 } from './envir/light';
 import { LensFlare } from './envir/halo';
-import { updateStars, type Star } from './envir/star';
-import { drawParticle } from './envir/particle/renderer';
+import { updateStars } from './envir/star';
 
 // 🎨 季节色调 — 用于整个页面的淡淡色彩覆盖层 (RGB)
 const SEASON_TINTS: Record<string, { r: number; g: number; b: number }> = {
@@ -36,7 +36,7 @@ class AtmosphereRenderer {
   private brightnessOverlay: HTMLDivElement;
 
   private particles: FallingParticle[] = [];
-  private stars: Star[] = []; // ⭐ 星光数组
+  private stars: TwinklingParticle[] = []; // ⭐ 星光数组
   private settings: Settings | null = null;
   private weights: SeasonWeights = { spring: 1, summer: 0, autumn: 0, winter: 0 };
   private intensity = 1.0;
@@ -166,43 +166,15 @@ class AtmosphereRenderer {
 
     this.ctx.clearRect(0, 0, this.width, this.height);
 
-    // Update and draw particles
+    // Update and draw particles（物理与绘制已收归粒子自身的 update/draw 方法）
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
-
-      // Wobble
-      p.wobblePhase += p.wobbleSpeed * dt;
-      const wobbleX = Math.sin(p.wobblePhase) * p.wobbleAmp * dt;
-
-      p.x += wobbleX;
-      p.y += p.speedY * dt;
-      p.rotation += p.rotSpeed * dt;
-
-      // 着陆：到达窗口底部后停下，缓慢渐隐消失
-      const groundY = this.height - p.size;
-      if (p.y >= groundY) {
-        p.y = groundY;
-        p.speedY = 0;
-        p.rotSpeed = 0;
-        p.opacity -= dt * 0.5; // 渐隐速度（值越大消失越快，0.5 ≈ 2秒消失）
-      }
-
-      // Remove if faded out
+      p.update(dt, this.height); // 下落 + 摆动 + 着陆渐隐
       if (p.opacity <= 0) {
         this.particles.splice(i, 1);
         continue;
       }
-
-      // Draw（统一渲染器按 elements.json 描述符绘制）
-      drawParticle(this.ctx, {
-        type: p.type,
-        x: p.x,
-        y: p.y,
-        size: p.size,
-        rotation: p.rotation,
-        opacity: p.opacity * Math.min(this.intensity, 1.5),
-        color: p.color,
-      });
+      p.draw(this.ctx, this.intensity);
     }
 
     // 根据生成速率生成新粒子
@@ -217,22 +189,11 @@ class AtmosphereRenderer {
       this.spawnAccumulator,
     );
 
-    // ⭐ 星光：调整数量至目标，更新闪烁相位，绘制
+    // ⭐ 星光：调整数量至目标（updateStars 管理），闪烁更新与绘制收归 TwinklingParticle
     updateStars(this.stars, this.currentHour, this.intensity, this.width, this.height);
-    const drawIntensity = Math.min(this.intensity, 1.5);
     for (const star of this.stars) {
-      star.twinklePhase += star.twinkleSpeed * dt;
-      const twinkle = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(star.twinklePhase));
-      const opacity = star.baseOpacity * twinkle * drawIntensity;
-      drawParticle(this.ctx, {
-        type: 'star',
-        x: star.x,
-        y: star.y,
-        size: star.size,
-        rotation: 0,
-        opacity,
-        color: star.color,
-      });
+      star.update(dt); // 仅更新闪烁相位，不移动
+      star.draw(this.ctx, this.intensity);
     }
   };
 

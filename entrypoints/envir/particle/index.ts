@@ -1,26 +1,12 @@
 // 🍃❄️ 飘落粒子系统相关
-// 叶子与雪花共用的粒子类型、数目/大小设置映射，以及按生成速率逐帧生成粒子的逻辑。
+// 数目/大小设置映射，以及按生成速率逐帧生成粒子的逻辑。
+// 粒子类型与行为见 ./particle（Particle 基类 + FallingParticle 派生）。
 
 import type { Settings } from '../../../lib/settings';
 import type { SeasonWeights } from '../../../lib/season-weights';
+import type { FallingParticle } from './particle';
 import { createLeaf } from '../leaf';
 import { createSnow } from '../snow';
-
-// 飘落中的粒子（叶子或雪花共用）
-export interface FallingParticle {
-  x: number;
-  y: number;
-  size: number;
-  speedY: number;
-  rotation: number;
-  rotSpeed: number;
-  opacity: number;
-  type: 'leaf' | 'snow';
-  color: string;
-  wobblePhase: number;
-  wobbleSpeed: number;
-  wobbleAmp: number;
-}
 
 // 粒子数目预设值 — 每分钟生成粒子数（个/分钟）
 // 滑块范围 10~1800，预设值在范围内选取

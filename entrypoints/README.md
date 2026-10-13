@@ -32,10 +32,13 @@ entrypoints/
 │   └── style.css         # 弹窗样式（深色主题，宽 320px）
 └── envir/                # 氛围渲染模块，按职责拆分，content.ts 统一调用
     ├── intensity/        # 显示程度 → 强度系数（影响色调/粒子/星光/光晕浓度）
-    ├── particle/         # 飘落粒子系统：FallingParticle 类型、数目/大小映射、逐帧生成、统一渲染器 renderer.ts（读 elements.json 绘制）
-    ├── leaf/             # 叶子：颜色色板、尺寸范围、createLeaf（绘制见 particle/renderer）
-    ├── snow/             # 雪花：尺寸范围、createSnow（绘制见 particle/renderer）
-    ├── star/             # 星光：常量、createStar、getStarTargetCount、updateStars（绘制见 particle/renderer）
+    ├── particle/         # 粒子系统：Particle 抽象基类 + FallingParticle/TwinklingParticle 派生（update/draw 收归粒子自身）、数目/大小映射、逐帧生成、统一渲染器 renderer.ts（读 elements.json 绘制）
+    │   ├── particle.ts    # Particle 基类与派生类（fall / twinkle 行为）
+    │   ├── renderer.ts    # 统一绘制入口 drawParticle（按 elements.json 描述符）
+    │   └── elements.json  # 元素外观/参数数据契约（SVG 几何或 emoji）
+    ├── leaf/             # 叶子：颜色色板、尺寸范围、createLeaf（返回 FallingParticle）
+    ├── snow/             # 雪花：尺寸范围、createSnow（返回 FallingParticle）
+    ├── star/             # 星光：常量、createStar（返回 TwinklingParticle）、getStarTargetCount、updateStars（数量管理）
     ├── halo/             # 夏季镜头炫光（封装为 LensFlare 类，自管 DOM）
     └── light/            # 时段亮度：getTimeBrightness、updateBrightnessOverlay、时段映射常量
 
