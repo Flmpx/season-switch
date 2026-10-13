@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-13
+
 ### Changed
 - 代码结构整理：将 `entrypoints/content.ts` 中的渲染逻辑按职责拆分到 `entrypoints/envir/` 各分类目录
   - `envir/leaf`：叶子颜色、尺寸范围、生成与绘制
