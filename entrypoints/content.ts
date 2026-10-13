@@ -6,8 +6,9 @@ import { loadSettings, onSettingsChanged, type Settings } from '../lib/settings'
 import { getSeasonWeights, type SeasonWeights } from '../lib/season-weights';
 
 import { getIntensityValue } from './envir/intensity';
-import { getParticleRate, getParticleSizeScale, spawnParticles } from './envir/particle';
-import { FallingParticle, type TwinklingParticle } from './envir/particle/particle';
+import { getParticleRate, getParticleSizeScale } from './envir/particle';
+import { ParticleManager } from './envir/particle/manager';
+import { type TwinklingParticle } from './envir/particle/particle';
 import {
   TIME_OF_DAY_HOURS,
   getTimeBrightness,
@@ -35,8 +36,8 @@ class AtmosphereRenderer {
   // 🌑 亮度遮罩层 — 通过黑色 rgba 降低页面整体亮度，模拟时段光线
   private brightnessOverlay: HTMLDivElement;
 
-  private particles: FallingParticle[] = [];
-  private stars: TwinklingParticle[] = []; // ⭐ 星光数组
+  private particleManager: ParticleManager; // 🍃❄️ 飘落粒子统一管理器
+  private stars: TwinklingParticle[] = []; // ⭐ 星光数组（后续步骤将并入 ParticleManager）
   private settings: Settings | null = null;
   private weights: SeasonWeights = { spring: 1, summer: 0, autumn: 0, winter: 0 };
   private intensity = 1.0;
@@ -44,7 +45,6 @@ class AtmosphereRenderer {
   private particleSizeScale = 1.0; // 粒子尺寸缩放系数（1.0 = 中等）
   private timeBrightness = 1.0; // 时间亮度系数（1.0 = 不降低亮度）
   private currentHour = 12; // 当前小时（0-23），用于判断是否显示夏季光晕
-  private spawnAccumulator = 0; // 生成累加器（秒）
   private frameId = 0;
   private width = 0;
   private height = 0;
@@ -90,6 +90,7 @@ class AtmosphereRenderer {
       zIndex: '2147483647',
     });
     this.ctx = this.canvas.getContext('2d')!;
+    this.particleManager = new ParticleManager(this.ctx);
 
     // Append to DOM
     document.documentElement.appendChild(this.overlay);
@@ -166,28 +167,16 @@ class AtmosphereRenderer {
 
     this.ctx.clearRect(0, 0, this.width, this.height);
 
-    // Update and draw particles（物理与绘制已收归粒子自身的 update/draw 方法）
-    for (let i = this.particles.length - 1; i >= 0; i--) {
-      const p = this.particles[i];
-      p.update(dt, this.height); // 下落 + 摆动 + 着陆渐隐
-      if (p.opacity <= 0) {
-        this.particles.splice(i, 1);
-        continue;
-      }
-      p.draw(this.ctx, this.intensity);
-    }
-
-    // 根据生成速率生成新粒子
-    this.spawnAccumulator = spawnParticles(
-      this.particles,
-      this.weights,
+    // 🍃❄️ 飘落粒子：生成 + 更新/绘制/消失，统一由 ParticleManager 管理
+    this.particleManager.spawnStep(
+      dt,
       this.particleRate,
       this.particleSizeScale,
+      this.weights,
       this.width,
       this.height,
-      dt,
-      this.spawnAccumulator,
     );
+    this.particleManager.step(dt, this.height, this.intensity);
 
     // ⭐ 星光：调整数量至目标（updateStars 管理），闪烁更新与绘制收归 TwinklingParticle
     updateStars(this.stars, this.currentHour, this.intensity, this.width, this.height);

@@ -1,12 +1,8 @@
 // 🍃❄️ 飘落粒子系统相关
-// 数目/大小设置映射，以及按生成速率逐帧生成粒子的逻辑。
+// 数目/大小设置映射（粒子的生成与生命周期见 ./manager）。
 // 粒子类型与行为见 ./particle（Particle 基类 + FallingParticle 派生）。
 
 import type { Settings } from '../../../lib/settings';
-import type { SeasonWeights } from '../../../lib/season-weights';
-import type { FallingParticle } from './particle';
-import { createLeaf } from '../leaf';
-import { createSnow } from '../snow';
 
 // 粒子数目预设值 — 每分钟生成粒子数（个/分钟）
 // 滑块范围 10~1800，预设值在范围内选取
@@ -50,36 +46,4 @@ export function getParticleSizeScale(settings: Settings): number {
     return 1.0 + ((v - 50) / 50) * 0.8; // 50→1.0, 100→1.8
   }
   return PARTICLE_SIZE_MAP[settings.particleSize] ?? 1.0;
-}
-
-// 根据生成速率和季节权重，逐帧决定是否生成新粒子
-// 返回更新后的生成累加器（秒）。粒子直接推入传入的 particles 数组。
-export function spawnParticles(
-  particles: FallingParticle[],
-  weights: SeasonWeights,
-  particleRate: number,
-  particleSizeScale: number,
-  width: number,
-  height: number,
-  dt: number,
-  accumulator: number,
-): number {
-  // 生成速率按季节权重分配：叶子和雪花各自的比例
-  const leafWeight = weights.spring + weights.summer + weights.autumn;
-  const snowWeight = weights.winter;
-
-  // 累加器推进
-  let next = accumulator + dt * particleRate;
-
-  // 每积累1个粒子就生成一个
-  while (next >= 1) {
-    next -= 1;
-    const rand = Math.random() * (leafWeight + snowWeight);
-    if (rand < leafWeight) {
-      particles.push(createLeaf(width, height, particleSizeScale, weights));
-    } else {
-      particles.push(createSnow(width, height, particleSizeScale));
-    }
-  }
-  return next;
 }
