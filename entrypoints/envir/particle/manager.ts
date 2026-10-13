@@ -8,13 +8,21 @@ import { Particle } from './particle';
 import { TwinklingParticle } from './particle/particle';
 import { createLeaf } from '../leaf';
 import { createSnow } from '../snow';
-import { createStar, getStarTargetCount, STAR_MAX_COUNT } from '../star';
+import { createStar, getStarTargetCount } from '../star';
 import type { SeasonWeights } from '../../../lib/season-weights';
+import type { ElementConfig } from '../../../lib/settings';
+import {
+  getSizeScale,
+  getSpeedScale,
+  getCountPerMinute,
+  getStarMaxCount,
+} from './index';
 
 export class ParticleManager {
   private particles: Particle[] = []; // 飘落粒子（leaf / snow）
   private stars: TwinklingParticle[] = []; // 星光（静止 + 闪烁）
-  private accumulator = 0; // 飘落粒子生成累加器（秒）
+  private leafAccumulator = 0; // 叶子生成累加器（秒）
+  private snowAccumulator = 0; // 雪花生成累加器（秒）
   private ctx: CanvasRenderingContext2D;
 
   constructor(ctx: CanvasRenderingContext2D) {
@@ -26,42 +34,64 @@ export class ParticleManager {
     return this.particles.length + this.stars.length;
   }
 
-  // 按生成速率生成新飘落粒子（leaf / snow 按季节权重分配）
+  // 按元素分别的生成速率生成新飘落粒子
+  // 叶子与雪花各自独立累加器与速率（支持两种元素数目分别设置）
+  // 仅在对应季节权重 > 0 时生成该元素，避免无关季节空转
   spawnStep(
     dt: number,
-    rate: number,
-    sizeScale: number,
     weights: SeasonWeights,
     width: number,
     height: number,
+    leafCfg: ElementConfig,
+    snowCfg: ElementConfig,
   ): void {
-    this.accumulator += dt * rate;
     const leafWeight = weights.spring + weights.summer + weights.autumn;
     const snowWeight = weights.winter;
-    while (this.accumulator >= 1) {
-      this.accumulator -= 1;
-      const rand = Math.random() * (leafWeight + snowWeight);
-      if (rand < leafWeight) {
-        this.particles.push(createLeaf(width, height, sizeScale, weights));
-      } else {
-        this.particles.push(createSnow(width, height, sizeScale));
+
+    // 🍃 叶子
+    if (leafWeight > 0) {
+      this.leafAccumulator += (dt * getCountPerMinute(leafCfg)) / 60;
+      while (this.leafAccumulator >= 1) {
+        this.leafAccumulator -= 1;
+        this.particles.push(
+          createLeaf(
+            width,
+            height,
+            getSizeScale(leafCfg),
+            getSpeedScale(leafCfg),
+            weights,
+          ),
+        );
+      }
+    }
+
+    // ❄️ 雪花
+    if (snowWeight > 0) {
+      this.snowAccumulator += (dt * getCountPerMinute(snowCfg)) / 60;
+      while (this.snowAccumulator >= 1) {
+        this.snowAccumulator -= 1;
+        this.particles.push(
+          createSnow(width, height, getSizeScale(snowCfg), getSpeedScale(snowCfg)),
+        );
       }
     }
   }
 
   // ⭐ 按当前时段与显示程度维持星光目标数量
+  // 星光午夜最大数量由 starCfg 决定（支持按元素设置）
   // 增加时保留原有星光；减少时随机删除多余星光
   maintainStars(
     currentHour: number,
     intensity: number,
     width: number,
     height: number,
+    starCfg: ElementConfig,
   ): void {
-    const maxStars = Math.round(STAR_MAX_COUNT * Math.min(intensity, 1.5));
+    const maxStars = Math.round(getStarMaxCount(starCfg) * Math.min(intensity, 1.5));
     const target = getStarTargetCount(currentHour, maxStars);
     if (this.stars.length < target) {
       while (this.stars.length < target) {
-        this.stars.push(createStar(width, height));
+        this.stars.push(createStar(width, height, getSizeScale(starCfg)));
       }
     } else if (this.stars.length > target) {
       while (this.stars.length > target) {
@@ -94,6 +124,7 @@ export class ParticleManager {
   clear(): void {
     this.particles.length = 0;
     this.stars.length = 0;
-    this.accumulator = 0;
+    this.leafAccumulator = 0;
+    this.snowAccumulator = 0;
   }
 }

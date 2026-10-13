@@ -44,6 +44,7 @@ export function createLeaf(
   width: number,
   height: number,
   particleSizeScale: number,
+  particleSpeedScale: number,
   weights: SeasonWeights,
 ): FallingParticle {
   const { colors, sizeRange } = chooseLeafSpec(weights);
@@ -55,7 +56,7 @@ export function createLeaf(
     x: Math.random() * width,
     y: -20 - Math.random() * height, // 初始位置：屏幕上方随机高度
     size: sizeMin + Math.random() * (sizeMax - sizeMin),
-    speedY: 15 + Math.random() * 25, // 下落速度（像素/秒）
+    speedY: (15 + Math.random() * 25) * particleSpeedScale, // 下落速度（像素/秒），乘以速度缩放
     rotation: Math.random() * Math.PI * 2, // 初始旋转角度
     rotSpeed: (Math.random() - 0.5) * 1.5, // 旋转速度（弧度/秒）
     opacity: 0.5 + Math.random() * 0.5, // 初始透明度 0.5~1.0

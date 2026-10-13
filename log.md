@@ -472,3 +472,79 @@ tool-free/
 - 星光样式类似雪花但颜色为黄白色，由内到外慢慢变得朦胧
 - 星光数量增加时保留原有，减少时随机删除，符合 design.md 设计
 - 显示程度影响星光最大数量及绘制透明度
+
+---
+
+## 2026-10-13 第六步：粒子设置改为按元素分别配置
+
+> 对应重构计划第 6 步：Settings 改为按元素（leaf / snow / star）分别设置；并补上此前缺失的粒子速度调节。
+
+### 完成内容
+
+1. **`lib/settings.ts` 粒子设置结构化**
+   - 移除全局的 `particleCount` / `customParticleCount` / `particleSize` / `customParticleSize`
+   - 新增 `ElementConfig` 接口：`speed` / `customSpeed` / `size` / `customSize` / `count` / `customCount`
+   - `Settings.particles` 下分 `leaf` / `snow` / `star` 三个独立 `ElementConfig`
+   - 速度/大小预设含义：`slow=0.5` / `normal=1.0` / `fast=1.8`；大小 `small=0.6` / `medium=1.0` / `large=1.5`
+   - 数目：叶子/雪花为 个/分钟（微量=10 / 少量=20 / 中等=50 / 大量=120）；星光为午夜最大个（微量=15 / 少量=30 / 中等=60 / 大量=120）
+
+2. **`envir/particle/index.ts` 按元素映射**
+   - 移除 `getParticleRate()` / `getParticleSizeScale()` 与 `PARTICLE_RATE_MAP` / `PARTICLE_SIZE_MAP`
+   - 新增 `getSpeedScale(cfg)` / `getSizeScale(cfg)` / `getCountPerMinute(cfg)` / `getStarMaxCount(cfg)`
+   - 新增 `SPEED_SCALE_MAP` / `SIZE_SCALE_MAP` / `COUNT_RATE_MAP` / `STAR_MAX_COUNT_MAP`
+   - 自定义值（0-100）分段线性插值，50% 恰好为 1.0（与"中"预设一致）
+
+3. **`envir/particle/manager.ts` 按元素生成与维持**
+   - `spawnStep()` 改为 leaf / snow 两个独立累加器，各自按 `getCountPerMinute()` 速率生成，仅在对应季节权重 > 0 时生成
+   - 生成时传入 `getSizeScale()` / `getSpeedScale()` 给 `createLeaf` / `createSnow`
+   - `maintainStars()` 接收 `starCfg`，用 `getStarMaxCount()` 决定午夜最大数量（取代原 `STAR_MAX_COUNT` 常量）
+   - `clear()` 同步重置两个累加器
+
+4. **`create*` 函数增加缩放参数**
+   - `createLeaf(w,h,sizeScale,speedScale,weights)`：下落速度 `speedY` 乘以 `speedScale`
+   - `createSnow(w,h,sizeScale,speedScale)`：同上
+   - `createStar(w,h,sizeScale)`：尺寸范围乘以 `sizeScale`（星光静止，无速度）
+   - `envir/star` 移除不再使用的 `STAR_MAX_COUNT` 常量
+
+5. **`entrypoints/content.ts` 编排更新 + 修复重复 step**
+   - 移除 `particleRate` / `particleSizeScale` 字段，改为持有 `leafConfig` / `snowConfig` / `starConfig`
+   - `applySettings()` 直接读取 `settings.particles.*`
+   - `animate()` 改为 `spawnStep(dt, weights, w, h, leaf, snow)` → `maintainStars(...)` → 单次 `step(...)`；**修复此前 `step()` 被调用两次导致粒子每帧更新+绘制两遍（等效飘落速度翻倍）的 bug**
+
+6. **Popup 粒子页重构为按元素分组**
+   - `popup/index.html`：粒子面板改为 🍃叶子 / ❄️雪花 / ⭐星光 三个 `.element-setting` 块
+   - 每个元素含 速度 / 大小 / 数目 三组控件（星光无速度项）；自定义滑块用 `data-element` / `data-prop` / `data-unit` 驱动
+   - `popup/main.ts`：移除旧的全局粒子滑块逻辑，改为通用 `initParticleGrids()` / `initParticleSliders()`，按 `settings.particles[el][prop]` 读写
+   - `popup/style.css`：新增 `.element-setting` / `.element-title` 样式（分组分隔 + 标题）
+
+7. **文档同步**
+   - `CHANGELOG.md`：Unreleased 新增 Added / Changed / Fixed 条目
+   - `entrypoints/README.md`：Settings 字段表、粒子/star 模块 API 表、常见修改点表更新为按元素映射
+
+### 文件结构
+
+```
+lib/
+└── settings.ts              # 粒子设置改为 particles.{leaf,snow,star} 的 ElementConfig
+entrypoints/
+├── content.ts                # 持有 particles.* 配置；animate 单次 step（修复重复调用）
+└── envir/
+    ├── particle/
+    │   ├── index.ts          # 按元素映射：getSpeedScale / getSizeScale / getCountPerMinute / getStarMaxCount
+    │   └── manager.ts         # spawnStep 双累加器；maintainStars 接收 starCfg
+    ├── leaf/index.ts          # createLeaf 增加 speedScale
+    ├── snow/index.ts          # createSnow 增加 speedScale
+    └── star/index.ts          # createStar 增加 sizeScale；移除 STAR_MAX_COUNT
+entrypoints/popup/
+├── index.html                # 粒子页改为按元素分组（速度/大小/数目）
+├── main.ts                   # 通用按元素读写逻辑
+└── style.css                 # .element-setting / .element-title
+```
+
+### 备注
+
+- 速度默认值 `normal=1.0` 即原基础下落速度；配合 `step()` 重复调用修复，默认观感比旧版明显更慢，回应"飘落速度太快"的反馈。仍嫌快可降到"慢"（0.5×）
+- 星光为静止元素，UI 不提供速度项；其 `speed` 字段保留仅为数据结构一致
+- 旧版存储中无 `particles` 字段时，`loadSettings()` 经 `{...DEFAULT_SETTINGS, ...data}` 合并自动回退到默认每元素配置，不会崩溃
+- 构建验证：`wxt build` 通过（chrome-mv3）
+

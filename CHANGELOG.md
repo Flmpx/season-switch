@@ -4,6 +4,21 @@
 
 ## [Unreleased]
 
+### Added
+- 粒子设置改为**按元素分别配置**：`Settings.particles` 下 `leaf` / `snow` / `star` 各自独立的速度（`speed`）、大小（`size`）、数目（`count`），互不影响
+- 新增粒子**速度**设置（此前飘落速度写死过快）：叶子/雪花支持 慢/中/快/自定义，缩放系数 `getSpeedScale()`
+- 星光（star）作为静止元素，仅提供大小与数目设置（无速度项）
+
+### Changed
+- `lib/settings.ts`：`particleCount` / `customParticleCount` / `particleSize` / `customParticleSize` 合并为 `Settings.particles.{leaf,snow,star}` 的 `ElementConfig`
+- `envir/particle/index.ts`：移除全局 `getParticleRate()` / `getParticleSizeScale()`，新增按元素的 `getSpeedScale()` / `getSizeScale()` / `getCountPerMinute()`（叶子/雪花，个/分钟）/ `getStarMaxCount()`（星光，午夜最大个）
+- `envir/particle/manager.ts`：`spawnStep()` 改用 leaf / snow 独立累加器与各自速率；`maintainStars()` 接收 `starCfg` 决定午夜最大数量
+- `envir/leaf` / `envir/snow` 的 `createLeaf` / `createSnow` 增加 `speedScale` 参数；`envir/star` 的 `createStar` 增加 `sizeScale` 参数；移除 `STAR_MAX_COUNT` 常量（由设置决定）
+- Popup 粒子页重构为 叶子/雪花/星光 三个分组，每组含 速度/大小/数目 控件（星光无速度）
+
+### Fixed
+- 修复 `content.ts` 动画循环 `particleManager.step()` 被调用两次导致粒子每帧更新与绘制两遍（等效飘落速度翻倍）的问题，现为单次调用
+
 ## [0.6.0] - 2026-10-13
 
 ### Changed

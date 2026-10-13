@@ -104,10 +104,13 @@ lib/                      # 共享逻辑（被 content 与 popup 共用）
 | `customHour` | 0–23 | 自定义小时 |
 | `intensity` | `misty`/`light`/`medium`/`deep`/`custom-intensity` | 显示程度 |
 | `customIntensity` | 0–100 | 自定义强度 |
-| `particleCount` | `minimal`/`few`/`medium`/`heavy`/`custom-particle` | 粒子数目 |
-| `customParticleCount` | 10–1800（个/分钟） | 自定义数目 |
-| `particleSize` | `small`/`medium`/`large`/`custom-size` | 粒子大小 |
-| `customParticleSize` | 0–100 | 自定义大小 |
+| `particles.leaf` / `particles.snow` / `particles.star` | `ElementConfig`（`speed`/`size`/`count` + 对应 `customXxx`） | 粒子**按元素分别**配置：叶子 / 雪花 / 星光各自独立的速度、大小、数目 |
+| `particles.*.speed` | `slow`/`normal`/`fast`/`custom-speed` | 下落速度（星光静止，不参与） |
+| `particles.*.customSpeed` | 0–100 | 自定义速度 |
+| `particles.*.size` | `small`/`medium`/`large`/`custom-size` | 粒子大小 |
+| `particles.*.customSize` | 0–100 | 自定义大小 |
+| `particles.*.count` | `minimal`/`few`/`medium`/`heavy`/`custom-count` | 数目（叶子/雪花=个/分钟；星光=午夜最大个） |
+| `particles.*.customCount` | 叶子/雪花 10–1800；星光 10–150 | 自定义数目 |
 
 ### `lib/season-weights.ts` — 四季权重
 `getSeasonWeights(season, customMonth)` 返回 `{spring, summer, autumn, winter}`（各 0~1，和为 1）。
@@ -128,10 +131,10 @@ lib/                      # 共享逻辑（被 content 与 popup 共用）
 | 模块 | 主要导出 | 用途 |
 |------|----------|------|
 | `intensity` | `getIntensityValue(s)` → number | 显示程度 → 强度系数 |
-| `particle` | `FallingParticle`(类型), `getParticleRate(s)`, `getParticleSizeScale(s)`, `spawnParticles(...)` → number（累加器） | 粒子系统核心 |
-| `leaf` | `LEAF_COLORS`, `LEAF_SIZE_RANGES`, `createLeaf(w,h,scale,weights)` | 叶子（绘制见 particle/renderer） |
-| `snow` | `SNOW_SIZE_RANGE`, `createSnow(w,h,scale)` | 雪花（绘制见 particle/renderer） |
-| `star` | `STAR_MAX_COUNT`, `STAR_SIZE_RANGE`, `getStarTargetCount(hour,max)`, `createStar(w,h)` | 星光（数量维持见 `particle/manager.ts` 的 `maintainStars`，绘制见 `particle/renderer`） |
+| `particle` | `FallingParticle`(类型), `getSpeedScale(cfg)`, `getSizeScale(cfg)`, `getCountPerMinute(cfg)`（叶子/雪花）, `getStarMaxCount(cfg)`（星光）, `spawnStep(...)` → 累加器（leaf/snow 独立） | 粒子系统核心（按元素分别映射 + 生成） |
+| `leaf` | `LEAF_COLORS`, `LEAF_SIZE_RANGES`, `createLeaf(w,h,sizeScale,speedScale,weights)` | 叶子（绘制见 particle/renderer） |
+| `snow` | `SNOW_SIZE_RANGE`, `createSnow(w,h,sizeScale,speedScale)` | 雪花（绘制见 particle/renderer） |
+| `star` | `STAR_SIZE_RANGE`, `getStarTargetCount(hour,max)`, `createStar(w,h,sizeScale)` | 星光（数量维持见 `particle/manager.ts` 的 `maintainStars`，绘制见 `particle/renderer`） |
 | `halo` | `class LensFlare`：`update(weights,intensity,hour)` / `remove()` | 夏季光晕 |
 | `light` | `TIME_OF_DAY_HOURS`, `MIN_BRIGHTNESS`, `TIME_OF_DAY_BRIGHTNESS`, `getTimeBrightness(s)`, `updateBrightnessOverlay(div,brightness)` | 亮度 |
 
@@ -237,8 +240,8 @@ class AtmosphereRenderer {
 | 改叶子/雪花颜色、尺寸 | `envir/leaf` (`LEAF_COLORS` / `LEAF_SIZE_RANGES`)、`envir/snow` (`SNOW_SIZE_RANGE`) |
 | 改深夜最暗程度 | `envir/light` 的 `MIN_BRIGHTNESS`（建议 ≥ 0.5） |
 | 改显示程度档位对应浓度 | `envir/intensity` 的 `INTENSITY_MAP` |
-| 改粒子数目/大小档位 | `envir/particle` 的 `PARTICLE_RATE_MAP` / `PARTICLE_SIZE_MAP` |
-| 改星光最大数量/尺寸/出现时段 | `envir/star` 的 `STAR_MAX_COUNT` / `STAR_SIZE_RANGE` / `getStarTargetCount` |
+| 改粒子速度/大小/数目档位 | `envir/particle` 的 `SPEED_SCALE_MAP` / `SIZE_SCALE_MAP` / `COUNT_RATE_MAP` / `STAR_MAX_COUNT_MAP`（均按元素分别映射） |
+| 改星光最大数量/尺寸/出现时段 | `envir/star` 的 `STAR_SIZE_RANGE` / `getStarTargetCount`（最大数量由 `envir/particle` 的 `STAR_MAX_COUNT_MAP` 决定） |
 | 加全新氛围效果 | 新建 `envir/<name>/index.ts`，按第 5 节接入 `content.ts` |
 | 加新设置键 | 按第 6 节改 `settings.ts` → `popup` → `content.ts` |
 | 改弹出界面外观 | `popup/style.css`（宽 320px，深色主题） |

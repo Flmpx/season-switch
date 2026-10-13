@@ -11,6 +11,7 @@ export function createSnow(
   width: number,
   height: number,
   particleSizeScale: number,
+  particleSpeedScale: number,
 ): FallingParticle {
   // 应用粒子大小缩放系数到雪花 min/max 边界
   const sizeMin = SNOW_SIZE_RANGE.min * particleSizeScale;
@@ -20,7 +21,7 @@ export function createSnow(
     x: Math.random() * width,
     y: -20 - Math.random() * height,
     size: sizeMin + Math.random() * (sizeMax - sizeMin), // ❄️ 雪花尺寸范围（应用缩放）
-    speedY: 10 + Math.random() * 20, // 下落速度（像素/秒），比叶子慢
+    speedY: (10 + Math.random() * 20) * particleSpeedScale, // 下落速度（像素/秒），比叶子慢，乘以速度缩放
     rotation: 0,
     rotSpeed: 0, // 雪花不旋转
     opacity: 0.4 + Math.random() * 0.5, // 初始透明度 0.4~0.9

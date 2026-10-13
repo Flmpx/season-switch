@@ -146,6 +146,27 @@ body {
   letter-spacing: 0.5px;
 }
 
+/* ---- Element Setting (per-element particle block) ---- */
+.element-setting {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid #2a2f3e;
+}
+
+.element-setting:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.element-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #c0c4d8;
+  letter-spacing: 0.5px;
+}
+
 /* ---- Tab Bar ---- */
 .tab-bar {
   display: flex;

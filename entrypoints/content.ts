@@ -2,11 +2,15 @@
  * Copyright (c) 2026 Flmpx
  * Licensed under MIT (see LICENSE).
  */
-import { loadSettings, onSettingsChanged, type Settings } from '../lib/settings';
+import {
+  loadSettings,
+  onSettingsChanged,
+  DEFAULT_SETTINGS,
+  type Settings,
+} from '../lib/settings';
 import { getSeasonWeights, type SeasonWeights } from '../lib/season-weights';
 
 import { getIntensityValue } from './envir/intensity';
-import { getParticleRate, getParticleSizeScale } from './envir/particle';
 import { ParticleManager } from './envir/particle/manager';
 import {
   TIME_OF_DAY_HOURS,
@@ -38,8 +42,10 @@ class AtmosphereRenderer {
   private settings: Settings | null = null;
   private weights: SeasonWeights = { spring: 1, summer: 0, autumn: 0, winter: 0 };
   private intensity = 1.0;
-  private particleRate = 50 / 60; // 每秒生成粒子数（由 个/分钟 转换）
-  private particleSizeScale = 1.0; // 粒子尺寸缩放系数（1.0 = 中等）
+  // 🍃❄️⭐ 按元素分别的粒子配置（速度 / 大小 / 数目）
+  private leafConfig = DEFAULT_SETTINGS.particles.leaf;
+  private snowConfig = DEFAULT_SETTINGS.particles.snow;
+  private starConfig = DEFAULT_SETTINGS.particles.star;
   private timeBrightness = 1.0; // 时间亮度系数（1.0 = 不降低亮度）
   private currentHour = 12; // 当前小时（0-23），用于判断是否显示夏季光晕
   private frameId = 0;
@@ -120,8 +126,9 @@ class AtmosphereRenderer {
     this.settings = settings;
     this.weights = getSeasonWeights(settings.season, settings.customMonth);
     this.intensity = getIntensityValue(settings);
-    this.particleRate = getParticleRate(settings);
-    this.particleSizeScale = getParticleSizeScale(settings);
+    this.leafConfig = settings.particles.leaf;
+    this.snowConfig = settings.particles.snow;
+    this.starConfig = settings.particles.star;
     this.timeBrightness = getTimeBrightness(settings);
 
     // 计算当前小时（0-23，用于判断是否显示夏季光晕，仅在 6-18 点显示）
@@ -164,19 +171,23 @@ class AtmosphereRenderer {
 
     this.ctx.clearRect(0, 0, this.width, this.height);
 
-    // 🍃❄️ 飘落粒子：生成 + 更新/绘制/消失，统一由 ParticleManager 管理
+    // 🍃❄️ 飘落粒子：按元素分别的生成速率生成 leaf / snow
     this.particleManager.spawnStep(
       dt,
-      this.particleRate,
-      this.particleSizeScale,
       this.weights,
       this.width,
       this.height,
+      this.leafConfig,
+      this.snowConfig,
     );
-    this.particleManager.step(dt, this.height, this.intensity);
-
     // ⭐ 星光：按当前时段与显示程度维持目标数量（由 ParticleManager 统一管理）
-    this.particleManager.maintainStars(this.currentHour, this.intensity, this.width, this.height);
+    this.particleManager.maintainStars(
+      this.currentHour,
+      this.intensity,
+      this.width,
+      this.height,
+      this.starConfig,
+    );
     // 🍃❄️⭐ 统一更新 + 绘制（飘落粒子的下落/摆动/渐隐 + 星光的闪烁）
     this.particleManager.step(dt, this.height, this.intensity);
   };

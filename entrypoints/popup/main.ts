@@ -27,24 +27,31 @@ const customIntensitySlider = document.getElementById(
 const customIntensityValue = document.getElementById(
   'customIntensityValue',
 )!;
-const customParticleRow = document.getElementById('customParticleRow')!;
-const customParticleSlider = document.getElementById(
-  'customParticleSlider',
-) as HTMLInputElement;
-const customParticleValue = document.getElementById(
-  'customParticleValue',
-)!;
-const customParticleSizeRow = document.getElementById('customParticleSizeRow')!;
-const customParticleSizeSlider = document.getElementById(
-  'customParticleSizeSlider',
-) as HTMLInputElement;
-const customParticleSizeValue = document.getElementById(
-  'customParticleSizeValue',
-)!;
+
+// 🍃❄️⭐ 粒子按元素分别设置：元素与属性枚举
+const PARTICLE_ELEMENTS = ['leaf', 'snow', 'star'] as const;
+const PARTICLE_PROPS = ['speed', 'size', 'count'] as const;
+// 每个属性对应的自定义数值字段
+const CUSTOM_FIELD: Record<string, string> = {
+  speed: 'customSpeed',
+  size: 'customSize',
+  count: 'customCount',
+};
 
 // ---- Apply active state to option buttons ----
 function applyActiveState(key: string, value: string): void {
   const grid = document.querySelector(`.option-grid[data-key="${key}"]`);
+  if (!grid) return;
+  grid.querySelectorAll('.option-btn').forEach((btn) => {
+    btn.classList.toggle('active', (btn as HTMLElement).dataset.value === value);
+  });
+}
+
+// ---- Apply active state to a per-element particle option grid ----
+function applyParticleActive(el: string, prop: string, value: string): void {
+  const grid = document.querySelector(
+    `.option-grid[data-element="${el}"][data-prop="${prop}"]`,
+  );
   if (!grid) return;
   grid.querySelectorAll('.option-btn').forEach((btn) => {
     btn.classList.toggle('active', (btn as HTMLElement).dataset.value === value);
@@ -58,26 +65,6 @@ function updateIntensitySlider(intensity: string, customValue?: number): void {
   if (customValue !== undefined) {
     customIntensitySlider.value = String(customValue);
     customIntensityValue.textContent = `${customValue}%`;
-  }
-}
-
-// ---- Show/hide custom particle count slider ----
-function updateParticleSlider(particleCount: string, customValue?: number): void {
-  const show = particleCount === 'custom-particle';
-  customParticleRow.style.display = show ? 'flex' : 'none';
-  if (customValue !== undefined) {
-    customParticleSlider.value = String(customValue);
-    customParticleValue.textContent = `${customValue}个/分钟`;
-  }
-}
-
-// ---- Show/hide custom particle size slider ----
-function updateParticleSizeSlider(particleSize: string, customValue?: number): void {
-  const show = particleSize === 'custom-size';
-  customParticleSizeRow.style.display = show ? 'flex' : 'none';
-  if (customValue !== undefined) {
-    customParticleSizeSlider.value = String(customValue);
-    customParticleSizeValue.textContent = `${customValue}%`;
   }
 }
 
@@ -101,9 +88,31 @@ function updateHourSelector(timeOfDay: string, customHour?: number): void {
   }
 }
 
-// ---- Bind click handlers for option grids ----
+// ---- Show/hide custom slider for a per-element particle prop ----
+function updateParticleCustomRow(
+  el: string,
+  prop: string,
+  cfg: Record<string, any>,
+): void {
+  const row = document.querySelector<HTMLElement>(
+    `.custom-row[data-element="${el}"][data-prop="${prop}"]`,
+  );
+  if (!row) return; // 星光没有 speed 项，跳过
+  const slider = row.querySelector('input') as HTMLInputElement;
+  const valueSpan = row.querySelector('.intensity-value') as HTMLElement;
+  const unit = row.dataset.unit ?? '%';
+  const show = cfg[prop] === `custom-${prop}`;
+  row.style.display = show ? 'flex' : 'none';
+  if (show) {
+    const val = cfg[CUSTOM_FIELD[prop]] as number;
+    slider.value = String(val);
+    valueSpan.textContent = `${val}${unit}`;
+  }
+}
+
+// ---- Bind click handlers for option grids (season / time / intensity) ----
 function initOptionGrids(settings: Settings): void {
-  document.querySelectorAll('.option-grid').forEach((grid) => {
+  document.querySelectorAll('.option-grid[data-key]').forEach((grid) => {
     const key = (grid as HTMLElement).dataset.key!;
 
     grid.querySelectorAll('.option-btn').forEach((btn) => {
@@ -122,17 +131,49 @@ function initOptionGrids(settings: Settings): void {
         if (key === 'intensity') {
           updateIntensitySlider(value, settings.customIntensity);
         }
-        if (key === 'particleCount') {
-          updateParticleSlider(value, settings.customParticleCount);
-        }
-        if (key === 'particleSize') {
-          updateParticleSizeSlider(value, settings.customParticleSize);
-        }
 
         await saveSettings(settings);
       });
     });
   });
+}
+
+// ---- Bind click handlers for per-element particle option grids ----
+function initParticleGrids(settings: Settings): void {
+  document
+    .querySelectorAll<HTMLElement>('.option-grid[data-element]')
+    .forEach((grid) => {
+      const el = grid.dataset.element!;
+      const prop = grid.dataset.prop!;
+      grid.querySelectorAll<HTMLButtonElement>('.option-btn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const value = btn.dataset.value!;
+          (settings.particles as any)[el][prop] = value;
+          applyParticleActive(el, prop, value);
+          updateParticleCustomRow(el, prop, (settings.particles as any)[el]);
+          await saveSettings(settings);
+        });
+      });
+    });
+}
+
+// ---- Bind slider handlers for per-element particle custom sliders ----
+function initParticleSliders(settings: Settings): void {
+  document
+    .querySelectorAll<HTMLElement>('.custom-row[data-element]')
+    .forEach((row) => {
+      const el = row.dataset.element!;
+      const prop = row.dataset.prop!;
+      const slider = row.querySelector('input') as HTMLInputElement;
+      const valueSpan = row.querySelector('.intensity-value') as HTMLElement;
+      const unit = row.dataset.unit ?? '%';
+      slider.addEventListener('input', async () => {
+        const val = parseInt(slider.value, 10);
+        (settings.particles as any)[el][CUSTOM_FIELD[prop]] = val;
+        valueSpan.textContent = `${val}${unit}`;
+        await saveSettings(settings);
+      });
+    });
 }
 
 // ---- Bind custom month slider ----
@@ -165,26 +206,6 @@ function initSlider(settings: Settings): void {
   });
 }
 
-// ---- Bind custom particle count slider ----
-function initParticleSlider(settings: Settings): void {
-  customParticleSlider.addEventListener('input', async () => {
-    const val = parseInt(customParticleSlider.value, 10);
-    settings.customParticleCount = val;
-    customParticleValue.textContent = `${val}个/分钟`;
-    await saveSettings(settings);
-  });
-}
-
-// ---- Bind custom particle size slider ----
-function initParticleSizeSlider(settings: Settings): void {
-  customParticleSizeSlider.addEventListener('input', async () => {
-    const val = parseInt(customParticleSizeSlider.value, 10);
-    settings.customParticleSize = val;
-    customParticleSizeValue.textContent = `${val}%`;
-    await saveSettings(settings);
-  });
-}
-
 // ---- Tab switching (4 顶部标签分页) ----
 function initTabs(): void {
   const tabs = document.querySelectorAll<HTMLButtonElement>('.tab-btn');
@@ -208,22 +229,27 @@ async function main(): Promise<void> {
   applyActiveState('season', settings.season);
   applyActiveState('timeOfDay', settings.timeOfDay);
   applyActiveState('intensity', settings.intensity);
-  applyActiveState('particleCount', settings.particleCount);
-  applyActiveState('particleSize', settings.particleSize);
   updateIntensitySlider(settings.intensity, settings.customIntensity);
-  updateParticleSlider(settings.particleCount, settings.customParticleCount);
-  updateParticleSizeSlider(settings.particleSize, settings.customParticleSize);
   updateMonthSelector(settings.season, settings.customMonth);
   updateHourSelector(settings.timeOfDay, settings.customHour);
+
+  // 🍃❄️⭐ 粒子按元素分别恢复选中态与自定义滑块
+  for (const el of PARTICLE_ELEMENTS) {
+    for (const prop of PARTICLE_PROPS) {
+      const cfg = (settings.particles as any)[el] as Record<string, any>;
+      applyParticleActive(el, prop, cfg[prop]);
+      updateParticleCustomRow(el, prop, cfg);
+    }
+  }
 
   // Bind interactions
   initTabs();
   initOptionGrids(settings);
+  initParticleGrids(settings);
+  initParticleSliders(settings);
   initMonthSlider(settings);
   initHourSlider(settings);
   initSlider(settings);
-  initParticleSlider(settings);
-  initParticleSizeSlider(settings);
 }
 
 main();

@@ -4,7 +4,6 @@
 
 import { TwinklingParticle } from '../particle/particle';
 
-export const STAR_MAX_COUNT = 60; // 24点（午夜）时的最大星光数量
 export const STAR_SIZE_RANGE = { min: 1, max: 3 }; // 星光尺寸范围（像素），比雪花小
 
 // ⭐ 根据当前小时计算星光目标数量
@@ -23,12 +22,19 @@ export function getStarTargetCount(hour: number, maxCount: number): number {
 }
 
 // ⭐ 创建一颗星光 — 位置在屏幕上方 1/3 区域
-export function createStar(width: number, height: number): TwinklingParticle {
+// sizeScale：星光尺寸缩放系数（由 particle 的 getSizeScale 计算，支持按元素设置）
+export function createStar(
+  width: number,
+  height: number,
+  sizeScale: number,
+): TwinklingParticle {
+  const sizeMin = STAR_SIZE_RANGE.min * sizeScale;
+  const sizeMax = STAR_SIZE_RANGE.max * sizeScale;
   return new TwinklingParticle({
     type: 'star',
     x: Math.random() * width,
     y: Math.random() * (height / 3), // 上方 1/3 区域
-    size: STAR_SIZE_RANGE.min + Math.random() * (STAR_SIZE_RANGE.max - STAR_SIZE_RANGE.min),
+    size: sizeMin + Math.random() * (sizeMax - sizeMin), // 星光尺寸范围（应用缩放）
     color: '#FFFAD6', // 与 elements.json 中 star 的颜色一致
     speedY: 0, // 静止
     rotation: 0,
