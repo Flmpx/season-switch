@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-14
+
 ### Added
 - **用户自定义元素零代码生效**：粒子系统全面数据驱动，新增元素只需在 `entrypoints/envir/particle/elements.json` 增加一条目（含 `behavior` / `render` 几何 / 各参数范围 / `label` / `icon` / `seasons`），运行期与弹窗自动识别，无需改动任何 TypeScript
 - 新增 `envir/particle/elements.ts`（元素描述符类型、元素类型列表、访问器、季节权重计算）与 `envir/particle/factory.ts`（数据驱动粒子工厂 `createElement`）
