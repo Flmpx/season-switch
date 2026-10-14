@@ -14,7 +14,7 @@ import {
   getElementDescriptor,
 } from '../envir/particle';
 
-// ---- DOM refs ----
+// DOM 引用
 const customMonthRow = document.getElementById('customMonthRow')!;
 const customMonthSlider = document.getElementById(
   'customMonthSlider',
@@ -33,7 +33,7 @@ const customIntensityValue = document.getElementById(
   'customIntensityValue',
 )!;
 
-// 🍃❄️⭐ 粒子按元素分别设置：属性枚举（元素列表来自 elements.json，零代码自动识别）
+// 粒子按元素分别设置：属性枚举（元素列表来自 elements.json，零代码自动识别）
 const PARTICLE_PROPS = ['speed', 'size', 'count'] as const;
 // 每个属性对应的自定义数值字段
 const CUSTOM_FIELD: Record<string, string> = {
@@ -42,7 +42,7 @@ const CUSTOM_FIELD: Record<string, string> = {
   count: 'customCount',
 };
 
-// 生成单个属性的子设置块（按钮组 + 自定义滑块行）
+/* 生成单个属性的子设置块（按钮组 + 自定义滑块行） */
 function buildSubSetting(
   type: string,
   prop: string,
@@ -66,7 +66,7 @@ function buildSubSetting(
             </div>`;
 }
 
-// 根据 elements.json 动态生成所有元素的设置分组
+/* 根据 elements.json 动态生成所有元素的设置分组 */
 function buildParticleGroups(settings: Settings): string {
   const speedOpts: [string, string][] = [
     ['slow', '慢'],
@@ -96,13 +96,10 @@ function buildParticleGroups(settings: Settings): string {
     const cfg = (settings.particles[type] ?? DEFAULT_ELEMENT_CONFIG) as Record<string, any>;
 
     html += `<div class="element-setting"><h3 class="element-title">${meta.icon} ${meta.label}</h3>`;
-    // 速度：闪烁类（静止）无速度项
     if (!isTwinkle) {
       html += buildSubSetting(type, 'speed', '速度', speedOpts, '%', 100, cfg.customSpeed ?? 50);
     }
-    // 大小
     html += buildSubSetting(type, 'size', '大小', sizeOpts, '%', 100, cfg.customSize ?? 50);
-    // 数目：飘落类=个/分钟（0~1800），闪烁类=午夜最大个（0~150）
     const countUnit = isTwinkle ? '个' : '个/分钟';
     const countMax = isTwinkle ? 150 : 1800;
     const countDefault = isTwinkle ? 60 : 50;
@@ -112,7 +109,7 @@ function buildParticleGroups(settings: Settings): string {
   return html;
 }
 
-// ---- Apply active state to option buttons ----
+/* 将选中态应用到普通选项按钮组（季节/时间/显示程度） */
 function applyActiveState(key: string, value: string): void {
   const grid = document.querySelector(`.option-grid[data-key="${key}"]`);
   if (!grid) return;
@@ -121,7 +118,7 @@ function applyActiveState(key: string, value: string): void {
   });
 }
 
-// ---- Apply active state to a per-element particle option grid ----
+/* 将选中态应用到某元素的粒子选项按钮组 */
 function applyParticleActive(el: string, prop: string, value: string): void {
   const grid = document.querySelector(
     `.option-grid[data-element="${el}"][data-prop="${prop}"]`,
@@ -132,7 +129,7 @@ function applyParticleActive(el: string, prop: string, value: string): void {
   });
 }
 
-// ---- Show/hide custom intensity slider ----
+/* 显示/隐藏自定义显示程度滑块 */
 function updateIntensitySlider(intensity: string, customValue?: number): void {
   const show = intensity === 'custom-intensity';
   customIntensityRow.style.display = show ? 'flex' : 'none';
@@ -142,7 +139,7 @@ function updateIntensitySlider(intensity: string, customValue?: number): void {
   }
 }
 
-// ---- Show/hide custom month slider ----
+/* 显示/隐藏自定义月份滑块 */
 function updateMonthSelector(season: string, customMonth?: number): void {
   const show = season === 'custom-season';
   customMonthRow.style.display = show ? 'flex' : 'none';
@@ -152,7 +149,7 @@ function updateMonthSelector(season: string, customMonth?: number): void {
   }
 }
 
-// ---- Show/hide custom hour slider ----
+/* 显示/隐藏自定义小时滑块 */
 function updateHourSelector(timeOfDay: string, customHour?: number): void {
   const show = timeOfDay === 'custom-time';
   customHourRow.style.display = show ? 'flex' : 'none';
@@ -162,7 +159,7 @@ function updateHourSelector(timeOfDay: string, customHour?: number): void {
   }
 }
 
-// ---- Show/hide custom slider for a per-element particle prop ----
+/* 显示/隐藏某元素粒子属性的自定义滑块 */
 function updateParticleCustomRow(
   el: string,
   prop: string,
@@ -171,7 +168,7 @@ function updateParticleCustomRow(
   const row = document.querySelector<HTMLElement>(
     `.custom-row[data-element="${el}"][data-prop="${prop}"]`,
   );
-  if (!row) return; // 星光没有 speed 项，跳过
+  if (!row) return;
   const slider = row.querySelector('input') as HTMLInputElement;
   const valueSpan = row.querySelector('.intensity-value') as HTMLElement;
   const unit = row.dataset.unit ?? '%';
@@ -184,7 +181,7 @@ function updateParticleCustomRow(
   }
 }
 
-// ---- Bind click handlers for option grids (season / time / intensity) ----
+/* 绑定季节/时间/显示程度选项按钮的点击事件 */
 function initOptionGrids(settings: Settings): void {
   document.querySelectorAll('.option-grid[data-key]').forEach((grid) => {
     const key = (grid as HTMLElement).dataset.key!;
@@ -195,7 +192,6 @@ function initOptionGrids(settings: Settings): void {
         (settings as any)[key] = value;
         applyActiveState(key, value);
 
-        // Handle special cases
         if (key === 'season') {
           updateMonthSelector(value, settings.customMonth);
         }
@@ -212,7 +208,7 @@ function initOptionGrids(settings: Settings): void {
   });
 }
 
-// ---- Bind click handlers for per-element particle option grids ----
+/* 绑定每元素粒子选项按钮的点击事件 */
 function initParticleGrids(settings: Settings): void {
   document
     .querySelectorAll<HTMLElement>('.option-grid[data-element]')
@@ -231,7 +227,7 @@ function initParticleGrids(settings: Settings): void {
     });
 }
 
-// ---- Bind slider handlers for per-element particle custom sliders ----
+/* 绑定每元素粒子自定义滑块的输入事件 */
 function initParticleSliders(settings: Settings): void {
   document
     .querySelectorAll<HTMLElement>('.custom-row[data-element]')
@@ -250,7 +246,7 @@ function initParticleSliders(settings: Settings): void {
     });
 }
 
-// ---- Bind custom month slider ----
+/* 绑定自定义月份滑块 */
 function initMonthSlider(settings: Settings): void {
   customMonthSlider.addEventListener('input', async () => {
     const val = parseInt(customMonthSlider.value, 10);
@@ -260,7 +256,7 @@ function initMonthSlider(settings: Settings): void {
   });
 }
 
-// ---- Bind custom hour slider ----
+/* 绑定自定义小时滑块 */
 function initHourSlider(settings: Settings): void {
   customHourSlider.addEventListener('input', async () => {
     const val = parseInt(customHourSlider.value, 10);
@@ -270,7 +266,7 @@ function initHourSlider(settings: Settings): void {
   });
 }
 
-// ---- Bind custom intensity slider ----
+/* 绑定自定义显示程度滑块 */
 function initSlider(settings: Settings): void {
   customIntensitySlider.addEventListener('input', async () => {
     const val = parseInt(customIntensitySlider.value, 10);
@@ -280,7 +276,7 @@ function initSlider(settings: Settings): void {
   });
 }
 
-// ---- Tab switching (4 顶部标签分页) ----
+/* 顶部标签分页切换 */
 function initTabs(): void {
   const tabs = document.querySelectorAll<HTMLButtonElement>('.tab-btn');
   const panels = document.querySelectorAll<HTMLElement>('.tab-panel');
@@ -295,22 +291,19 @@ function initTabs(): void {
   });
 }
 
-// ---- Main ----
+/* 主流程：加载设置、生成动态 UI、绑定交互 */
 async function main(): Promise<void> {
   const settings = await loadSettings();
 
-  // 确保每个 elements.json 中的元素在设置中都有配置（新元素首次自动落入默认）
   for (const type of ELEMENT_TYPES) {
     if (!settings.particles[type]) {
       settings.particles[type] = { ...DEFAULT_ELEMENT_CONFIG };
     }
   }
 
-  // 动态生成粒子分组 UI（按 elements.json 的元素列表，零代码识别自定义元素）
   const container = document.getElementById('particleGroups')!;
   container.innerHTML = buildParticleGroups(settings);
 
-  // Apply saved state
   applyActiveState('season', settings.season);
   applyActiveState('timeOfDay', settings.timeOfDay);
   applyActiveState('intensity', settings.intensity);
@@ -318,7 +311,6 @@ async function main(): Promise<void> {
   updateMonthSelector(settings.season, settings.customMonth);
   updateHourSelector(settings.timeOfDay, settings.customHour);
 
-  // 🍃❄️⭐ 粒子按元素分别恢复选中态与自定义滑块
   for (const el of ELEMENT_TYPES) {
     for (const prop of PARTICLE_PROPS) {
       const cfg = (settings.particles as any)[el] as Record<string, any>;
@@ -328,7 +320,6 @@ async function main(): Promise<void> {
     }
   }
 
-  // Bind interactions
   initTabs();
   initOptionGrids(settings);
   initParticleGrids(settings);

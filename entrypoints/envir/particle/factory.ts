@@ -1,25 +1,23 @@
-// 🏭 数据驱动粒子工厂 — 读 elements.json 描述符构造粒子实例
-// 替代原先的 createLeaf / createSnow / createStar 三个手写函数：
-// 新增元素只需在 elements.json 加一条目，这里按 behavior 自动生成对应粒子，
-// 运行期（manager）与弹窗（popup）均无需改动。
-
+// 数据驱动粒子工厂：读 elements.json 描述符构造粒子实例，新增元素只需改 JSON
 import { Particle } from './particle';
 import { FallingParticle } from './particle';
 import { TwinklingParticle } from './particle';
 import type { SeasonWeights } from '../../../lib/season-weights';
 import type { ElementConfig } from '../../../lib/settings';
 import { getSizeScale, getSpeedScale } from './index';
-import { getElementDescriptor, type Range } from './elements';
+import { getElementDescriptor } from './elements';
 
+/* 区间随机 */
 function rand(min: number, max: number): number {
   return min + Math.random() * (max - min);
 }
 
+/* 从数组随机取一个 */
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// 按元素类型构造一个粒子实例（已应用大小/速度缩放与随机参数）
+/* 按元素类型构造一个粒子实例（已应用大小/速度缩放与随机参数） */
 export function createElement(
   type: string,
   width: number,
@@ -31,7 +29,6 @@ export function createElement(
   const desc = getElementDescriptor(type);
   if (!desc) throw new Error(`未知粒子元素: ${type}`);
 
-  // ⭐ 闪烁类：静止 + 闪烁
   if (desc.behavior === 'twinkle') {
     const sMin = desc.sizeRange.min * sizeScale;
     const sMax = desc.sizeRange.max * sizeScale;
@@ -57,11 +54,9 @@ export function createElement(
     });
   }
 
-  // 🍃❄️ 飘落类：下落 + 摆动 + 渐隐
   const sizeMin = desc.sizeRange.min * sizeScale;
   const sizeMax = desc.sizeRange.max * sizeScale;
 
-  // 颜色：有按季节色板则按权重从中取季取色，否则用固定 color
   let color = desc.color ?? '#FFFFFF';
   if (desc.palettes) {
     const seasons = desc.seasons ?? Object.keys(desc.palettes);
@@ -105,6 +100,3 @@ export function createElement(
     wobbleAmp: rand(amp.min, amp.max),
   });
 }
-
-// 仅为类型完整性导出，避免某些打包器对未用导入报警
-export type { Range, ElementConfig };

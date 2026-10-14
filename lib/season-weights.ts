@@ -2,11 +2,13 @@
  * Copyright (c) 2026 Flmpx
  * Licensed under MIT (see LICENSE).
  */
+
+/** 四季权重：各季节在当前设定下的占比（建议和为 1） */
 export interface SeasonWeights {
-  spring: number;
-  summer: number;
-  autumn: number;
-  winter: number;
+  spring: number; // 春
+  summer: number; // 夏
+  autumn: number; // 秋
+  winter: number; // 冬
 }
 
 /** 每月对应的四季权重，交界月份做线性插值 */
@@ -25,7 +27,7 @@ const MONTH_WEIGHTS: SeasonWeights[] = [
   { spring: 0.05, summer: 0,    autumn: 0,    winter: 0.95 }, // 12月
 ];
 
-/** 根据季节设置和自定义月份计算四季权重 */
+/* 根据季节设置和自定义月份计算四季权重 */
 export function getSeasonWeights(
   season: string,
   customMonth: number,

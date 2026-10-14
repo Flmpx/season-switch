@@ -1,43 +1,38 @@
-// 🧬 粒子基类与派生类
-// 通用粒子属性与基本控制方法收归粒子自身：
-//   - Particle（抽象基类）：通用字段 + update（下落/摆动/着陆渐隐）+ draw（按元素描述符渲染）
-//   - FallingParticle（fall 派生）：下落 + 摆动 + 渐隐，speedY/wobble 由创建参数决定
-//   - TwinklingParticle（twinkle 派生）：静止不动，仅更新闪烁相位，由 draw 计算闪烁透明度
-// 渲染统一走 particle/renderer.ts 的 drawParticle（按 elements.json 描述符）。
-
+// 粒子基类与派生类：通用属性与控制方法收归粒子自身，渲染走 renderer.drawParticle
 import { drawParticle } from './renderer';
 
-// 粒子构造入参：所有通用字段
+/** 粒子构造入参：所有通用字段 */
 export interface ParticleInit {
-  type: string;
-  x: number;
-  y: number;
-  size: number;
-  color: string;
-  speedY: number;
-  rotation: number;
-  rotSpeed: number;
-  opacity: number;
-  wobblePhase: number;
-  wobbleSpeed: number;
-  wobbleAmp: number;
+  type: string; // 元素类型（取自 elements.json 键）
+  x: number; // 横坐标（像素）
+  y: number; // 纵坐标（像素）
+  size: number; // 尺寸（像素）
+  color: string; // 颜色（取自描述符或季节色板）
+  speedY: number; // 下落速度（像素/秒）
+  rotation: number; // 旋转角（弧度）
+  rotSpeed: number; // 旋转速度（弧度/秒）
+  opacity: number; // 不透明度 0-1
+  wobblePhase: number; // 摆动相位
+  wobbleSpeed: number; // 摆动频率
+  wobbleAmp: number; // 摆幅（像素）
 }
 
-// 🧬 粒子抽象基类：通用属性 + 基本控制方法
+/** 粒子抽象基类：通用属性 + 更新/绘制 */
 export abstract class Particle {
-  type: string;
-  x: number;
-  y: number;
-  size: number;
-  color: string;
-  speedY: number;
-  rotation: number;
-  rotSpeed: number;
-  opacity: number;
-  wobblePhase: number;
-  wobbleSpeed: number;
-  wobbleAmp: number;
+  type: string; // 元素类型
+  x: number; // 横坐标
+  y: number; // 纵坐标
+  size: number; // 尺寸
+  color: string; // 颜色
+  speedY: number; // 下落速度
+  rotation: number; // 旋转角
+  rotSpeed: number; // 旋转速度
+  opacity: number; // 不透明度
+  wobblePhase: number; // 摆动相位
+  wobbleSpeed: number; // 摆动频率
+  wobbleAmp: number; // 摆幅
 
+  /* 用入参初始化所有字段 */
   constructor(init: ParticleInit) {
     this.type = init.type;
     this.x = init.x;
@@ -53,25 +48,22 @@ export abstract class Particle {
     this.wobbleAmp = init.wobbleAmp;
   }
 
-  // 基类默认行为：摆动 + 下落 + 着陆渐隐
-  // 不动的粒子（如星光）由派生类 override，将 speedY/wobble 置 0 即可
+  /* 摆动 + 下落 + 着陆渐隐（静止粒子由派生类 override） */
   update(dt: number, height: number): void {
     this.wobblePhase += this.wobbleSpeed * dt;
     this.x += Math.sin(this.wobblePhase) * this.wobbleAmp * dt;
     this.y += this.speedY * dt;
     this.rotation += this.rotSpeed * dt;
-
-    // 着陆：到达窗口底部后停下，缓慢渐隐消失
     const groundY = height - this.size;
     if (this.y >= groundY) {
       this.y = groundY;
       this.speedY = 0;
       this.rotSpeed = 0;
-      this.opacity -= dt * 0.5; // 渐隐速度（值越大消失越快，0.5 ≈ 2 秒消失）
+      this.opacity -= dt * 0.5;
     }
   }
 
-  // 基类默认绘制：按元素类型从 JSON 描述符渲染
+  /* 按元素描述符渲染粒子 */
   draw(ctx: CanvasRenderingContext2D, intensity: number): void {
     drawParticle(ctx, {
       type: this.type,
@@ -85,19 +77,21 @@ export abstract class Particle {
   }
 }
 
-// 🍃❄️ 飘落派生类（leaf / snow 共用）：下落 + 摆动 + 渐隐
+/** 飘落派生类（leaf / snow 共用）：下落 + 摆动 + 渐隐 */
 export class FallingParticle extends Particle {
+  /* 飘落粒子：复用基类构造 */
   constructor(init: ParticleInit) {
     super(init);
   }
 }
 
-// ⭐ 闪烁派生类（star）：静止不动，仅闪烁
+/** 闪烁派生类（star）：静止不动，仅闪烁 */
 export class TwinklingParticle extends Particle {
-  twinklePhase: number;
-  twinkleSpeed: number;
-  baseOpacity: number;
+  twinklePhase: number; // 闪烁相位
+  twinkleSpeed: number; // 闪烁频率
+  baseOpacity: number; // 基础不透明度
 
+  /* 用入参构造闪烁粒子（含闪烁相关字段） */
   constructor(
     init: ParticleInit & {
       twinklePhase: number;
@@ -111,12 +105,12 @@ export class TwinklingParticle extends Particle {
     this.baseOpacity = init.baseOpacity;
   }
 
-  // override：不动（speedY/wobble 已为 0），仅推进闪烁相位
+  /* 不动，仅推进闪烁相位 */
   override update(dt: number): void {
     this.twinklePhase += this.twinkleSpeed * dt;
   }
 
-  // override：透明度随正弦波闪烁
+  /* 透明度随正弦波闪烁 */
   override draw(ctx: CanvasRenderingContext2D, intensity: number): void {
     const twinkle = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(this.twinklePhase));
     const opacity = this.baseOpacity * twinkle * Math.min(intensity, 1.5);

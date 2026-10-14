@@ -1,23 +1,22 @@
-// 📑 元素描述符 — elements.json 的类型与访问器
-// 把"哪些元素是啥样、怎么生成、何时出现"全部收归数据契约。
-// 新增元素只需在 elements.json 加一条目，运行期与弹窗均自动识别，无需任何 TS 改动。
-
+// 元素描述符：elements.json 的类型与访问器，新增元素只改 JSON 即可
 import elementsData from './elements.json';
 import type { SeasonWeights } from '../../../lib/season-weights';
 
+/** 元素行为：fall=飘落，twinkle=闪烁 */
 export type ElementBehavior = 'fall' | 'twinkle';
 
+/** 数值区间 */
 export interface Range {
-  min: number;
-  max: number;
+  min: number; // 下界
+  max: number; // 上界
 }
 
-// 元素描述符（与 elements.json 对齐；render 仅取生成所需的字段）
+/** 元素描述符（与 elements.json 对齐；render 仅取生成所需的字段） */
 export interface ElementDescriptor {
-  behavior: ElementBehavior;
+  behavior: ElementBehavior; // fall / twinkle
   label?: string; // 弹窗显示名（中文）
   icon?: string; // 弹窗显示图标（emoji）
-  seasons?: string[]; // fall 元素：哪些季节会使其出现（并按权重从中取色）；缺省为空
+  seasons?: string[]; // fall 元素：哪些季节使其出现（并按权重从中取色）
   palettes?: Record<string, string[]>; // 按季节色板（有则按季节权重取色）
   color?: string; // 固定颜色（无 palettes 时使用）
   sizeRange: Range; // 尺寸范围（像素，未乘缩放）
@@ -34,29 +33,29 @@ export interface ElementDescriptor {
     visibleTo: number; // 出现时段终点（小时）
   };
   render: {
-    type: 'svg' | 'emoji';
-    paths?: { d: string; fill: unknown; stroke: unknown }[];
-    glyph?: string;
+    type: 'svg' | 'emoji'; // 渲染方式
+    paths?: { d: string; fill: unknown; stroke: unknown }[]; // SVG 路径
+    glyph?: string; // emoji 字形
   };
 }
 
 const ELEMENTS = elementsData as unknown as Record<string, ElementDescriptor>;
 
-// 当前支持的全部元素类型（取自 elements.json 的键顺序）
+/** 当前支持的全部元素类型（取自 elements.json 的键顺序） */
 export const ELEMENT_TYPES = Object.keys(ELEMENTS);
 
+/* 按类型取元素描述符 */
 export function getElementDescriptor(type: string): ElementDescriptor | undefined {
   return ELEMENTS[type];
 }
 
-// 弹窗展示用元信息
+/* 弹窗展示用元信息（label / icon） */
 export function getElementMeta(type: string): { label: string; icon: string } {
   const d = ELEMENTS[type];
   return { label: d?.label ?? type, icon: d?.icon ?? '•' };
 }
 
-// 计算某个 fall 元素在给定季节权重下的"出现权重"
-// = 其 seasons 列表里各季节权重之和（叶子=春+夏+秋，雪花=冬）
+/* fall 元素在给定季节权重下的出现权重（其 seasons 各季权重之和） */
 export function seasonWeightFor(desc: ElementDescriptor, weights: SeasonWeights): number {
   const seasons = desc.seasons ?? [];
   return seasons.reduce(
