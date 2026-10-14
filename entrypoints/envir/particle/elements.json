@@ -1,6 +1,9 @@
 {
   "leaf": {
     "behavior": "fall",
+    "label": "叶子",
+    "icon": "🍃",
+    "seasons": ["spring", "summer", "autumn"],
     "render": {
       "type": "svg",
       "paths": [
@@ -31,6 +34,9 @@
   },
   "snow": {
     "behavior": "fall",
+    "label": "雪花",
+    "icon": "❄️",
+    "seasons": ["winter"],
     "render": {
       "type": "svg",
       "paths": [
@@ -59,6 +65,8 @@
   },
   "star": {
     "behavior": "twinkle",
+    "label": "星光",
+    "icon": "⭐",
     "render": {
       "type": "svg",
       "paths": [

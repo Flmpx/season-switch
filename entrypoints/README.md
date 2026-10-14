@@ -32,14 +32,13 @@ entrypoints/
 │   └── style.css         # 弹窗样式（深色主题，宽 320px）
 └── envir/                # 氛围渲染模块，按职责拆分，content.ts 统一调用
     ├── intensity/        # 显示程度 → 强度系数（影响色调/粒子/星光/光晕浓度）
-    ├── particle/         # 粒子系统：Particle 抽象基类 + FallingParticle/TwinklingParticle 派生（update/draw 收归粒子自身）、数目/大小映射、统一渲染器 renderer.ts（读 elements.json 绘制）、ParticleManager 生命周期管理
+    ├── particle/         # 粒子系统（完全数据驱动）：Particle 抽象基类 + FallingParticle/TwinklingParticle 派生、数据驱动工厂 factory.ts、元素描述符 elements.ts、数目/大小映射、统一渲染器 renderer.ts、ParticleManager 生命周期管理
     │   ├── particle.ts    # Particle 基类与派生类（fall / twinkle 行为）
-    │   ├── manager.ts     # ParticleManager：飘落粒子与星光的生成/更新/绘制/消失统一管理（maintainStars 维持星光数量）
+    │   ├── factory.ts     # createElement(type, ...)：读 elements.json 描述符构造对应粒子（替代原 createLeaf/createSnow/createStar）
+    │   ├── elements.ts    # 元素描述符类型 / ELEMENT_TYPES / getElementDescriptor / getElementMeta / seasonWeightFor
+    │   ├── manager.ts     # ParticleManager：遍历所有元素生成/更新/绘制/消失（spawnStep 飘落、maintainTwinkles 闪烁）
     │   ├── renderer.ts    # 统一绘制入口 drawParticle（按 elements.json 描述符）
-    │   └── elements.json  # 元素外观/参数数据契约（SVG 几何或 emoji）
-    ├── leaf/             # 叶子：颜色色板、尺寸范围、createLeaf（返回 FallingParticle）
-    ├── snow/             # 雪花：尺寸范围、createSnow（返回 FallingParticle）
-    ├── star/             # 星光：常量、createStar（返回 TwinklingParticle）、getStarTargetCount（数量维持已并入 ParticleManager.maintainStars）
+    │   └── elements.json  # 元素外观/参数数据契约（SVG 几何或 emoji）—— 新增元素只改这里
     ├── halo/             # 夏季镜头炫光（封装为 LensFlare 类，自管 DOM）
     └── light/            # 时段亮度：getTimeBrightness、updateBrightnessOverlay、时段映射常量
 
@@ -76,9 +75,9 @@ lib/                      # 共享逻辑（被 content 与 popup 共用）
                  计算出 weights / intensity / timeBrightness / particleRate ...
                           │
               AtmosphereRenderer 持有这些状态，在 animate() 中：
-                • particleManager.spawnStep() 生成 leaf/snow
-                • particleManager.maintainStars() 维持星光目标数量
-                • particleManager.step() 统一更新+绘制（飘落粒子下落/摆动/渐隐 + 星光闪烁）
+                • particleManager.spawnStep() 按 elements.json 遍历所有 fall 行为元素生成粒子
+                • particleManager.maintainTwinkles() 维持各 twinkle 行为元素的目标数量
+                • particleManager.step() 统一更新+绘制（飘落粒子下落/摆动/渐隐 + 闪烁粒子闪烁）
                 • drawParticle() 按 elements.json 描述符逐帧绘制（统一渲染器）
                 • lensFlare.update() / updateBrightnessOverlay() 更新 DOM 层
 ```
@@ -131,14 +130,13 @@ lib/                      # 共享逻辑（被 content 与 popup 共用）
 | 模块 | 主要导出 | 用途 |
 |------|----------|------|
 | `intensity` | `getIntensityValue(s)` → number | 显示程度 → 强度系数 |
-| `particle` | `FallingParticle`(类型), `getSpeedScale(cfg)`, `getSizeScale(cfg)`, `getCountPerMinute(cfg)`（叶子/雪花）, `getStarMaxCount(cfg)`（星光）, `spawnStep(...)` → 累加器（leaf/snow 独立） | 粒子系统核心（按元素分别映射 + 生成） |
-| `leaf` | `LEAF_COLORS`, `LEAF_SIZE_RANGES`, `createLeaf(w,h,sizeScale,speedScale,weights)` | 叶子（绘制见 particle/renderer） |
-| `snow` | `SNOW_SIZE_RANGE`, `createSnow(w,h,sizeScale,speedScale)` | 雪花（绘制见 particle/renderer） |
-| `star` | `STAR_SIZE_RANGE`, `getStarTargetCount(hour,max)`, `createStar(w,h,sizeScale)` | 星光（数量维持见 `particle/manager.ts` 的 `maintainStars`，绘制见 `particle/renderer`） |
+| `particle` | `FallingParticle` / `TwinklingParticle`(类型), `getSpeedScale(cfg)`, `getSizeScale(cfg)`, `getCountPerMinute(cfg)`（fall 元素，个/分钟）, `getTwinkleMaxCount(cfg)`（twinkle 元素，峰值最大个）, `getTwinkleTarget(desc,hour,max)`, `getElementConfigs(s)`, `ELEMENT_TYPES` / `getElementDescriptor` / `getElementMeta` / `seasonWeightFor`, `spawnStep(...)` / `maintainTwinkles(...)` | 粒子系统核心（数据驱动：按 elements.json 元素列表生成与维持） |
+| `particle/elements` | `ElementDescriptor`, `ELEMENT_TYPES`, `getElementDescriptor(type)`, `getElementMeta(type)`, `seasonWeightFor(desc,weights)` | 元素描述符类型与访问器 |
+| `particle/factory` | `createElement(type,w,h,sizeScale,speedScale,weights)` | 读描述符构造任意元素的粒子实例 |
 | `halo` | `class LensFlare`：`update(weights,intensity,hour)` / `remove()` | 夏季光晕 |
 | `light` | `TIME_OF_DAY_HOURS`, `MIN_BRIGHTNESS`, `TIME_OF_DAY_BRIGHTNESS`, `getTimeBrightness(s)`, `updateBrightnessOverlay(div,brightness)` | 亮度 |
 
-> 模块间依赖：`particle` 会 `import` `leaf`/`snow` 的 `create*` 来生成粒子；`leaf`/`snow` 仅以 `import type` 引用 `particle` 的 `FallingParticle` 类型（避免运行时循环依赖）。其它模块相互独立。
+> 模块间依赖：`particle` 各文件均围绕 `elements.json` 工作——`factory` 读描述符生成粒子，`manager` 遍历 `ELEMENT_TYPES` 统一调度，`renderer` 按描述符绘制。新增元素**只需编辑 `elements.json`**，无需改动上述任何 TS 模块。其它模块（intensity / halo / light）相互独立。
 
 ---
 
@@ -237,12 +235,12 @@ class AtmosphereRenderer {
 | 想做的事 | 改哪里 |
 |----------|--------|
 | 调季节过渡手感（哪个月偏哪个季节） | `lib/season-weights.ts` 的 `MONTH_WEIGHTS` |
-| 改叶子/雪花颜色、尺寸 | `envir/leaf` (`LEAF_COLORS` / `LEAF_SIZE_RANGES`)、`envir/snow` (`SNOW_SIZE_RANGE`) |
+| **加一个新粒子元素（如花瓣/雨滴/emoji）** | **只改 `envir/particle/elements.json`**：加一条目（`behavior` + `render` 几何/字形 + 各参数范围 + `label`/`icon`/`seasons`），运行期与弹窗自动生效，无需改 TS |
+| 改某元素的颜色/尺寸/速度/出现季节/数量范围 | `envir/particle/elements.json` 中对应条目的字段 |
 | 改深夜最暗程度 | `envir/light` 的 `MIN_BRIGHTNESS`（建议 ≥ 0.5） |
 | 改显示程度档位对应浓度 | `envir/intensity` 的 `INTENSITY_MAP` |
-| 改粒子速度/大小/数目档位 | `envir/particle` 的 `SPEED_SCALE_MAP` / `SIZE_SCALE_MAP` / `COUNT_RATE_MAP` / `STAR_MAX_COUNT_MAP`（均按元素分别映射） |
-| 改星光最大数量/尺寸/出现时段 | `envir/star` 的 `STAR_SIZE_RANGE` / `getStarTargetCount`（最大数量由 `envir/particle` 的 `STAR_MAX_COUNT_MAP` 决定） |
-| 加全新氛围效果 | 新建 `envir/<name>/index.ts`，按第 5 节接入 `content.ts` |
+| 改粒子速度/大小/数目档位（缩放系数与预设值） | `envir/particle` 的 `SPEED_SCALE_MAP` / `SIZE_SCALE_MAP` / `COUNT_RATE_MAP` / `TWINKLE_MAX_COUNT_MAP`（按元素分别映射） |
+| 加全新氛围效果（非粒子，如雾气） | 新建 `envir/<name>/index.ts`，按第 5 节接入 `content.ts` |
 | 加新设置键 | 按第 6 节改 `settings.ts` → `popup` → `content.ts` |
 | 改弹出界面外观 | `popup/style.css`（宽 320px，深色主题） |
 

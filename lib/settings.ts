@@ -50,12 +50,10 @@ export interface Settings {
   customHour: number; // 0-23，自定义时间使用
   intensity: string; // 'misty' | 'light' | 'medium' | 'deep' | 'custom-intensity'
   customIntensity: number; // 0-100
-  // 🍃❄️⭐ 粒子设置：按元素分别配置（叶子 / 雪花 / 星光）
-  particles: {
-    leaf: ElementConfig;
-    snow: ElementConfig;
-    star: ElementConfig;
-  };
+  // 🍃❄️⭐ 粒子设置：按元素分别配置
+  // 键为元素类型（取自 elements.json），值为该元素的 速度/大小/数目 配置。
+  // 用索引签名以支持"用户自定义元素零代码生效"——新增元素自动落入默认配置。
+  particles: Record<string, ElementConfig>;
 }
 
 export const DEFAULT_SETTINGS: Settings = {

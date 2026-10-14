@@ -548,3 +548,33 @@ entrypoints/popup/
 - 旧版存储中无 `particles` 字段时，`loadSettings()` 经 `{...DEFAULT_SETTINGS, ...data}` 合并自动回退到默认每元素配置，不会崩溃
 - 构建验证：`wxt build` 通过（chrome-mv3）
 
+
+---
+
+## 第七步：用户自定义元素零代码生效（2026-10-14）
+
+### 目标
+粒子系统全面数据驱动：新增元素（如花瓣、雨滴、emoji）只需编辑 `entrypoints/envir/particle/elements.json`，运行期（manager）与弹窗（popup）自动识别，无需改动任何 TS。
+
+### 改动
+- `elements.json`：为 leaf/snow/star 增加 `label`（中文名）、`icon`（emoji）、`seasons`（出现季节，fall 用）；star 仅加 label/icon
+- 新增 `envir/particle/elements.ts`：`ElementDescriptor` / `ElementBehavior` / `Range` 类型；`ELEMENT_TYPES`（取自 JSON 键序）、`getElementDescriptor`、`getElementMeta`、`seasonWeightFor`（按 seasons 聚合季节权重）
+- 新增 `envir/particle/factory.ts`：`createElement(type, w, h, sizeScale, speedScale, weights)` 按 `behavior` 构造 `FallingParticle` / `TwinklingParticle`，参数（尺寸/速度/摆动/旋转/透明度/颜色）全部取自描述符范围，与原 createLeaf/createSnow/createStar 行为一致
+- `envir/particle/index.ts`：`getStarMaxCount` → `getTwinkleMaxCount`（适配任意 twinkle 元素）；新增 `getTwinkleTarget(desc, hour, max)`（跨午夜以午夜为峰值的通用目标数量，star 行为与原 `getStarTargetCount` 数值完全一致）；新增 `getElementConfigs(settings)`（按 ELEMENT_TYPES 聚合配置，缺省回退默认）；re-export 元素访问器
+- `envir/particle/manager.ts`：`spawnStep` 遍历所有 fall 元素（各自累加器 + 按 seasons 季节权重门控）；`maintainStars` → `maintainTwinkles` 遍历所有 twinkle 元素按各自 `target` 维持数量
+- `content.ts`：移除 `leafConfig/snowConfig/starConfig`，改用 `getElementConfigs()` 的 `configs` 传给 manager；删除遗留的 `DEFAULT_SETTINGS` 未用导入
+- `lib/settings.ts`：`Settings.particles` 由固定 `{leaf,snow,star}` 改为 `Record<string, ElementConfig>` 索引签名
+- popup：`index.html` 粒子面板改为 `#particleGroups` 容器；`main.ts` 按 `ELEMENT_TYPES` 动态生成各元素分组（速度/大小/数目；twinkle 自动隐藏速度项；数目滑块按行为区分 个/分钟 与 个，上限 1800/150）
+- 删除 `envir/leaf`、`envir/snow`、`envir/star` 三个目录（生成逻辑统一收归 `factory.ts`）
+
+### 备注
+- 验证：`wxt build` 通过（chrome-mv3，content.js 17.19 kB）
+- 数据驱动后，leaf 尺寸范围由原来"按季节 4-8/5-9/5-10"统一为 JSON 的单一 `sizeRange` 4-10（外观基本一致，更简洁）
+- 新元素加入 elements.json 即生效：默认速度/大小/数目走 `DEFAULT_ELEMENT_CONFIG`，首次保存后写入存储
+- star 的 twinkle 目标数量公式经 `getTwinkleTarget` 复算与原 getStarTargetCount 完全吻合（0点=max、19/5点=0）
+
+### 修复：晚上7点星光不显示
+- 现象：19:00 整星光目标数量曲线处于 0 点（入夜瞬间一颗都没有），用户感知为"星光不见了"
+- 根因：非回归，是设计行为——原 getStarTargetCount 在 19 点（7pm）即返回 0，随夜深线性增至午夜峰值；7 点整恰为 0
+- 修复：`envir/particle/index.ts` 的 `getTwinkleTarget` 增加 `TWINKLE_FLOOR = 0.25`，窗口两端保留 25% 峰值星量，入夜/黎明即有可见星光（19:00→15、午夜→60、05:00→15）
+- 验证：`node` 数值验算 + `wxt build` 通过

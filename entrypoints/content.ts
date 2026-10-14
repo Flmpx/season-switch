@@ -5,13 +5,14 @@
 import {
   loadSettings,
   onSettingsChanged,
-  DEFAULT_SETTINGS,
   type Settings,
+  type ElementConfig,
 } from '../lib/settings';
 import { getSeasonWeights, type SeasonWeights } from '../lib/season-weights';
 
 import { getIntensityValue } from './envir/intensity';
 import { ParticleManager } from './envir/particle/manager';
+import { getElementConfigs } from './envir/particle';
 import {
   TIME_OF_DAY_HOURS,
   getTimeBrightness,
@@ -42,10 +43,8 @@ class AtmosphereRenderer {
   private settings: Settings | null = null;
   private weights: SeasonWeights = { spring: 1, summer: 0, autumn: 0, winter: 0 };
   private intensity = 1.0;
-  // 🍃❄️⭐ 按元素分别的粒子配置（速度 / 大小 / 数目）
-  private leafConfig = DEFAULT_SETTINGS.particles.leaf;
-  private snowConfig = DEFAULT_SETTINGS.particles.snow;
-  private starConfig = DEFAULT_SETTINGS.particles.star;
+  // 🍃❄️⭐ 按元素分别的粒子配置（速度 / 大小 / 数目），由 elements.json 驱动
+  private configs: Record<string, ElementConfig> = {};
   private timeBrightness = 1.0; // 时间亮度系数（1.0 = 不降低亮度）
   private currentHour = 12; // 当前小时（0-23），用于判断是否显示夏季光晕
   private frameId = 0;
@@ -126,9 +125,7 @@ class AtmosphereRenderer {
     this.settings = settings;
     this.weights = getSeasonWeights(settings.season, settings.customMonth);
     this.intensity = getIntensityValue(settings);
-    this.leafConfig = settings.particles.leaf;
-    this.snowConfig = settings.particles.snow;
-    this.starConfig = settings.particles.star;
+    this.configs = getElementConfigs(settings);
     this.timeBrightness = getTimeBrightness(settings);
 
     // 计算当前小时（0-23，用于判断是否显示夏季光晕，仅在 6-18 点显示）
@@ -171,24 +168,23 @@ class AtmosphereRenderer {
 
     this.ctx.clearRect(0, 0, this.width, this.height);
 
-    // 🍃❄️ 飘落粒子：按元素分别的生成速率生成 leaf / snow
+    // 🍃❄️ 飘落粒子：按元素分别的生成速率生成所有 fall 行为元素
     this.particleManager.spawnStep(
       dt,
       this.weights,
       this.width,
       this.height,
-      this.leafConfig,
-      this.snowConfig,
+      this.configs,
     );
-    // ⭐ 星光：按当前时段与显示程度维持目标数量（由 ParticleManager 统一管理）
-    this.particleManager.maintainStars(
+    // ⭐ 闪烁粒子：按当前时段与显示程度维持各 twinkle 元素的目标数量
+    this.particleManager.maintainTwinkles(
       this.currentHour,
       this.intensity,
       this.width,
       this.height,
-      this.starConfig,
+      this.configs,
     );
-    // 🍃❄️⭐ 统一更新 + 绘制（飘落粒子的下落/摆动/渐隐 + 星光的闪烁）
+    // 🍃❄️⭐ 统一更新 + 绘制（飘落粒子的下落/摆动/渐隐 + 闪烁粒子的闪烁）
     this.particleManager.step(dt, this.height, this.intensity);
   };
 

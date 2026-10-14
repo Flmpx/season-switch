@@ -4,10 +4,15 @@
  */
 import {
   type Settings,
-  DEFAULT_SETTINGS,
+  DEFAULT_ELEMENT_CONFIG,
   loadSettings,
   saveSettings,
 } from '../../lib/settings';
+import {
+  ELEMENT_TYPES,
+  getElementMeta,
+  getElementDescriptor,
+} from '../envir/particle';
 
 // ---- DOM refs ----
 const customMonthRow = document.getElementById('customMonthRow')!;
@@ -28,8 +33,7 @@ const customIntensityValue = document.getElementById(
   'customIntensityValue',
 )!;
 
-// 🍃❄️⭐ 粒子按元素分别设置：元素与属性枚举
-const PARTICLE_ELEMENTS = ['leaf', 'snow', 'star'] as const;
+// 🍃❄️⭐ 粒子按元素分别设置：属性枚举（元素列表来自 elements.json，零代码自动识别）
 const PARTICLE_PROPS = ['speed', 'size', 'count'] as const;
 // 每个属性对应的自定义数值字段
 const CUSTOM_FIELD: Record<string, string> = {
@@ -37,6 +41,76 @@ const CUSTOM_FIELD: Record<string, string> = {
   size: 'customSize',
   count: 'customCount',
 };
+
+// 生成单个属性的子设置块（按钮组 + 自定义滑块行）
+function buildSubSetting(
+  type: string,
+  prop: string,
+  title: string,
+  opts: [string, string][],
+  unit: string,
+  max: number,
+  customVal: number,
+): string {
+  const buttons = opts
+    .map(([val, label]) => `<button class="option-btn" data-value="${val}">${label}</button>`)
+    .join('');
+  return `
+            <div class="sub-setting">
+              <h4 class="sub-title">${title}</h4>
+              <div class="option-grid" data-element="${type}" data-prop="${prop}">${buttons}</div>
+              <div class="custom-row" data-element="${type}" data-prop="${prop}" data-unit="${unit}" style="display:none;">
+                <input type="range" min="0" max="${max}" value="${customVal}" class="intensity-slider" />
+                <span class="intensity-value">${customVal}${unit}</span>
+              </div>
+            </div>`;
+}
+
+// 根据 elements.json 动态生成所有元素的设置分组
+function buildParticleGroups(settings: Settings): string {
+  const speedOpts: [string, string][] = [
+    ['slow', '慢'],
+    ['normal', '中'],
+    ['fast', '快'],
+    ['custom-speed', '自定义'],
+  ];
+  const sizeOpts: [string, string][] = [
+    ['small', '小'],
+    ['medium', '中'],
+    ['large', '大'],
+    ['custom-size', '自定义'],
+  ];
+  const countOpts: [string, string][] = [
+    ['minimal', '微量'],
+    ['few', '少量'],
+    ['medium', '中等'],
+    ['heavy', '大量'],
+    ['custom-count', '自定义'],
+  ];
+
+  let html = '';
+  for (const type of ELEMENT_TYPES) {
+    const meta = getElementMeta(type);
+    const desc = getElementDescriptor(type);
+    const isTwinkle = desc?.behavior === 'twinkle';
+    const cfg = (settings.particles[type] ?? DEFAULT_ELEMENT_CONFIG) as Record<string, any>;
+
+    html += `<div class="element-setting"><h3 class="element-title">${meta.icon} ${meta.label}</h3>`;
+    // 速度：闪烁类（静止）无速度项
+    if (!isTwinkle) {
+      html += buildSubSetting(type, 'speed', '速度', speedOpts, '%', 100, cfg.customSpeed ?? 50);
+    }
+    // 大小
+    html += buildSubSetting(type, 'size', '大小', sizeOpts, '%', 100, cfg.customSize ?? 50);
+    // 数目：飘落类=个/分钟（0~1800），闪烁类=午夜最大个（0~150）
+    const countUnit = isTwinkle ? '个' : '个/分钟';
+    const countMax = isTwinkle ? 150 : 1800;
+    const countDefault = isTwinkle ? 60 : 50;
+    html += buildSubSetting(type, 'count', '数目', countOpts, countUnit, countMax, cfg.customCount ?? countDefault);
+    html += `</div>`;
+  }
+  return html;
+}
 
 // ---- Apply active state to option buttons ----
 function applyActiveState(key: string, value: string): void {
@@ -225,6 +299,17 @@ function initTabs(): void {
 async function main(): Promise<void> {
   const settings = await loadSettings();
 
+  // 确保每个 elements.json 中的元素在设置中都有配置（新元素首次自动落入默认）
+  for (const type of ELEMENT_TYPES) {
+    if (!settings.particles[type]) {
+      settings.particles[type] = { ...DEFAULT_ELEMENT_CONFIG };
+    }
+  }
+
+  // 动态生成粒子分组 UI（按 elements.json 的元素列表，零代码识别自定义元素）
+  const container = document.getElementById('particleGroups')!;
+  container.innerHTML = buildParticleGroups(settings);
+
   // Apply saved state
   applyActiveState('season', settings.season);
   applyActiveState('timeOfDay', settings.timeOfDay);
@@ -234,9 +319,10 @@ async function main(): Promise<void> {
   updateHourSelector(settings.timeOfDay, settings.customHour);
 
   // 🍃❄️⭐ 粒子按元素分别恢复选中态与自定义滑块
-  for (const el of PARTICLE_ELEMENTS) {
+  for (const el of ELEMENT_TYPES) {
     for (const prop of PARTICLE_PROPS) {
       const cfg = (settings.particles as any)[el] as Record<string, any>;
+      if (!cfg) continue;
       applyParticleActive(el, prop, cfg[prop]);
       updateParticleCustomRow(el, prop, cfg);
     }
