@@ -29,8 +29,21 @@ export class ParticleManager {
   private accumulators: Record<string, number> = {}; // 各 fall 元素的生成累加器（秒）
   private ctx: CanvasRenderingContext2D;
 
+  // 故障隔离：单个粒子的 update/draw 异常不应中断整个渲染循环或影响其他粒子。
+  // 通过限制错误日志数量避免反复出错的粒子刷屏；clear() 时重置计数。
+  private static errorCount = 0;
+  private static readonly MAX_ERROR_LOGS = 20;
+
   constructor(ctx: CanvasRenderingContext2D) {
     this.ctx = ctx;
+  }
+
+  // 单个粒子/生成失败时集中上报，并限制日志数量
+  private handleParticleError(context: string, err: unknown): void {
+    if (ParticleManager.errorCount < ParticleManager.MAX_ERROR_LOGS) {
+      console.error(`[season-switch] 粒子故障已隔离 (${context}):`, err);
+      ParticleManager.errorCount++;
+    }
   }
 
   // 当前粒子总数（调试/状态用）
@@ -57,16 +70,23 @@ export class ParticleManager {
       this.accumulators[type] = (this.accumulators[type] ?? 0) + (dt * getCountPerMinute(cfg)) / 60;
       while (this.accumulators[type] >= 1) {
         this.accumulators[type] -= 1;
-        this.fallParticles.push(
-          createElement(
+        let particle: Particle;
+        try {
+          particle = createElement(
             type,
             width,
             height,
             getSizeScale(cfg),
             getSpeedScale(cfg),
             weights,
-          ),
-        );
+          );
+        } catch (err) {
+          // 故障隔离：单个元素生成失败不应中断其他元素的生成
+          this.handleParticleError(`spawn:${type}`, err);
+          this.accumulators[type] = 0; // 清零累加器，防止故障元素无限循环
+          break;
+        }
+        this.fallParticles.push(particle);
       }
     }
   }
@@ -92,7 +112,14 @@ export class ParticleManager {
 
       if (list.length < target) {
         while (list.length < target) {
-          const s = createElement(type, width, height, getSizeScale(cfg), 1, weights0());
+          let s: TwinklingParticle;
+          try {
+            s = createElement(type, width, height, getSizeScale(cfg), 1, weights0());
+          } catch (err) {
+            // 故障隔离：单个元素生成失败不应中断其他元素的维持
+            this.handleParticleError(`spawn:${type}`, err);
+            break;
+          }
           this.twinkleParticles.push(s);
           list.push(s);
         }
@@ -109,21 +136,46 @@ export class ParticleManager {
   }
 
   // 每帧：更新（飘落/闪烁）+ 绘制 + 移除已消失粒子
+  // 故障隔离：每个粒子的 update/draw 独立 try/catch，
+  // 单个粒子异常仅移除该粒子，绝不中断循环或波及其他粒子。
   step(dt: number, height: number, intensity: number): void {
     // 🍃❄️ 飘落粒子：下落 + 摆动 + 着陆渐隐
     for (let i = this.fallParticles.length - 1; i >= 0; i--) {
       const p = this.fallParticles[i];
-      p.update(dt, height);
+      try {
+        p.update(dt, height);
+      } catch (err) {
+        this.handleParticleError(`update:${p.type}`, err);
+        this.fallParticles.splice(i, 1); // 移除故障粒子，避免每帧重复抛错
+        continue;
+      }
       if (p.opacity <= 0) {
         this.fallParticles.splice(i, 1);
         continue;
       }
-      p.draw(this.ctx, intensity);
+      try {
+        p.draw(this.ctx, intensity);
+      } catch (err) {
+        this.handleParticleError(`draw:${p.type}`, err);
+        this.fallParticles.splice(i, 1);
+      }
     }
     // ⭐ 闪烁粒子：仅推进闪烁相位（不动），绘制时计算闪烁透明度
-    for (const s of this.twinkleParticles) {
-      s.update(dt);
-      s.draw(this.ctx, intensity);
+    for (let i = this.twinkleParticles.length - 1; i >= 0; i--) {
+      const s = this.twinkleParticles[i];
+      try {
+        s.update(dt);
+      } catch (err) {
+        this.handleParticleError(`update:${s.type}`, err);
+        this.twinkleParticles.splice(i, 1);
+        continue;
+      }
+      try {
+        s.draw(this.ctx, intensity);
+      } catch (err) {
+        this.handleParticleError(`draw:${s.type}`, err);
+        this.twinkleParticles.splice(i, 1);
+      }
     }
   }
 
@@ -132,6 +184,7 @@ export class ParticleManager {
     this.fallParticles.length = 0;
     this.twinkleParticles.length = 0;
     this.accumulators = {};
+    ParticleManager.errorCount = 0; // 重置故障日志计数
   }
 }
 

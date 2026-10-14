@@ -578,3 +578,22 @@ entrypoints/popup/
 - 根因：非回归，是设计行为——原 getStarTargetCount 在 19 点（7pm）即返回 0，随夜深线性增至午夜峰值；7 点整恰为 0
 - 修复：`envir/particle/index.ts` 的 `getTwinkleTarget` 增加 `TWINKLE_FLOOR = 0.25`，窗口两端保留 25% 峰值星量，入夜/黎明即有可见星光（19:00→15、午夜→60、05:00→15）
 - 验证：`node` 数值验算 + `wxt build` 通过
+
+---
+
+## 第八步：逐粒子故障隔离（2026-10-14）
+
+### 目标
+单个粒子（或新加入的自定义元素）在 update/draw/生成 阶段抛出异常时，不应中断整个渲染循环，也不应波及其他粒子。
+
+### 改动（entrypoints/envir/particle/manager.ts）
+- `step()`：飘落粒子与闪烁粒子均按索引从后往前遍历，每个粒子的 `update()` 与 `draw()` 各自包独立 `try/catch`；异常时调用 `handleParticleError` 并 `splice` 移除该粒子（避免每帧重复抛错）。闪烁粒子循环同步改为带索引的逆向遍历以安全删除
+- 新增私有静态 `errorCount` + 常量 `MAX_ERROR_LOGS = 20`，`handleParticleError(context, err)` 仅在未超上限时 `console.error` 并自增计数，防止反复出错的粒子刷屏
+- `spawnStep()`：`createElement` 包 `try/catch`，生成失败则记日志并把该元素累加器清零后 `break`，避免故障元素无限循环
+- `maintainTwinkles()`：同款 `createElement` 兜底，失败时 `break`
+- `clear()`：重置 `errorCount = 0`
+
+### 备注
+- 验证：`wxt build` 通过（chrome-mv3，content.js 17.99 kB）
+- 故障隔离默认始终开启，无需配置开关
+- 至此 OOP 重构 8 步全部完成（第1步 popup 分页、第2步 SVG 渲染管线、第3步 Particle 基类派生、第4步 ParticleManager、第5步 Star 并入管理器、第6步 按元素分别设置、第7步 数据驱动零代码新增元素、第8步 逐粒子故障隔离）

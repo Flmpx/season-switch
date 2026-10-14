@@ -8,6 +8,7 @@
 - **用户自定义元素零代码生效**：粒子系统全面数据驱动，新增元素只需在 `entrypoints/envir/particle/elements.json` 增加一条目（含 `behavior` / `render` 几何 / 各参数范围 / `label` / `icon` / `seasons`），运行期与弹窗自动识别，无需改动任何 TypeScript
 - 新增 `envir/particle/elements.ts`（元素描述符类型、元素类型列表、访问器、季节权重计算）与 `envir/particle/factory.ts`（数据驱动粒子工厂 `createElement`）
 - `getElementConfigs(settings)`：按当前 `elements.json` 的元素列表聚合各元素配置（缺省回退默认），供 content.ts 与 popup 统一使用
+- **逐粒子故障隔离**：`ParticleManager.step()` 对每个粒子的 `update`/`draw` 独立 `try/catch`，单个粒子异常仅移除该粒子，绝不中断渲染循环或波及其他粒子；错误日志设数量上限（`MAX_ERROR_LOGS=20`）避免刷屏，`clear()` 时重置计数。生成环节（`spawnStep`/`maintainTwinkles`）同样对 `createElement` 做防御性兜底，避免坏元素描述符无限抛错
 
 ### Changed
 - `lib/settings.ts`：`Settings.particles` 由固定 `{leaf,snow,star}` 改为 `Record<string, ElementConfig>` 索引签名，支持任意元素类型
