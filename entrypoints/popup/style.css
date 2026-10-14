@@ -145,3 +145,65 @@ body {
   color: #6a6f88;
   letter-spacing: 0.5px;
 }
+
+/* ---- Element Setting (per-element particle block) ---- */
+.element-setting {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid #2a2f3e;
+}
+
+.element-setting:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.element-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #c0c4d8;
+  letter-spacing: 0.5px;
+}
+
+/* ---- Tab Bar ---- */
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  margin-top: 12px;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 6px 0;
+  font-size: 12px;
+  border: 1px solid #3a3f52;
+  border-radius: 6px;
+  background: transparent;
+  color: #b0b4c8;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+  border-color: #5a5f72;
+  color: #e0e0e0;
+}
+
+.tab-btn.active {
+  border-color: #6c8cff;
+  background: rgba(108, 140, 255, 0.12);
+  color: #6c8cff;
+  font-weight: 600;
+}
+
+/* ---- Tab Panels ---- */
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.active {
+  display: flex;
+}

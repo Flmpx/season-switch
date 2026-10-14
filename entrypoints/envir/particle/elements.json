@@ -1,0 +1,97 @@
+{
+  "leaf": {
+    "behavior": "fall",
+    "label": "叶子",
+    "icon": "🍃",
+    "seasons": ["spring", "summer", "autumn"],
+    "render": {
+      "type": "svg",
+      "paths": [
+        {
+          "d": "M0,-1 C0.6,-0.3 0.6,0.3 0,1 C-0.6,0.3 -0.6,-0.3 0,-1 Z",
+          "fill": { "mode": "solid", "source": "particle" },
+          "stroke": null
+        },
+        {
+          "d": "M0,-0.7 L0,0.7",
+          "fill": null,
+          "stroke": { "color": "rgba(0,0,0,0.12)", "widthPx": 0.5 }
+        }
+      ]
+    },
+    "palettes": {
+      "spring": ["#8FBC8F", "#90EE90", "#7CCD7C", "#98FB98", "#66CD66"],
+      "summer": ["#2E8B57", "#3CB371", "#228B22"],
+      "autumn": ["#DAA520", "#FFD700", "#FF8C00", "#D2691E", "#8B4513"]
+    },
+    "sizeRange": { "min": 4, "max": 10 },
+    "speedRange": { "min": 15, "max": 40 },
+    "wobbleSpeedRange": { "min": 0.8, "max": 2.0 },
+    "wobbleAmpRange": { "min": 15, "max": 40 },
+    "rotationSpeedRange": { "min": -0.75, "max": 0.75 },
+    "opacityRange": { "min": 0.5, "max": 1.0 },
+    "countPresets": { "minimal": 10, "few": 20, "medium": 50, "heavy": 120 }
+  },
+  "snow": {
+    "behavior": "fall",
+    "label": "雪花",
+    "icon": "❄️",
+    "seasons": ["winter"],
+    "render": {
+      "type": "svg",
+      "paths": [
+        {
+          "d": "M-1,0 A1,1 0 1,0 1,0 A1,1 0 1,0 -1,0 Z",
+          "fill": {
+            "mode": "radial",
+            "stops": [
+              { "offset": 0, "color": "rgba(255,255,255,0.9)" },
+              { "offset": 0.4, "color": "rgba(255,255,255,0.5)" },
+              { "offset": 1, "color": "rgba(255,255,255,0)" }
+            ]
+          },
+          "stroke": null
+        }
+      ]
+    },
+    "color": "#FFFFFF",
+    "sizeRange": { "min": 3, "max": 10 },
+    "speedRange": { "min": 10, "max": 30 },
+    "wobbleSpeedRange": { "min": 0.4, "max": 1.2 },
+    "wobbleAmpRange": { "min": 10, "max": 30 },
+    "rotationSpeedRange": { "min": 0, "max": 0 },
+    "opacityRange": { "min": 0.4, "max": 0.9 },
+    "countPresets": { "minimal": 10, "few": 20, "medium": 50, "heavy": 120 }
+  },
+  "star": {
+    "behavior": "twinkle",
+    "label": "星光",
+    "icon": "⭐",
+    "render": {
+      "type": "svg",
+      "paths": [
+        {
+          "d": "M-1,0 A1,1 0 1,0 1,0 A1,1 0 1,0 -1,0 Z",
+          "fill": {
+            "mode": "radial",
+            "stops": [
+              { "offset": 0, "color": "rgba(255,250,220,1.0)" },
+              { "offset": 0.4, "color": "rgba(255,240,180,0.6)" },
+              { "offset": 1, "color": "rgba(255,235,150,0)" }
+            ]
+          },
+          "stroke": null
+        }
+      ]
+    },
+    "color": "#FFFAD6",
+    "sizeRange": { "min": 1, "max": 3 },
+    "speedRange": { "min": 0, "max": 0 },
+    "wobbleSpeedRange": { "min": 0, "max": 0 },
+    "wobbleAmpRange": { "min": 0, "max": 0 },
+    "rotationSpeedRange": { "min": 0, "max": 0 },
+    "opacityRange": { "min": 0.5, "max": 1.0 },
+    "twinkleSpeedRange": { "min": 0.8, "max": 3.0 },
+    "target": { "max": 60, "region": "top-third", "visibleFrom": 19, "visibleTo": 5 }
+  }
+}

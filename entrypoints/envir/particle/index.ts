@@ -1,99 +1,122 @@
-// 🍃❄️ 飘落粒子系统相关
-// 叶子与雪花共用的粒子类型、数目/大小设置映射，以及按生成速率逐帧生成粒子的逻辑。
+// 粒子系统：按元素分别的设置映射（速度/大小/数目）与配置聚合
+import {
+  DEFAULT_ELEMENT_CONFIG,
+  type ElementConfig,
+  type Settings,
+} from '../../../lib/settings';
+import {
+  ELEMENT_TYPES,
+  type ElementBehavior,
+  type ElementDescriptor,
+  type Range,
+} from './elements';
 
-import type { Settings } from '../../../lib/settings';
-import type { SeasonWeights } from '../../../lib/season-weights';
-import { createLeaf } from '../leaf';
-import { createSnow } from '../snow';
+// 下落速度缩放系数：星光静止不参与
+export const SPEED_SCALE_MAP: Record<string, number> = {
+  slow: 0.5, // 慢
+  normal: 1.0, // 中（默认）
+  fast: 1.8, // 快
+  'custom-speed': 1.0, // 自定义（实际值由 customSpeed 决定）
+};
 
-// 飘落中的粒子（叶子或雪花共用）
-export interface FallingParticle {
-  x: number;
-  y: number;
-  size: number;
-  speedY: number;
-  rotation: number;
-  rotSpeed: number;
-  opacity: number;
-  type: 'leaf' | 'snow';
-  color: string;
-  wobblePhase: number;
-  wobbleSpeed: number;
-  wobbleAmp: number;
+/* 将元素的速度设置转换为下落速度缩放系数（0-100% 分段线性，50%→1.0） */
+export function getSpeedScale(cfg: ElementConfig): number {
+  if (cfg.speed === 'custom-speed') {
+    const v = cfg.customSpeed;
+    if (v <= 50) {
+      return 0.2 + (v / 50) * 0.8;
+    }
+    return 1.0 + ((v - 50) / 50) * 1.0;
+  }
+  return SPEED_SCALE_MAP[cfg.speed] ?? 1.0;
 }
 
-// 粒子数目预设值 — 每分钟生成粒子数（个/分钟）
-// 滑块范围 10~1800，预设值在范围内选取
-export const PARTICLE_RATE_MAP: Record<string, number> = {
+// 尺寸缩放系数
+export const SIZE_SCALE_MAP: Record<string, number> = {
+  small: 0.6, // 小
+  medium: 1.0, // 中（默认）
+  large: 1.5, // 大
+  'custom-size': 1.0, // 自定义（实际值由 customSize 决定）
+};
+
+/* 将元素的大小设置转换为尺寸缩放系数（0-100% 分段线性，50%→1.0） */
+export function getSizeScale(cfg: ElementConfig): number {
+  if (cfg.size === 'custom-size') {
+    const v = cfg.customSize;
+    if (v <= 50) {
+      return 0.3 + (v / 50) * 0.7;
+    }
+    return 1.0 + ((v - 50) / 50) * 0.8;
+  }
+  return SIZE_SCALE_MAP[cfg.size] ?? 1.0;
+}
+
+// 叶子/雪花：个/分钟 生成速率
+export const COUNT_RATE_MAP: Record<string, number> = {
   minimal: 10, // 微量
   few: 20, // 少量
   medium: 50, // 中等（默认）
   heavy: 120, // 大量
-  'custom-particle': 50, // 自定义（实际值由 customParticleCount 字段决定）
+  'custom-count': 50, // 自定义（实际值由 customCount 决定）
 };
 
-// 将设置转换为 个/秒 的生成速率
-export function getParticleRate(settings: Settings): number {
-  let perMinute: number;
-  if (settings.particleCount === 'custom-particle') {
-    perMinute = settings.customParticleCount;
-  } else {
-    perMinute = PARTICLE_RATE_MAP[settings.particleCount] ?? 50;
+/* 将元素的数目设置转换为 个/分钟 的生成速率 */
+export function getCountPerMinute(cfg: ElementConfig): number {
+  if (cfg.count === 'custom-count') {
+    return cfg.customCount;
   }
-  return perMinute / 60;
+  return COUNT_RATE_MAP[cfg.count] ?? 50;
 }
 
-// 粒子大小预设值 — 尺寸缩放系数（1.0 = 当前默认大小，即"中等"）
-// 小=0.6 / 中=1.0 / 大=1.5
-export const PARTICLE_SIZE_MAP: Record<string, number> = {
-  small: 0.6, // 小
-  medium: 1.0, // 中（默认）
-  large: 1.5, // 大
-  'custom-size': 1.0, // 自定义（实际值由 customParticleSize 字段决定）
+// twinkle 元素：午夜（峰值）最大数量（个）
+export const TWINKLE_MAX_COUNT_MAP: Record<string, number> = {
+  minimal: 15, // 微量
+  few: 30, // 少量
+  medium: 60, // 中等（默认）
+  heavy: 120, // 大量
+  'custom-count': 60, // 自定义（实际值由 customCount 决定）
 };
 
-// 粒子大小缩放系数（1.0 = 中等）
-// 自定义 0-100%：0%→0.3, 50%→1.0（中等）, 100%→1.8
-// 分段线性插值，保证 50% 恰好为 1.0
-export function getParticleSizeScale(settings: Settings): number {
-  if (settings.particleSize === 'custom-size') {
-    const v = settings.customParticleSize;
-    if (v <= 50) {
-      return 0.3 + (v / 50) * 0.7; // 0→0.3, 50→1.0
-    }
-    return 1.0 + ((v - 50) / 50) * 0.8; // 50→1.0, 100→1.8
+/* twinkle 元素峰值最大数量（个） */
+export function getTwinkleMaxCount(cfg: ElementConfig): number {
+  if (cfg.count === 'custom-count') {
+    return cfg.customCount;
   }
-  return PARTICLE_SIZE_MAP[settings.particleSize] ?? 1.0;
+  return TWINKLE_MAX_COUNT_MAP[cfg.count] ?? 60;
 }
 
-// 根据生成速率和季节权重，逐帧决定是否生成新粒子
-// 返回更新后的生成累加器（秒）。粒子直接推入传入的 particles 数组。
-export function spawnParticles(
-  particles: FallingParticle[],
-  weights: SeasonWeights,
-  particleRate: number,
-  particleSizeScale: number,
-  width: number,
-  height: number,
-  dt: number,
-  accumulator: number,
+// 入夜/黎明时仍保留 25% 峰值数量的星光，避免"刚入夜瞬间一颗都没有"
+const TWINKLE_FLOOR = 0.25;
+
+/* twinkle 目标数量：依据描述符 target 与当前小时计算（跨午夜以午夜为峰值） */
+export function getTwinkleTarget(
+  desc: ElementDescriptor,
+  hour: number,
+  maxCount: number,
 ): number {
-  // 生成速率按季节权重分配：叶子和雪花各自的比例
-  const leafWeight = weights.spring + weights.summer + weights.autumn;
-  const snowWeight = weights.winter;
-
-  // 累加器推进
-  let next = accumulator + dt * particleRate;
-
-  // 每积累1个粒子就生成一个
-  while (next >= 1) {
-    next -= 1;
-    const rand = Math.random() * (leafWeight + snowWeight);
-    if (rand < leafWeight) {
-      particles.push(createLeaf(width, height, particleSizeScale, weights));
-    } else {
-      particles.push(createSnow(width, height, particleSizeScale));
-    }
-  }
-  return next;
+  const from = desc.target?.visibleFrom ?? 0;
+  const to = desc.target?.visibleTo ?? 0;
+  const active = from <= to ? hour >= from && hour <= to : hour >= from || hour <= to;
+  if (!active || maxCount <= 0) return 0;
+  const half = from <= to ? (to - from) / 2 : Math.min(24 - from, to);
+  const dist = from <= to ? Math.abs(hour - (from + to) / 2) : Math.min(hour, 24 - hour);
+  return Math.round(maxCount * Math.max(TWINKLE_FLOOR, 1 - dist / half));
 }
+
+/* 按元素聚合设置（供 content.ts / popup 使用，缺省回退默认） */
+export function getElementConfigs(settings: Settings): Record<string, ElementConfig> {
+  const out: Record<string, ElementConfig> = {};
+  for (const type of ELEMENT_TYPES) {
+    out[type] = settings.particles[type] ?? DEFAULT_ELEMENT_CONFIG;
+  }
+  return out;
+}
+
+// 元素描述符访问器（re-export，供 manager / popup 直接取自本模块）
+export {
+  ELEMENT_TYPES,
+  getElementDescriptor,
+  getElementMeta,
+  seasonWeightFor,
+} from './elements';
+export type { ElementBehavior, ElementDescriptor, Range } from './elements';

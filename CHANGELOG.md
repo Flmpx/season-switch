@@ -4,6 +4,31 @@
 
 ## [Unreleased]
 
+### Added
+- **用户自定义元素零代码生效**：粒子系统全面数据驱动，新增元素只需在 `entrypoints/envir/particle/elements.json` 增加一条目（含 `behavior` / `render` 几何 / 各参数范围 / `label` / `icon` / `seasons`），运行期与弹窗自动识别，无需改动任何 TypeScript
+- 新增 `envir/particle/elements.ts`（元素描述符类型、元素类型列表、访问器、季节权重计算）与 `envir/particle/factory.ts`（数据驱动粒子工厂 `createElement`）
+- `getElementConfigs(settings)`：按当前 `elements.json` 的元素列表聚合各元素配置（缺省回退默认），供 content.ts 与 popup 统一使用
+- **逐粒子故障隔离**：`ParticleManager.step()` 对每个粒子的 `update`/`draw` 独立 `try/catch`，单个粒子异常仅移除该粒子，绝不中断渲染循环或波及其他粒子；错误日志设数量上限（`MAX_ERROR_LOGS=20`）避免刷屏，`clear()` 时重置计数。生成环节（`spawnStep`/`maintainTwinkles`）同样对 `createElement` 做防御性兜底，避免坏元素描述符无限抛错
+
+### Changed
+- `lib/settings.ts`：`Settings.particles` 由固定 `{leaf,snow,star}` 改为 `Record<string, ElementConfig>` 索引签名，支持任意元素类型
+- `envir/particle/index.ts`：`getStarMaxCount()` 改名 `getTwinkleMaxCount()`（适配任意 twinkle 元素）；新增 `getTwinkleTarget(desc, hour, max)`（通用 twinkle 目标数量，跨午夜以午夜为峰值）；re-export 元素访问器
+- `envir/particle/manager.ts`：`spawnStep()` 遍历所有 fall 行为元素（各自累加器、按 `seasons` 季节权重门控）；`maintainStars()` 升级为 `maintainTwinkles()`，遍历所有 twinkle 行为元素按各自 `target` 维持数量
+- 删除手写 `envir/leaf`、`envir/snow`、`envir/star` 三个模块（生成逻辑统一收归 `factory.ts` 数据驱动）
+- Popup 粒子页改为**按 `elements.json` 动态生成**各元素分组（速度/大小/数目控件）；twinkle 元素自动隐藏速度项
+
+### Fixed
+- 修复 `content.ts` 动画循环 `particleManager.step()` 被调用两次导致粒子每帧更新与绘制两遍（等效飘落速度翻倍）的问题，现为单次调用
+
+### Docs
+- 删除零散的 `design.md` / `commit.md` / `log.md` / `find.md` 与 `entrypoints/README.md`，改为新建 `docs/` 目录：
+  - `docs/design.md`：大重构后的整体设计（分层结构 + mermaid 架构图/数据流向图 + 特例说明，如星光跨午夜、twinkle 无速度项、数据驱动零代码新增元素、故障隔离）
+  - `docs/art.md`：按当前实现重写的美术设计（季节色调、时间亮度、叶子/雪花/星光外观、夏季光晕、显示程度、自定义元素美术约定）
+- 代码注释规范化：类/结构体成员一律 `//` 行尾注释，成员函数统一 `/* */` 函数上方注释，移除函数体内遗留注释；中文、简洁
+- 更新首页 `README.md`：粒子改为按元素（叶子/雪花/星光）独立设置速度/大小/数目，补充「自定义元素零代码」说明，末尾新增文档链接（design.md / art.md）
+
+## [0.6.0] - 2026-10-13
+
 ### Changed
 - 代码结构整理：将 `entrypoints/content.ts` 中的渲染逻辑按职责拆分到 `entrypoints/envir/` 各分类目录
   - `envir/leaf`：叶子颜色、尺寸范围、生成与绘制

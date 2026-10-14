@@ -10,11 +10,17 @@
     <div class="popup">
       <header class="popup-header">
         <h1>季节轮转</h1>
+        <nav class="tab-bar">
+          <button class="tab-btn active" data-tab="season">季节</button>
+          <button class="tab-btn" data-tab="time">时间</button>
+          <button class="tab-btn" data-tab="display">显示程度</button>
+          <button class="tab-btn" data-tab="particle">粒子</button>
+        </nav>
       </header>
 
       <main class="popup-body">
         <!-- 季节 -->
-        <section class="setting-section">
+        <section class="setting-section tab-panel active" data-panel="season">
           <h2 class="section-title">季节</h2>
           <div class="option-grid" data-key="season">
             <button class="option-btn" data-value="spring">春</button>
@@ -38,7 +44,7 @@
         </section>
 
         <!-- 时间 -->
-        <section class="setting-section">
+        <section class="setting-section tab-panel" data-panel="time">
           <h2 class="section-title">时间</h2>
           <div class="option-grid" data-key="timeOfDay">
             <button class="option-btn" data-value="dawn">清晨</button>
@@ -65,7 +71,7 @@
         </section>
 
         <!-- 显示程度 -->
-        <section class="setting-section">
+        <section class="setting-section tab-panel" data-panel="display">
           <h2 class="section-title">显示程度</h2>
           <div class="option-grid" data-key="intensity">
             <button class="option-btn" data-value="misty">朦朦</button>
@@ -88,53 +94,10 @@
         </section>
 
         <!-- 粒子 -->
-        <section class="setting-section">
+        <section class="setting-section tab-panel" data-panel="particle">
           <h2 class="section-title">粒子</h2>
-
-          <!-- 粒子数目 -->
-          <div class="sub-setting">
-            <h3 class="sub-title">粒子数目</h3>
-            <div class="option-grid" data-key="particleCount">
-              <button class="option-btn" data-value="minimal">微量</button>
-              <button class="option-btn" data-value="few">少量</button>
-              <button class="option-btn" data-value="medium">中等</button>
-              <button class="option-btn" data-value="heavy">大量</button>
-              <button class="option-btn" data-value="custom-particle">自定义</button>
-            </div>
-            <div class="custom-row" id="customParticleRow" style="display:none;">
-              <input
-                type="range"
-                id="customParticleSlider"
-                min="10"
-                max="1800"
-                value="50"
-                class="intensity-slider"
-              />
-              <span id="customParticleValue" class="intensity-value">50个/分钟</span>
-            </div>
-          </div>
-
-          <!-- 粒子大小 -->
-          <div class="sub-setting">
-            <h3 class="sub-title">粒子大小</h3>
-            <div class="option-grid" data-key="particleSize">
-              <button class="option-btn" data-value="small">小</button>
-              <button class="option-btn" data-value="medium">中</button>
-              <button class="option-btn" data-value="large">大</button>
-              <button class="option-btn" data-value="custom-size">自定义</button>
-            </div>
-            <div class="custom-row" id="customParticleSizeRow" style="display:none;">
-              <input
-                type="range"
-                id="customParticleSizeSlider"
-                min="0"
-                max="100"
-                value="50"
-                class="intensity-slider"
-              />
-              <span id="customParticleSizeValue" class="intensity-value">50%</span>
-            </div>
-          </div>
+          <!-- 各元素（叶子/雪花/星光/自定义）分组由 main.ts 根据 elements.json 动态生成 -->
+          <div id="particleGroups"></div>
         </section>
       </main>
     </div>
