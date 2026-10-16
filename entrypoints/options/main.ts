@@ -276,13 +276,13 @@ function initSlider(settings: Settings): void {
   });
 }
 
-/* 顶部标签分页切换 */
+/* 左侧导航切换右侧面板 */
 function initTabs(): void {
-  const tabs = document.querySelectorAll<HTMLButtonElement>('.tab-btn');
-  const panels = document.querySelectorAll<HTMLElement>('.tab-panel');
+  const tabs = document.querySelectorAll<HTMLButtonElement>('.nav-item');
+  const panels = document.querySelectorAll<HTMLElement>('.panel');
   tabs.forEach((tab) => {
     tab.addEventListener('click', () => {
-      const target = tab.dataset.tab!;
+      const target = tab.dataset.target!;
       tabs.forEach((t) => t.classList.toggle('active', t === tab));
       panels.forEach((p) =>
         p.classList.toggle('active', p.dataset.panel === target),

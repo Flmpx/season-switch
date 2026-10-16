@@ -4,38 +4,75 @@
   box-sizing: border-box;
 }
 
+html,
 body {
-  width: 320px;
+  height: 100%;
+}
+
+body {
+  width: 100%;
   font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif;
-  background: #1b1f2a;
+  background: #1b1f2a; /* 占位底色，C 阶段改为灰主题 */
   color: #e0e0e0;
 }
 
-.popup {
+/* ---- 全宽双栏布局 ---- */
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 220px;
+  flex: 0 0 220px;
   display: flex;
   flex-direction: column;
+  gap: 4px;
+  padding: 16px 12px;
+  background: #161a24; /* 占位，C 阶段细化 */
+  border-right: 1px solid #2a2f3e; /* 占位 */
 }
 
-/* ---- Header ---- */
-.popup-header {
-  padding: 14px 18px;
-  border-bottom: 1px solid #2a2f3e;
-}
-
-.popup-header h1 {
+.sidebar-title {
   font-size: 16px;
   font-weight: 700;
   color: #fff;
   letter-spacing: 1px;
+  padding: 0 8px 12px;
 }
 
-/* ---- Body ---- */
-.popup-body {
-  padding: 12px 18px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+.nav-item {
+  padding: 10px 12px;
+  font-size: 14px;
+  text-align: left;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #b0b4c8;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s ease;
 }
+
+.nav-item:hover {
+  background: #20242f; /* 占位，C 阶段细化 */
+  color: #e0e0e0;
+}
+
+.nav-item.active {
+  background: rgba(108, 140, 255, 0.12); /* 占位，C 阶段细化 */
+  color: #6c8cff;
+  font-weight: 600;
+}
+
+.content {
+  flex: 1;
+  padding: 24px 32px;
+  overflow-y: auto;
+}
+
+/* 旧 .popup / .popup-header / .popup-body 容器样式已移除；
+   全宽双栏布局改由 .layout / .sidebar / .content 提供（见上方）。 */
 
 /* ---- Section ---- */
 .setting-section {
@@ -167,43 +204,12 @@ body {
   letter-spacing: 0.5px;
 }
 
-/* ---- Tab Bar ---- */
-.tab-bar {
-  display: flex;
-  gap: 4px;
-  margin-top: 12px;
-}
-
-.tab-btn {
-  flex: 1;
-  padding: 6px 0;
-  font-size: 12px;
-  border: 1px solid #3a3f52;
-  border-radius: 6px;
-  background: transparent;
-  color: #b0b4c8;
-  cursor: pointer;
-  font-family: inherit;
-  transition: all 0.2s ease;
-}
-
-.tab-btn:hover {
-  border-color: #5a5f72;
-  color: #e0e0e0;
-}
-
-.tab-btn.active {
-  border-color: #6c8cff;
-  background: rgba(108, 140, 255, 0.12);
-  color: #6c8cff;
-  font-weight: 600;
-}
-
-/* ---- Tab Panels ---- */
-.tab-panel {
+/* ---- 右侧面板切换 ---- */
+.panel {
   display: none;
 }
 
-.tab-panel.active {
+.panel.active {
   display: flex;
+  flex-direction: column;
 }
