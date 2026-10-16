@@ -12,14 +12,15 @@ body {
 body {
   width: 100%;
   font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif;
-  background: #1b1f2a; /* 占位底色，C 阶段改为灰主题 */
-  color: #e0e0e0;
+  background: #3c3c3c; /* 中深灰底色 */
+  color: #e8e8e8;
 }
 
 /* ---- 全宽双栏布局 ---- */
 .layout {
   display: flex;
-  min-height: 100vh;
+  height: 100vh; /* 固定视口高，整体不随内容滚动 */
+  overflow: hidden; /* 裁掉外溢，左右各自独立滚动 */
 }
 
 .sidebar {
@@ -29,14 +30,15 @@ body {
   flex-direction: column;
   gap: 4px;
   padding: 16px 12px;
-  background: #161a24; /* 占位，C 阶段细化 */
-  border-right: 1px solid #2a2f3e; /* 占位 */
+  background: #303030; /* 比内容区略深，维持侧栏层次 */
+  border-right: 1px solid #2a2a2a;
+  overflow-y: auto; /* 左侧自身可独立滚动 */
 }
 
 .sidebar-title {
   font-size: 16px;
   font-weight: 700;
-  color: #fff;
+  color: #f2f2f2;
   letter-spacing: 1px;
   padding: 0 8px 12px;
 }
@@ -48,25 +50,26 @@ body {
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: #b0b4c8;
+  color: #d2d2d2; /* 暗底默认浅字，保证可读 */
   cursor: pointer;
   font-family: inherit;
   transition: all 0.2s ease;
 }
 
 .nav-item:hover {
-  background: #20242f; /* 占位，C 阶段细化 */
-  color: #e0e0e0;
+  background: rgba(255, 255, 255, 0.12); /* 悬浮：与右侧一致的淡白光，比页面更亮 */
+  color: #f2f2f2;
 }
 
 .nav-item.active {
-  background: rgba(108, 140, 255, 0.12); /* 占位，C 阶段细化 */
-  color: #6c8cff;
+  background: #ffffff; /* 选中：白底 */
+  color: #161616; /* 选中：黑字 */
   font-weight: 600;
 }
 
 .content {
   flex: 1;
+  height: 100%; /* 与布局同高，滚动限制在右侧内部 */
   padding: 24px 32px;
   overflow-y: auto;
 }
@@ -84,7 +87,7 @@ body {
 .section-title {
   font-size: 12px;
   font-weight: 600;
-  color: #8a8fa8;
+  color: #9a9a9a;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
@@ -93,32 +96,35 @@ body {
 .option-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 10px;
 }
 
 .option-btn {
-  padding: 5px 12px;
-  font-size: 13px;
-  border: 1px solid #3a3f52;
-  border-radius: 6px;
+  display: inline-flex; /* 内部文字垂直水平居中 */
+  align-items: center;
+  justify-content: center;
+  height: 37px; /* 与左侧导航项等高 */
+  padding: 0 20px; /* 文字到左右边框距离 20px */
+  font-size: 14px; /* 右侧字号 */
+  border: 1px solid #ffffff; /* 右侧选项白色边框 */
+  border-radius: 8px; /* 圆角长方形 */
   background: transparent;
-  color: #b0b4c8;
+  color: #e8e8e8;
   cursor: pointer;
   transition: all 0.2s ease;
   font-family: inherit;
-  line-height: 1.4;
 }
 
 .option-btn:hover {
-  border-color: #5a5f72;
-  color: #e0e0e0;
-  background: #252a3a;
+  border-color: #ffffff;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.12); /* 悬浮淡色高亮 */
 }
 
 .option-btn.active {
-  border-color: #6c8cff;
-  background: rgba(108, 140, 255, 0.12);
-  color: #6c8cff;
+  border-color: #ffffff;
+  background: #ffffff; /* 选中：白底填充 */
+  color: #161616; /* 选中：黑字 */
   font-weight: 600;
 }
 
@@ -137,7 +143,7 @@ body {
   appearance: none;
   height: 4px;
   border-radius: 2px;
-  background: #3a3f52;
+  background: #3a3a3a;
   outline: none;
 }
 
@@ -147,7 +153,7 @@ body {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #6c8cff;
+  background: #e8e8e8;
   cursor: pointer;
   border: none;
 }
@@ -156,14 +162,14 @@ body {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #6c8cff;
+  background: #e8e8e8;
   cursor: pointer;
   border: none;
 }
 
 .intensity-value {
   font-size: 12px;
-  color: #6c8cff;
+  color: #e8e8e8;
   min-width: 36px;
   text-align: right;
   font-weight: 600;
@@ -179,7 +185,7 @@ body {
 .sub-title {
   font-size: 11px;
   font-weight: 500;
-  color: #6a6f88;
+  color: #9a9a9a;
   letter-spacing: 0.5px;
 }
 
@@ -189,7 +195,7 @@ body {
   flex-direction: column;
   gap: 10px;
   padding: 10px 0;
-  border-top: 1px solid #2a2f3e;
+  border-top: 1px solid #2c2c2c;
 }
 
 .element-setting:first-of-type {
@@ -200,7 +206,7 @@ body {
 .element-title {
   font-size: 13px;
   font-weight: 600;
-  color: #c0c4d8;
+  color: #e8e8e8;
   letter-spacing: 0.5px;
 }
 
