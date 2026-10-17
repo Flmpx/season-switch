@@ -1,0 +1,229 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 340px;
+  height: auto; /* 高度由内容驱动，配合 .pages 的 height 过渡动画 */
+  font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif;
+  background: #3c3c3c; /* 中深灰底色 */
+  color: #e8e8e8;
+}
+
+/* ---- 导航栈容器（iOS 式：新页右滑入、旧页左推出） ---- */
+.nav-stack {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* 页面容器：仅做高度过渡；层级滑动由每个 .page 各自做 translateX 完成 */
+.pages {
+  position: relative;
+  width: 100%;
+  height: 0; /* 初始 0，首屏由 JS 写入实际高度 */
+  overflow: hidden;
+  transition: height 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 每页绝对定位叠放、按栈偏移各自横向位移；高度跟随内容（JS 写入 .pages 高度，
+   页面自身 max-height 上限 600，超出则内部滚动） */
+.page {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  max-height: 600px; /* Chrome 弹窗高度上限，超出则内部滚动 */
+  display: flex;
+  flex-direction: column;
+  background: #3c3c3c;
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+/* 首屏/重置时关闭所有过渡，避免初始入场动画与高度突变 */
+.pages.no-anim,
+.pages.no-anim .page {
+  transition: none;
+}
+
+/* ---- 页面页头（含返回） ---- */
+.page-header {
+  position: relative; /* 标题居中、返回键绝对定位于左侧 */
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center; /* 标题水平居中 */
+  height: 48px;
+  padding: 0 12px;
+  border-bottom: 1px solid #2a2a2a;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.page-header .back {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 4px 6px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #d2d2d2;
+  cursor: pointer;
+  font-size: 14px; /* 比标题 15px 略小 */
+  font-family: inherit;
+  transition: background 0.2s ease;
+}
+
+.page-header .back:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.page-title {
+  color: #f2f2f2;
+  text-align: center;
+}
+
+/* ---- 页面主体（可独立滚动） ---- */
+.page-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ---- 主选项行（带 › 指示符） ---- */
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #e8e8e8;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: inherit;
+  text-align: left;
+  transition: background 0.2s ease;
+}
+
+.row:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.row-label {
+  color: #e8e8e8;
+}
+
+.row .chevron {
+  color: #9a9a9a;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.row:hover .chevron {
+  color: #d2d2d2;
+}
+
+/* ---- 选项按钮组（复用于各子页） ---- */
+.option-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.option-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 37px; /* 与历史设定一致 */
+  padding: 0 20px;
+  font-size: 14px;
+  border: 1px solid #ffffff; /* 白边框 */
+  border-radius: 8px;
+  background: transparent;
+  color: #e8e8e8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.option-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.option-btn.active {
+  background: #ffffff; /* 选中：白底 */
+  color: #161616; /* 选中：黑字 */
+  font-weight: 600;
+}
+
+/* ---- 自定义滑块行 ---- */
+.custom-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.intensity-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: #3a3a3a;
+  outline: none;
+}
+
+.intensity-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #e8e8e8;
+  cursor: pointer;
+  border: none;
+}
+
+.intensity-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #e8e8e8;
+  cursor: pointer;
+  border: none;
+}
+
+.intensity-value {
+  font-size: 12px;
+  color: #e8e8e8;
+  min-width: 36px;
+  text-align: right;
+  font-weight: 600;
+}
+
+/* ---- 单个属性的子设置块（粒子元素页：速度/大小/数目） ---- */
+.sub-setting {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sub-title {
+  font-size: 11px;
+  font-weight: 500;
+  color: #9a9a9a;
+  letter-spacing: 0.5px;
+}
