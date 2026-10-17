@@ -5,7 +5,14 @@
 
 /* 管理页外壳：左侧固定侧边栏 + 右侧内容区，负责导航按钮与当前路由高亮 */
 
-export type ManagerRoute = 'new' | 'mine';
+export type ManagerRoute = 'new' | 'mine' | 'detail';
+
+/* 详情页在侧边栏里归属「我的粒子」 */
+const NAV_OF: Record<ManagerRoute, 'new' | 'mine'> = {
+  new: 'new',
+  mine: 'mine',
+  detail: 'mine',
+};
 
 export const ROUTES: ReadonlyArray<{ id: ManagerRoute; label: string; icon: string }> = [
   { id: 'new', label: '新建粒子', icon: '＋' },
@@ -53,8 +60,9 @@ export function createShell(root: HTMLElement, onRoute: (route: ManagerRoute) =>
   return {
     content,
     setActive(route) {
+      const nav = NAV_OF[route];
       for (const btn of buttons) {
-        btn.classList.toggle('active', btn.dataset.route === route);
+        btn.classList.toggle('active', btn.dataset.route === nav);
       }
     },
   };

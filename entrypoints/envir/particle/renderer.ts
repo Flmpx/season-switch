@@ -44,7 +44,7 @@ export interface DrawParticleOpts {
   color: string; // 颜色（svg 的 source:particle 与文字使用）
 }
 
-/* 绘制 SVG 路径集合（路径已归一化到 [-1,1]） */
+/* 绘制 SVG 路径集合（路径已归一化到 [-1,1]；带 matrix 的先应用坐标变换） */
 function drawSvg(ctx: CanvasRenderingContext2D, paths: PathSpec[], o: DrawParticleOpts): void {
   ctx.save();
   ctx.translate(o.x, o.y);
@@ -53,15 +53,23 @@ function drawSvg(ctx: CanvasRenderingContext2D, paths: PathSpec[], o: DrawPartic
   ctx.scale(o.size, o.size);
   for (const path of paths) {
     const p2d = getPath(path.d);
+    const m = path.matrix;
+    // 矩阵的缩放分量：描边需要按它换算，才能保持视觉像素宽度不受缩放影响
+    const scale = m ? Math.sqrt(Math.abs(m[0] * m[3] - m[1] * m[2])) || 1 : 1;
+    if (m) {
+      ctx.save();
+      ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
+    }
     if (path.fill) {
       ctx.fillStyle = resolveFill(ctx, path.fill, o.color);
       ctx.fill(p2d);
     }
     if (path.stroke) {
-      ctx.lineWidth = path.stroke.widthPx / o.size;
+      ctx.lineWidth = path.stroke.widthPx / (o.size * scale);
       ctx.strokeStyle = path.stroke.color;
       ctx.stroke(p2d);
     }
+    if (m) ctx.restore();
   }
   ctx.restore();
 }
@@ -104,6 +112,7 @@ export function drawParticle(
 
   ctx.save();
   ctx.translate(o.x, o.y);
+  ctx.rotate(o.rotation);
   ctx.globalAlpha = Math.max(0, o.opacity);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';

@@ -5,7 +5,7 @@
 
 // 元素注册表：内置（elements.json）+ 用户库（lib/element-store）+ 内置覆盖 三层合并成一张表。
 // 运行期以 registry.list()/get() 访问；用户库变更时自动重建并通知订阅者。
-import { BUILTIN_ELEMENTS, type ElementDescriptor } from './elements';
+import { BUILTIN_ELEMENTS, clampDescriptor, type ElementDescriptor } from './elements';
 import {
   USER_LIBRARY_KEY,
   loadUserLibrary,
@@ -50,16 +50,16 @@ class ElementRegistry {
   rebuild(lib: UserLibraryShape): void {
     const map = new Map<string, ElementDescriptor>();
     for (const [id, builtin] of Object.entries(BUILTIN_ELEMENTS)) {
-      map.set(id, { ...builtin, id, source: 'builtin' });
+      map.set(id, clampDescriptor({ ...builtin, id, source: 'builtin' }));
     }
     for (const el of lib.elements ?? []) {
       if (!el || typeof el.id !== 'string') continue;
-      map.set(el.id, { ...el, source: 'user' });
+      map.set(el.id, clampDescriptor({ ...el, source: 'user' }));
     }
     for (const [id, over] of Object.entries(lib.overrides ?? {})) {
       const base = map.get(id);
       if (base && base.source === 'builtin') {
-        map.set(id, { ...base, ...over, id, source: 'builtin' });
+        map.set(id, clampDescriptor({ ...base, ...over, id, source: 'builtin' }));
       }
     }
     this.map = map;

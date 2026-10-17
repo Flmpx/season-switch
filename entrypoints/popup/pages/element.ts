@@ -131,6 +131,7 @@ function bindAxis(
   customBtn.addEventListener('click', () => {
     customOpen = true;
     refresh();
+    refreshHeight(); // 展开自定义滑块后容器要重新测高，否则多出的行被 .pages 的 overflow 裁掉
   });
 
   slider.addEventListener('input', async () => {
