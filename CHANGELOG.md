@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 
+### Changed
+- 数据契约重构：`Settings.particles` 由"档位枚举 + 自定义百分比"改为按元素 id 存的速度/大小/数目数值，旧字符串值自动丢弃
+- `elements.json` 改为 `speedPresets` / `sizePresets` / `countPresets` / `motion`（单值 + jitter）/ `defaults`；`countPresets` 从死字段变为生效档位，删除 `target.max`
+- 新增元素注册表 `registry`（内置 + 用户库 + 内置覆盖 三层合并），粒子管线改为遍历注册表
+- 新增 `lib/element-store`（用户元素库 CRUD / 校验 / 导入导出）与 `lib/asset-store`（dataURL 资产去重）
+- 渲染器改为接收外观描述符 `render`（svg / image / emoji / text），不再自行读取 `elements.json`
+- Popup 元素页改为"档位按钮 + 自定义数值滑块"，非档位值显示「自定义」
+
+### Fixed
+- 修复 `atmo-overlay` 防重复注入守卫从未生效
+- 修复 `ParticleManager.clear()` 从未被调用
+
 ## [0.8.0] - 2026-10-17
 
 ### Changed

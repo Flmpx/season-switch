@@ -4,150 +4,140 @@
  */
 
 import { popPage, refreshHeight } from '../nav';
+import { saveSettings, type Settings, type ParticleValue } from '../../../lib/settings';
 import {
-  saveSettings,
-  DEFAULT_ELEMENT_CONFIG,
-  type Settings,
-} from '../../../lib/settings';
-import { getElementMeta, getElementDescriptor } from '../../envir/particle';
+  registry,
+  axisLabels,
+  axisMax,
+  axisPresets,
+  axisStep,
+  axisTitle,
+  axisUnit,
+  axisVisible,
+  matchPreset,
+  type Axis,
+  type ElementDescriptor,
+} from '../../envir/particle';
 
-const PARTICLE_PROPS = ['speed', 'size', 'count'] as const;
-const CUSTOM_FIELD: Record<string, string> = {
-  speed: 'customSpeed',
-  size: 'customSize',
-  count: 'customCount',
-};
+const AXES: Axis[] = ['speed', 'size', 'count'];
 
-const SPEED_OPTS: [string, string][] = [
-  ['slow', '慢'],
-  ['normal', '中'],
-  ['fast', '快'],
-  ['custom-speed', '自定义'],
-];
-const SIZE_OPTS: [string, string][] = [
-  ['small', '小'],
-  ['medium', '中'],
-  ['large', '大'],
-  ['custom-size', '自定义'],
-];
-const COUNT_OPTS: [string, string][] = [
-  ['minimal', '微量'],
-  ['few', '少量'],
-  ['medium', '中等'],
-  ['heavy', '大量'],
-  ['custom-count', '自定义'],
-];
-
-/* 生成单个属性的子设置块（按钮组 + 自定义滑块行） */
-function buildSubSetting(
-  type: string,
-  prop: string,
-  title: string,
-  opts: [string, string][],
-  unit: string,
-  max: number,
-  customVal: number,
-): string {
-  const buttons = opts
-    .map(([val, label]) => `<button class="option-btn" type="button" data-value="${val}">${label}</button>`)
-    .join('');
-  return `
-    <div class="sub-setting">
-      <h4 class="sub-title">${title}</h4>
-      <div class="option-grid" data-element="${type}" data-prop="${prop}">${buttons}</div>
-      <div class="custom-row" data-element="${type}" data-prop="${prop}" data-unit="${unit}" style="display:none;">
-        <input type="range" min="0" max="${max}" value="${customVal}" class="intensity-slider" />
-        <span class="intensity-value">${customVal}${unit}</span>
-      </div>
-    </div>`;
-}
-
-/* 渲染单个粒子元素的详细设置页（速度/大小/数目） */
-export function renderElementPage(type: string, settings: Settings): HTMLElement {
-  const meta = getElementMeta(type);
-  const desc = getElementDescriptor(type);
-  const isTwinkle = desc?.behavior === 'twinkle';
-  const cfg = (settings.particles[type] ?? DEFAULT_ELEMENT_CONFIG) as Record<string, any>;
-
+/* 渲染单个粒子元素的设置页（速度/大小/数目：档位 + 自定义数值） */
+export function renderElementPage(id: string, settings: Settings): HTMLElement {
+  const desc = registry.get(id);
   const page = document.createElement('div');
   page.className = 'page';
 
-  let html = '';
-  if (!isTwinkle) {
-    html += buildSubSetting(type, 'speed', '速度', SPEED_OPTS, '%', 100, cfg.customSpeed ?? 50);
+  if (!desc) {
+    page.innerHTML = `
+      <div class="page-header">
+        <button class="back" type="button">返回</button>
+        <span class="page-title">未知粒子</span>
+      </div>
+      <div class="page-body"></div>`;
+    page.querySelector('.back')!.addEventListener('click', () => popPage());
+    return page;
   }
-  html += buildSubSetting(type, 'size', '大小', SIZE_OPTS, '%', 100, cfg.customSize ?? 50);
-  const countUnit = isTwinkle ? '个' : '个/分钟';
-  const countMax = isTwinkle ? 150 : 1800;
-  const countDefault = isTwinkle ? 60 : 50;
-  html += buildSubSetting(
-    type,
-    'count',
-    '数目',
-    COUNT_OPTS,
-    countUnit,
-    countMax,
-    cfg.customCount ?? countDefault,
-  );
+
+  // 取当前值；缺失时以描述符 defaults 初始化并写回设置
+  const value: ParticleValue = settings.particles[id] ?? { ...desc.defaults };
+  if (!settings.particles[id]) settings.particles[id] = value;
+
+  const sections = AXES.filter((axis) => axisVisible(axis, desc.behavior))
+    .map((axis) => buildAxis(axis, desc))
+    .join('');
 
   page.innerHTML = `
     <div class="page-header">
       <button class="back" type="button">返回</button>
-      <span class="page-title">${meta.icon} ${meta.label}</span>
+      <span class="page-title">${desc.icon} ${desc.label}</span>
     </div>
-    <div class="page-body">${html}</div>
-  `;
+    <div class="page-body">${sections}</div>`;
 
-  page.querySelector<HTMLButtonElement>('.back')!.addEventListener('click', () => popPage());
+  page.querySelector('.back')!.addEventListener('click', () => popPage());
 
-  for (const prop of PARTICLE_PROPS) {
-    const grid = page.querySelector<HTMLElement>(
-      `.option-grid[data-element="${type}"][data-prop="${prop}"]`,
-    );
-    if (!grid) continue;
-
-    grid.querySelectorAll<HTMLButtonElement>('.option-btn').forEach((btn) => {
-      if (btn.dataset.value === cfg[prop]) btn.classList.add('active');
-      btn.addEventListener('click', async () => {
-        const value = btn.dataset.value!;
-        cfg[prop] = value;
-        grid
-          .querySelectorAll<HTMLButtonElement>('.option-btn')
-          .forEach((b) => b.classList.toggle('active', b === btn));
-        const row = page.querySelector<HTMLElement>(
-          `.custom-row[data-element="${type}"][data-prop="${prop}"]`,
-        );
-        const show = value === `custom-${prop}`;
-        if (row) {
-          row.style.display = show ? 'flex' : 'none';
-          if (show) {
-            const slider = row.querySelector('input') as HTMLInputElement;
-            const val = cfg[CUSTOM_FIELD[prop]] as number;
-            slider.value = String(val);
-            (row.querySelector('.intensity-value') as HTMLElement).textContent = `${val}${row.dataset.unit ?? '%'}`;
-          }
-        }
-        refreshHeight(); // 自定义行显隐改变内容高度，重新做高度过渡
-        await saveSettings(settings);
-      });
-    });
-
-    const row = page.querySelector<HTMLElement>(
-      `.custom-row[data-element="${type}"][data-prop="${prop}"]`,
-    );
-    if (row && cfg[prop] === `custom-${prop}`) row.style.display = 'flex';
-    if (row) {
-      const slider = row.querySelector('input') as HTMLInputElement;
-      const valueSpan = row.querySelector('.intensity-value') as HTMLElement;
-      const unit = row.dataset.unit ?? '%';
-      slider.addEventListener('input', async () => {
-        const val = parseInt(slider.value, 10);
-        cfg[CUSTOM_FIELD[prop]] = val;
-        valueSpan.textContent = `${val}${unit}`;
-        await saveSettings(settings);
-      });
-    }
+  for (const axis of AXES) {
+    if (!axisVisible(axis, desc.behavior)) continue;
+    bindAxis(page, axis, desc, value, settings);
   }
 
   return page;
+}
+
+/* 生成单轴 HTML：标题 + 档位按钮 + 自定义滑块行 */
+function buildAxis(axis: Axis, desc: ElementDescriptor): string {
+  const presets = axisPresets(axis, desc);
+  const labels = axisLabels(axis);
+  const buttons = presets
+    .map((v, i) => `<button class="option-btn" type="button" data-preset="${i}">${labels[i] ?? v}</button>`)
+    .join('');
+  return `
+    <div class="sub-setting" data-axis="${axis}">
+      <h4 class="sub-title">${axisTitle(axis)}</h4>
+      <div class="option-grid">
+        ${buttons}
+        <button class="option-btn" type="button" data-custom="1">自定义</button>
+      </div>
+      <div class="custom-row" style="display:none;">
+        <input type="range" class="intensity-slider" min="0" max="${axisMax(axis, desc.behavior)}" step="${axisStep(axis)}" />
+        <span class="intensity-value"></span>
+      </div>
+    </div>`;
+}
+
+/* 绑定单轴交互：档位点击 / 自定义展开 / 滑块拖动，均即时保存 */
+function bindAxis(
+  page: HTMLElement,
+  axis: Axis,
+  desc: ElementDescriptor,
+  value: ParticleValue,
+  settings: Settings,
+): void {
+  const block = page.querySelector<HTMLElement>(`[data-axis="${axis}"]`)!;
+  const presets = axisPresets(axis, desc);
+  const unit = axisUnit(axis, desc.behavior);
+  const presetBtns = [...block.querySelectorAll<HTMLButtonElement>('[data-preset]')];
+  const customBtn = block.querySelector<HTMLButtonElement>('[data-custom]')!;
+  const row = block.querySelector<HTMLElement>('.custom-row')!;
+  const slider = row.querySelector<HTMLInputElement>('input')!;
+  const valSpan = row.querySelector<HTMLElement>('.intensity-value')!;
+
+  // 当前是否处于"自定义"状态（值不落在任何档位，或用户主动展开）
+  let customOpen = matchPreset(value[axis], presets) === -1;
+
+  function refresh(): void {
+    const idx = matchPreset(value[axis], presets);
+    const inPreset = idx !== -1 && !customOpen;
+    presetBtns.forEach((b, i) => b.classList.toggle('active', inPreset && i === idx));
+    customBtn.classList.toggle('active', !inPreset);
+    row.style.display = inPreset ? 'none' : 'flex';
+    slider.value = String(value[axis]);
+    valSpan.textContent = `${value[axis]}${unit}`;
+  }
+
+  async function commit(): Promise<void> {
+    await saveSettings(settings);
+    refreshHeight();
+  }
+
+  presetBtns.forEach((btn, i) => {
+    btn.addEventListener('click', async () => {
+      value[axis] = presets[i];
+      customOpen = false;
+      await commit();
+      refresh();
+    });
+  });
+
+  customBtn.addEventListener('click', () => {
+    customOpen = true;
+    refresh();
+  });
+
+  slider.addEventListener('input', async () => {
+    value[axis] = parseFloat(slider.value);
+    valSpan.textContent = `${value[axis]}${unit}`;
+    await commit();
+  });
+
+  refresh();
 }

@@ -3,68 +3,116 @@
  * Licensed under MIT (see LICENSE).
  */
 
-// 元素描述符：elements.json 的类型与访问器，新增元素只改 JSON 即可
+// 元素描述符契约：内置元素来自 elements.json，用户元素来自 lib/element-store，
+// 运行期由 registry 合并成一张表。render 支持四种外观（svg / image / emoji / text）。
 import elementsData from './elements.json';
 import type { SeasonWeights } from '../../../lib/season-weights';
+
+/** 季节 */
+export type Season = 'spring' | 'summer' | 'autumn' | 'winter';
 
 /** 元素行为：fall=飘落，twinkle=闪烁 */
 export type ElementBehavior = 'fall' | 'twinkle';
 
-/** 数值区间 */
-export interface Range {
-  min: number; // 下界
-  max: number; // 上界
+/** 元素来源：内置（elements.json）或用户创建 */
+export type ElementSource = 'builtin' | 'user';
+
+/** SVG 路径填充：纯色（可取粒子色或常量色）或径向渐变 */
+export type PathFill =
+  | { mode: 'solid'; source: 'particle' | 'constant'; color?: string }
+  | { mode: 'radial'; stops: { offset: number; color: string }[] };
+
+/** 单条 SVG 路径 */
+export interface PathSpec {
+  d: string; // SVG path 数据（已归一化到 [-1,1]）
+  fill: PathFill | null; // 填充
+  stroke: { color: string; widthPx: number } | null; // 描边（像素宽）
 }
 
-/** 元素描述符（与 elements.json 对齐；render 仅取生成所需的字段） */
+/** SVG 外观：一组路径 */
+export interface SvgRender {
+  kind: 'svg';
+  paths: PathSpec[];
+}
+
+/** 图片外观：引用资产库中的 assetId（aspect = 宽/高） */
+export interface ImageRender {
+  kind: 'image';
+  assetId: string;
+  aspect: number;
+}
+
+/** emoji 外观：一个字形 */
+export interface EmojiRender {
+  kind: 'emoji';
+  glyph: string;
+}
+
+/** 文字外观：字符串 + 字体 */
+export interface TextRender {
+  kind: 'text';
+  text: string;
+  fontFamily: string;
+  fontWeight: number;
+  color: string;
+}
+
+/** 元素外观（四种来源） */
+export type ElementRender = SvgRender | ImageRender | EmojiRender | TextRender;
+
+/** 运动参数：单值 + 抖动（各粒子在该值 ±jitter 内随机） */
+export interface MotionSpec {
+  jitter: number; // 0-1，速度/尺寸/不透明度在该比例内随机
+  wobbleSpeed: number; // 摆动频率
+  wobbleAmp: number; // 摆幅（像素）
+  rotationSpeed: number; // 旋转速度（弧度/秒）
+  opacity: number; // 基础不透明度 0-1
+  twinkleSpeed: number; // 闪烁频率（twinkle 用；fall 恒 0）
+}
+
+/** twinkle 出现规则 */
+export interface TargetSpec {
+  region: 'top-third' | 'full'; // 出现区域
+  visibleFrom: number; // 起始小时 0-23
+  visibleTo: number; // 结束小时（可跨午夜）
+}
+
+/** 元素出厂当前值（"中/中等"档位） */
+export interface ParticleDefaults {
+  speed: number; // px/s
+  size: number; // px
+  count: number; // fall：个/分钟；twinkle：午夜峰值颗数
+}
+
+/** 元素描述符（elements.json 与用户库统一契约） */
 export interface ElementDescriptor {
+  id: string; // 元素唯一键（内置：leaf/snow/star；用户：u_xxxxxxxx）
+  source: ElementSource; // 来源
+  label: string; // 显示名（中文）
+  icon: string; // 显示图标（emoji）
   behavior: ElementBehavior; // fall / twinkle
-  label?: string; // 弹窗显示名（中文）
-  icon?: string; // 弹窗显示图标（emoji）
-  seasons?: string[]; // fall 元素：哪些季节使其出现（并按权重从中取色）
-  palettes?: Record<string, string[]>; // 按季节色板（有则按季节权重取色）
-  color?: string; // 固定颜色（无 palettes 时使用）
-  sizeRange: Range; // 尺寸范围（像素，未乘缩放）
-  speedRange?: Range; // 下落速度范围（fall 用；twinkle 恒 0）
-  wobbleSpeedRange?: Range; // 摆动频率范围
-  wobbleAmpRange?: Range; // 摆幅范围
-  rotationSpeedRange?: Range; // 旋转速度范围
-  opacityRange?: Range; // 初始不透明度范围
-  twinkleSpeedRange?: Range; // 闪烁频率范围（twinkle 用）
-  target?: {
-    max: number; // 午夜（峰值）最大数量
-    region: string; // 出现区域，'top-third' 表示屏幕上方 1/3
-    visibleFrom: number; // 出现时段起点（小时，0-23，可跨午夜）
-    visibleTo: number; // 出现时段终点（小时）
-  };
-  render: {
-    type: 'svg' | 'emoji'; // 渲染方式
-    paths?: { d: string; fill: unknown; stroke: unknown }[]; // SVG 路径
-    glyph?: string; // emoji 字形
-  };
+  seasons: Season[]; // fall：出现季节（仅决定是否出现；leaf 额外用于取色）
+  render: ElementRender; // 外观
+  color?: string; // 固定色（无 palettes 时使用）
+  palettes?: Partial<Record<Season, string[]>>; // 按季节色板（仅内置 leaf）
+  speedPresets: number[]; // 慢/中/快 → px/s（twinkle 可为空）
+  sizePresets: number[]; // 小/中/大 → px
+  countPresets: number[]; // 微量/少量/中等/大量
+  motion: MotionSpec; // 运动参数
+  target?: TargetSpec; // twinkle 出现规则
+  defaults: ParticleDefaults; // 出厂当前值
 }
 
-const ELEMENTS = elementsData as unknown as Record<string, ElementDescriptor>;
+/** 内置元素（elements.json 内一条；id/source 由 registry 注入） */
+export type BuiltinElement = Omit<ElementDescriptor, 'id' | 'source'>;
 
-/** 当前支持的全部元素类型（取自 elements.json 的键顺序） */
-export const ELEMENT_TYPES = Object.keys(ELEMENTS);
-
-/* 按类型取元素描述符 */
-export function getElementDescriptor(type: string): ElementDescriptor | undefined {
-  return ELEMENTS[type];
-}
-
-/* 弹窗展示用元信息（label / icon） */
-export function getElementMeta(type: string): { label: string; icon: string } {
-  const d = ELEMENTS[type];
-  return { label: d?.label ?? type, icon: d?.icon ?? '•' };
-}
+/** 内置元素表（键序即内置顺序） */
+export const BUILTIN_ELEMENTS = elementsData as unknown as Record<string, BuiltinElement>;
 
 /* fall 元素在给定季节权重下的出现权重（其 seasons 各季权重之和） */
-export function seasonWeightFor(desc: ElementDescriptor, weights: SeasonWeights): number {
-  const seasons = desc.seasons ?? [];
-  return seasons.reduce(
-    (sum, s) => sum + (weights[s as keyof SeasonWeights] ?? 0),
-    0,
-  );
+export function seasonWeightFor(
+  desc: Pick<ElementDescriptor, 'seasons'>,
+  weights: SeasonWeights,
+): number {
+  return desc.seasons.reduce((sum, s) => sum + (weights[s] ?? 0), 0);
 }

@@ -4,7 +4,7 @@
  */
 
 import { pushPage, popPage } from '../nav';
-import { ELEMENT_TYPES, getElementMeta } from '../../envir/particle';
+import { registry } from '../../envir/particle';
 import type { Settings } from '../../../lib/settings';
 import { renderElementPage } from './element';
 
@@ -22,13 +22,12 @@ export function renderParticlePage(settings: Settings): HTMLElement {
   const body = document.createElement('div');
   body.className = 'page-body';
 
-  for (const type of ELEMENT_TYPES) {
-    const meta = getElementMeta(type);
+  for (const desc of registry.list()) {
     const row = document.createElement('button');
     row.type = 'button';
     row.className = 'row';
-    row.innerHTML = `<span class="row-label">${meta.icon} ${meta.label}</span><span class="chevron">›</span>`;
-    row.addEventListener('click', () => pushPage(renderElementPage(type, settings)));
+    row.innerHTML = `<span class="row-label">${desc.icon} ${desc.label}</span><span class="chevron">›</span>`;
+    row.addEventListener('click', () => pushPage(renderElementPage(desc.id, settings)));
     body.appendChild(row);
   }
 

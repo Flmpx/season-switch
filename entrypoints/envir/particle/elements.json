@@ -1,11 +1,11 @@
 {
   "leaf": {
-    "behavior": "fall",
     "label": "叶子",
     "icon": "🍃",
+    "behavior": "fall",
     "seasons": ["spring", "summer", "autumn"],
     "render": {
-      "type": "svg",
+      "kind": "svg",
       "paths": [
         {
           "d": "M0,-1 C0.6,-0.3 0.6,0.3 0,1 C-0.6,0.3 -0.6,-0.3 0,-1 Z",
@@ -24,21 +24,26 @@
       "summer": ["#2E8B57", "#3CB371", "#228B22"],
       "autumn": ["#DAA520", "#FFD700", "#FF8C00", "#D2691E", "#8B4513"]
     },
-    "sizeRange": { "min": 4, "max": 10 },
-    "speedRange": { "min": 15, "max": 40 },
-    "wobbleSpeedRange": { "min": 0.8, "max": 2.0 },
-    "wobbleAmpRange": { "min": 15, "max": 40 },
-    "rotationSpeedRange": { "min": -0.75, "max": 0.75 },
-    "opacityRange": { "min": 0.5, "max": 1.0 },
-    "countPresets": { "minimal": 10, "few": 20, "medium": 50, "heavy": 120 }
+    "speedPresets": [14, 28, 50],
+    "sizePresets": [4, 7, 10],
+    "countPresets": [10, 20, 50, 120],
+    "motion": {
+      "jitter": 0.4,
+      "wobbleSpeed": 1.4,
+      "wobbleAmp": 27,
+      "rotationSpeed": 0.75,
+      "opacity": 0.75,
+      "twinkleSpeed": 0
+    },
+    "defaults": { "speed": 28, "size": 7, "count": 50 }
   },
   "snow": {
-    "behavior": "fall",
     "label": "雪花",
     "icon": "❄️",
+    "behavior": "fall",
     "seasons": ["winter"],
     "render": {
-      "type": "svg",
+      "kind": "svg",
       "paths": [
         {
           "d": "M-1,0 A1,1 0 1,0 1,0 A1,1 0 1,0 -1,0 Z",
@@ -55,20 +60,26 @@
       ]
     },
     "color": "#FFFFFF",
-    "sizeRange": { "min": 3, "max": 10 },
-    "speedRange": { "min": 10, "max": 30 },
-    "wobbleSpeedRange": { "min": 0.4, "max": 1.2 },
-    "wobbleAmpRange": { "min": 10, "max": 30 },
-    "rotationSpeedRange": { "min": 0, "max": 0 },
-    "opacityRange": { "min": 0.4, "max": 0.9 },
-    "countPresets": { "minimal": 10, "few": 20, "medium": 50, "heavy": 120 }
+    "speedPresets": [10, 20, 36],
+    "sizePresets": [4, 6.5, 10],
+    "countPresets": [10, 20, 50, 120],
+    "motion": {
+      "jitter": 0.45,
+      "wobbleSpeed": 0.8,
+      "wobbleAmp": 20,
+      "rotationSpeed": 0,
+      "opacity": 0.65,
+      "twinkleSpeed": 0
+    },
+    "defaults": { "speed": 20, "size": 6.5, "count": 50 }
   },
   "star": {
-    "behavior": "twinkle",
     "label": "星光",
     "icon": "⭐",
+    "behavior": "twinkle",
+    "seasons": [],
     "render": {
-      "type": "svg",
+      "kind": "svg",
       "paths": [
         {
           "d": "M-1,0 A1,1 0 1,0 1,0 A1,1 0 1,0 -1,0 Z",
@@ -85,13 +96,18 @@
       ]
     },
     "color": "#FFFAD6",
-    "sizeRange": { "min": 1, "max": 3 },
-    "speedRange": { "min": 0, "max": 0 },
-    "wobbleSpeedRange": { "min": 0, "max": 0 },
-    "wobbleAmpRange": { "min": 0, "max": 0 },
-    "rotationSpeedRange": { "min": 0, "max": 0 },
-    "opacityRange": { "min": 0.5, "max": 1.0 },
-    "twinkleSpeedRange": { "min": 0.8, "max": 3.0 },
-    "target": { "max": 60, "region": "top-third", "visibleFrom": 19, "visibleTo": 5 }
+    "speedPresets": [],
+    "sizePresets": [1, 2, 3],
+    "countPresets": [15, 30, 60, 120],
+    "motion": {
+      "jitter": 0.4,
+      "wobbleSpeed": 0,
+      "wobbleAmp": 0,
+      "rotationSpeed": 0,
+      "opacity": 0.75,
+      "twinkleSpeed": 1.9
+    },
+    "target": { "region": "top-third", "visibleFrom": 19, "visibleTo": 5 },
+    "defaults": { "speed": 0, "size": 2, "count": 60 }
   }
 }

@@ -7,13 +7,13 @@ import {
   loadSettings,
   onSettingsChanged,
   type Settings,
-  type ElementConfig,
+  type ParticleValue,
 } from '../lib/settings';
 import { getSeasonWeights, type SeasonWeights } from '../lib/season-weights';
 
 import { getIntensityValue } from './envir/intensity';
 import { ParticleManager } from './envir/particle/manager';
-import { getElementConfigs } from './envir/particle';
+import { getElementConfigs, registry } from './envir/particle';
 import {
   TIME_OF_DAY_HOURS,
   getTimeBrightness,
@@ -40,7 +40,7 @@ class AtmosphereRenderer {
   private settings: Settings | null = null; // 当前设置
   private weights: SeasonWeights = { spring: 1, summer: 0, autumn: 0, winter: 0 }; // 四季权重
   private intensity = 1.0; // 显示程度系数
-  private configs: Record<string, ElementConfig> = {}; // 各元素配置
+  private configs: Record<string, ParticleValue> = {}; // 各元素当前值
   private timeBrightness = 1.0; // 时间亮度系数（1.0 = 不降低亮度）
   private currentHour = 12; // 当前小时（0-23）
   private frameId = 0; // 动画帧句柄
@@ -55,6 +55,7 @@ class AtmosphereRenderer {
     this.ctxRef = ctx;
 
     this.overlay = document.createElement('div');
+    this.overlay.id = 'atmo-overlay';
     Object.assign(this.overlay.style, {
       position: 'fixed',
       inset: '0',
@@ -99,8 +100,9 @@ class AtmosphereRenderer {
     this.init();
   }
 
-  /* 首次加载设置并启动动画 */
+  /* 首次加载元素注册表与设置并启动动画 */
   private async init() {
+    await registry.init();
     const settings = await loadSettings();
     this.applySettings(settings);
     this.animate();
@@ -162,13 +164,14 @@ class AtmosphereRenderer {
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  /* 清理：取消动画、移除 DOM、取消订阅 */
+  /* 清理：取消动画、移除 DOM、清空粒子、取消订阅 */
   private destroy() {
     cancelAnimationFrame(this.frameId);
     this.overlay.remove();
     this.brightnessOverlay.remove();
     this.canvas.remove();
     this.lensFlare.remove();
+    this.particleManager.clear();
     this.unsubscribe?.();
   }
 }

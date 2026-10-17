@@ -3,12 +3,15 @@
  * Licensed under MIT (see LICENSE).
  */
 
-// 粒子基类与派生类：通用属性与控制方法收归粒子自身，渲染走 renderer.drawParticle
+// 粒子基类与派生类：通用属性与控制方法收归粒子自身，渲染走 renderer.drawParticle。
+// 每个粒子持有自己的外观描述符（render），"长什么样"由 render.kind 决定。
 import { drawParticle } from './renderer';
+import type { ElementRender } from './elements';
 
 /** 粒子构造入参：所有通用字段 */
 export interface ParticleInit {
-  type: string; // 元素类型（取自 elements.json 键）
+  type: string; // 元素 id
+  render: ElementRender; // 外观描述符
   x: number; // 横坐标（像素）
   y: number; // 纵坐标（像素）
   size: number; // 尺寸（像素）
@@ -24,7 +27,8 @@ export interface ParticleInit {
 
 /** 粒子抽象基类：通用属性 + 更新/绘制 */
 export abstract class Particle {
-  type: string; // 元素类型
+  type: string; // 元素 id
+  render: ElementRender; // 外观描述符
   x: number; // 横坐标
   y: number; // 纵坐标
   size: number; // 尺寸
@@ -40,6 +44,7 @@ export abstract class Particle {
   /* 用入参初始化所有字段 */
   constructor(init: ParticleInit) {
     this.type = init.type;
+    this.render = init.render;
     this.x = init.x;
     this.y = init.y;
     this.size = init.size;
@@ -68,10 +73,9 @@ export abstract class Particle {
     }
   }
 
-  /* 按元素描述符渲染粒子 */
+  /* 按自身外观描述符渲染粒子 */
   draw(ctx: CanvasRenderingContext2D, intensity: number): void {
-    drawParticle(ctx, {
-      type: this.type,
+    drawParticle(ctx, this.render, {
       x: this.x,
       y: this.y,
       size: this.size,
@@ -119,8 +123,7 @@ export class TwinklingParticle extends Particle {
   override draw(ctx: CanvasRenderingContext2D, intensity: number): void {
     const twinkle = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(this.twinklePhase));
     const opacity = this.baseOpacity * twinkle * Math.min(intensity, 1.5);
-    drawParticle(ctx, {
-      type: this.type,
+    drawParticle(ctx, this.render, {
       x: this.x,
       y: this.y,
       size: this.size,

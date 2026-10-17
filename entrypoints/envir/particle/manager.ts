@@ -3,24 +3,17 @@
  * Licensed under MIT (see LICENSE).
  */
 
-// 粒子统一管理器：生成、更新（飘落/闪烁）、绘制与消失，元素类型由 elements.json 驱动
-import { Particle } from './particle';
-import { TwinklingParticle } from './particle';
+// 粒子统一管理器：生成、更新（飘落/闪烁）、绘制与消失，元素由注册表驱动。
+import { Particle, TwinklingParticle } from './particle';
 import { createElement } from './factory';
 import type { SeasonWeights } from '../../../lib/season-weights';
-import type { ElementConfig } from '../../../lib/settings';
-import {
-  ELEMENT_TYPES,
-  getElementDescriptor,
-  seasonWeightFor,
-} from './elements';
-import {
-  getSizeScale,
-  getSpeedScale,
-  getCountPerMinute,
-  getTwinkleMaxCount,
-  getTwinkleTarget,
-} from './index';
+import type { ParticleValue } from '../../../lib/settings';
+import { registry } from './registry';
+import { seasonWeightFor } from './elements';
+import { getTwinkleTarget } from './target';
+
+// 闪烁粒子生成不需要季节权重
+const ZERO_WEIGHTS: SeasonWeights = { spring: 0, summer: 0, autumn: 0, winter: 0 };
 
 export class ParticleManager {
   private fallParticles: Particle[] = []; // 飘落粒子（任意 fall 元素）
@@ -56,31 +49,23 @@ export class ParticleManager {
     weights: SeasonWeights,
     width: number,
     height: number,
-    configs: Record<string, ElementConfig>,
+    configs: Record<string, ParticleValue>,
   ): void {
-    for (const type of ELEMENT_TYPES) {
-      const desc = getElementDescriptor(type);
-      if (!desc || desc.behavior !== 'fall') continue;
-      const cfg = configs[type];
+    for (const desc of registry.list()) {
+      if (desc.behavior !== 'fall') continue;
+      const cfg = configs[desc.id];
       if (!cfg) continue;
       if (seasonWeightFor(desc, weights) <= 0) continue;
 
-      this.accumulators[type] = (this.accumulators[type] ?? 0) + (dt * getCountPerMinute(cfg)) / 60;
-      while (this.accumulators[type] >= 1) {
-        this.accumulators[type] -= 1;
+      this.accumulators[desc.id] = (this.accumulators[desc.id] ?? 0) + (dt * cfg.count) / 60;
+      while (this.accumulators[desc.id] >= 1) {
+        this.accumulators[desc.id] -= 1;
         let particle: Particle;
         try {
-          particle = createElement(
-            type,
-            width,
-            height,
-            getSizeScale(cfg),
-            getSpeedScale(cfg),
-            weights,
-          );
+          particle = createElement(desc, width, height, cfg, weights);
         } catch (err) {
-          this.handleParticleError(`spawn:${type}`, err);
-          this.accumulators[type] = 0;
+          this.handleParticleError(`spawn:${desc.id}`, err);
+          this.accumulators[desc.id] = 0;
           break;
         }
         this.fallParticles.push(particle);
@@ -88,31 +73,30 @@ export class ParticleManager {
     }
   }
 
-  /* 按当前时段与显示程度维持各 twinkle 元素的目标数量（增加时保留原有，减少时随机删） */
+  /* 按当前时段与显示程度维持各 twinkle 元素的目标数量 */
   maintainTwinkles(
     currentHour: number,
     intensity: number,
     width: number,
     height: number,
-    configs: Record<string, ElementConfig>,
+    configs: Record<string, ParticleValue>,
   ): void {
-    for (const type of ELEMENT_TYPES) {
-      const desc = getElementDescriptor(type);
-      if (!desc || desc.behavior !== 'twinkle') continue;
-      const cfg = configs[type];
+    for (const desc of registry.list()) {
+      if (desc.behavior !== 'twinkle') continue;
+      const cfg = configs[desc.id];
       if (!cfg) continue;
 
-      const maxCount = Math.round(getTwinkleMaxCount(cfg) * Math.min(intensity, 1.5));
+      const maxCount = Math.round(cfg.count * Math.min(intensity, 1.5));
       const target = getTwinkleTarget(desc, currentHour, maxCount);
-      const list = this.twinkleParticles.filter((p) => p.type === type);
+      const list = this.twinkleParticles.filter((p) => p.type === desc.id);
 
       if (list.length < target) {
         while (list.length < target) {
           let s: TwinklingParticle;
           try {
-            s = createElement(type, width, height, getSizeScale(cfg), 1, weights0());
+            s = createElement(desc, width, height, cfg, ZERO_WEIGHTS) as TwinklingParticle;
           } catch (err) {
-            this.handleParticleError(`spawn:${type}`, err);
+            this.handleParticleError(`spawn:${desc.id}`, err);
             break;
           }
           this.twinkleParticles.push(s);
@@ -121,7 +105,7 @@ export class ParticleManager {
       } else if (list.length > target) {
         let remove = list.length - target;
         for (let i = this.twinkleParticles.length - 1; i >= 0 && remove > 0; i--) {
-          if (this.twinkleParticles[i].type === type) {
+          if (this.twinkleParticles[i].type === desc.id) {
             this.twinkleParticles.splice(i, 1);
             remove--;
           }
@@ -170,16 +154,11 @@ export class ParticleManager {
     }
   }
 
-  /* 清空所有粒子（resize / destroy 时） */
+  /* 清空所有粒子（resize / destroy / 元素被删除时） */
   clear(): void {
     this.fallParticles.length = 0;
     this.twinkleParticles.length = 0;
     this.accumulators = {};
     ParticleManager.errorCount = 0;
   }
-}
-
-// 闪烁粒子生成不需要季节权重，传入零权重占位（工厂对 twinkle 不使用 weights）
-function weights0(): SeasonWeights {
-  return { spring: 0, summer: 0, autumn: 0, winter: 0 };
 }

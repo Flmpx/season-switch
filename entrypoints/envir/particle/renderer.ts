@@ -3,34 +3,8 @@
  * Licensed under MIT (see LICENSE).
  */
 
-// 统一渲染器：按 elements.json 的描述符绘制粒子（内置 SVG 或用户 emoji）
-import elementsData from './elements.json';
-
-/** 填充样式：纯色或径向渐变 */
-type FillSpec =
-  | { mode: 'solid'; source: 'particle' | 'constant'; color?: string }
-  | { mode: 'radial'; stops: { offset: number; color: string }[] };
-
-/** 单条 SVG 路径 */
-interface PathSpec {
-  d: string; // SVG path 数据
-  fill: FillSpec | null; // 填充
-  stroke: { color: string; widthPx: number } | null; // 描边（像素宽）
-}
-
-/** 元素渲染描述 */
-interface ElementRender {
-  type: 'svg' | 'emoji'; // 渲染方式
-  paths?: PathSpec[]; // SVG 路径集合
-  glyph?: string; // emoji 字形
-}
-
-/** 元素描述（renderer 仅取渲染所需字段） */
-interface ElementDescriptor {
-  render: ElementRender;
-}
-
-const ELEMENTS = elementsData as unknown as Record<string, ElementDescriptor>;
+// 统一渲染器：按元素外观描述符（render）绘制粒子，四种来源共用同一入口。
+import type { ElementRender, PathFill, PathSpec } from './elements';
 
 // Path2D 缓存：同一条 path 数据只构建一次
 const pathCache = new Map<string, Path2D>();
@@ -48,54 +22,35 @@ function getPath(d: string): Path2D {
 /* 解析填充：纯色取粒子色或常量色，径向渐变在归一化 [-1,1] 空间构造 */
 function resolveFill(
   ctx: CanvasRenderingContext2D,
-  fill: FillSpec,
+  fill: PathFill,
   particleColor: string,
 ): string | CanvasGradient {
   if (fill.mode === 'solid') {
     return fill.source === 'particle' ? particleColor : (fill.color ?? 'transparent');
   }
   const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
-  for (const s of fill.stops) {
-    grad.addColorStop(s.offset, s.color);
-  }
+  for (const s of fill.stops) grad.addColorStop(s.offset, s.color);
   return grad;
 }
 
 /** 绘制参数 */
 export interface DrawParticleOpts {
-  type: string; // 元素类型
   x: number; // 横坐标
   y: number; // 纵坐标
-  size: number; // 尺寸
+  size: number; // 尺寸（px，也是文字/emoji 字号）
   rotation: number; // 旋转角
-  opacity: number; // 不透明度
-  color: string; // 颜色
+  opacity: number; // 不透明度 0-1
+  color: string; // 颜色（svg 的 source:particle 与文字使用）
 }
 
-/* 统一绘制入口：按元素类型从 JSON 描述符渲染 */
-export function drawParticle(ctx: CanvasRenderingContext2D, o: DrawParticleOpts): void {
-  const desc = ELEMENTS[o.type];
-  if (!desc) return;
-  const render = desc.render;
-
-  if (render.type === 'emoji') {
-    ctx.save();
-    ctx.globalAlpha = Math.max(0, o.opacity);
-    ctx.translate(o.x, o.y);
-    ctx.font = `${o.size * 2}px serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    if (render.glyph) ctx.fillText(render.glyph, 0, 0);
-    ctx.restore();
-    return;
-  }
-
+/* 绘制 SVG 路径集合（路径已归一化到 [-1,1]） */
+function drawSvg(ctx: CanvasRenderingContext2D, paths: PathSpec[], o: DrawParticleOpts): void {
   ctx.save();
   ctx.translate(o.x, o.y);
   ctx.rotate(o.rotation);
   ctx.globalAlpha = Math.max(0, o.opacity);
   ctx.scale(o.size, o.size);
-  for (const path of render.paths ?? []) {
+  for (const path of paths) {
     const p2d = getPath(path.d);
     if (path.fill) {
       ctx.fillStyle = resolveFill(ctx, path.fill, o.color);
@@ -106,6 +61,36 @@ export function drawParticle(ctx: CanvasRenderingContext2D, o: DrawParticleOpts)
       ctx.strokeStyle = path.stroke.color;
       ctx.stroke(p2d);
     }
+  }
+  ctx.restore();
+}
+
+/* 统一绘制入口：按外观 kind 分四路 */
+export function drawParticle(
+  ctx: CanvasRenderingContext2D,
+  render: ElementRender,
+  o: DrawParticleOpts,
+): void {
+  if (render.kind === 'svg') {
+    drawSvg(ctx, render.paths, o);
+    return;
+  }
+  // image 分支：待 P2 接入资产加载（assets.ts + drawImage），当前不绘制
+  if (render.kind === 'image') return;
+
+  ctx.save();
+  ctx.translate(o.x, o.y);
+  ctx.globalAlpha = Math.max(0, o.opacity);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  if (render.kind === 'emoji') {
+    ctx.font = `${o.size}px serif`;
+    ctx.fillText(render.glyph, 0, 0);
+  } else {
+    // text
+    ctx.font = `${render.fontWeight} ${o.size}px ${render.fontFamily}`;
+    ctx.fillStyle = render.color;
+    ctx.fillText(render.text, 0, 0);
   }
   ctx.restore();
 }
