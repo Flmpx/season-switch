@@ -1,209 +1,294 @@
+/* 全局盒模型重置 */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+/* 弹窗整体：中灰底、宽度固定、高度由内容驱动 */
 body {
-  width: 320px;
+  width: 340px;
+  height: auto; /* 高度由内容驱动，配合 .pages 的 height 过渡 */
   font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif;
-  background: #1b1f2a;
-  color: #e0e0e0;
+  background: #3c3c3c;
+  color: #e8e8e8;
 }
 
-.popup {
+/* 导航栈容器：裁切溢出的相邻页面 */
+.nav-stack {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* 页面容器：仅做高度过渡；层级滑动由每个 .page 各自做 translateX */
+.pages {
+  position: relative;
+  width: 100%;
+  height: 0; /* 初始 0，首屏由 JS 写入实际高度 */
+  overflow: hidden;
+  transition: height 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 单个页面：绝对定位叠放，按栈偏移各自横向位移，高度跟随内容 */
+.page {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  max-height: 600px; /* Chrome 弹窗高度上限，超出则内部滚动 */
   display: flex;
   flex-direction: column;
+  background: #3c3c3c;
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
 }
 
-/* ---- Header ---- */
-.popup-header {
-  padding: 14px 18px;
-  border-bottom: 1px solid #2a2f3e;
+/* 首屏/重置时关闭所有过渡，避免入场动画与高度突变 */
+.pages.no-anim,
+.pages.no-anim .page {
+  transition: none;
 }
 
-.popup-header h1 {
-  font-size: 16px;
-  font-weight: 700;
-  color: #fff;
-  letter-spacing: 1px;
-}
-
-/* ---- Body ---- */
-.popup-body {
-  padding: 12px 18px 18px;
+/* 页面页头：标题居中、返回键绝对定位于左侧 */
+.page-header {
+  position: relative;
+  flex: 0 0 auto;
   display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-/* ---- Section ---- */
-.setting-section {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.section-title {
-  font-size: 12px;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  padding: 0 12px;
+  border-bottom: 1px solid #2a2a2a;
+  font-size: 15px;
   font-weight: 600;
-  color: #8a8fa8;
-  text-transform: uppercase;
-  letter-spacing: 1px;
 }
 
-/* ---- Option Grid ---- */
+/* 返回按钮：左侧绝对定位，字号略小于标题 */
+.page-header .back {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 4px 6px;
+  border: none;
+  border-radius: 6px;
+  background-color: transparent;
+  color: #d2d2d2;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: inherit;
+  overflow: hidden;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* 返回按钮 hover：光标位置处柔光跟随 */
+.page-header .back:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  background-image: radial-gradient(
+    80px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(255, 255, 255, 0.18),
+    transparent 60%
+  );
+  color: #fff;
+}
+
+/* 页头标题 */
+.page-title {
+  color: #f2f2f2;
+  text-align: center;
+}
+
+/* 页面主体：可独立滚动的内容区 */
+.page-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 主选项行：带 › 指示符，点击下钻 */
+.row {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 8px;
+  background-color: transparent;
+  color: #e8e8e8;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: inherit;
+  text-align: left;
+  transition: background-color 0.2s ease;
+}
+
+/* 主选项行 hover：光标位置处柔光跟随 */
+.row:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  background-image: radial-gradient(
+    120px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(255, 255, 255, 0.14),
+    transparent 60%
+  );
+}
+
+/* 行文字：浮于光斑/波纹之上 */
+.row-label {
+  color: #e8e8e8;
+  position: relative;
+  z-index: 1;
+}
+
+/* 行右侧 › 指示符 */
+.row .chevron {
+  position: relative;
+  z-index: 1;
+  color: #9a9a9a;
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* 主选项行 hover 时 › 变亮 */
+.row:hover .chevron {
+  color: #d2d2d2;
+}
+
+/* 选项按钮组：复用于各子页 */
 .option-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 10px;
 }
 
+/* 选项按钮：白边框、点击立即变白底黑字，灰色波纹落于其上 */
 .option-btn {
-  padding: 5px 12px;
-  font-size: 13px;
-  border: 1px solid #3a3f52;
-  border-radius: 6px;
-  background: transparent;
-  color: #b0b4c8;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate; /* 建立层叠上下文，使灰色波纹落于白底之上、文字之下 */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 37px;
+  padding: 0 20px;
+  font-size: 14px;
+  border: 1px solid #ffffff;
+  border-radius: 8px;
+  background-color: transparent;
+  color: #e8e8e8;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: none; /* 点击选中立即变白，不做渐变 */
   font-family: inherit;
-  line-height: 1.4;
 }
 
+/* 选项按钮 hover：光标位置处柔光跟随 */
 .option-btn:hover {
-  border-color: #5a5f72;
-  color: #e0e0e0;
-  background: #252a3a;
+  background-color: rgba(255, 255, 255, 0.06);
+  background-image: radial-gradient(
+    100px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(255, 255, 255, 0.16),
+    transparent 60%
+  );
+  color: #fff;
 }
 
+/* 选项按钮选中态：白底黑字 */
 .option-btn.active {
-  border-color: #6c8cff;
-  background: rgba(108, 140, 255, 0.12);
-  color: #6c8cff;
+  background: #ffffff;
+  color: #161616;
   font-weight: 600;
 }
 
-/* ---- Custom Intensity Slider ---- */
-.custom-intensity-row,
+/* 自定义滑块行 */
 .custom-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-top: 4px;
 }
 
+/* 强度/自定义滑块 */
 .intensity-slider {
   flex: 1;
   -webkit-appearance: none;
   appearance: none;
   height: 4px;
   border-radius: 2px;
-  background: #3a3f52;
+  background: #3a3a3a;
   outline: none;
 }
 
+/* 滑块拖柄（Chromium 内核） */
 .intensity-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #6c8cff;
+  background: #e8e8e8;
   cursor: pointer;
   border: none;
 }
 
+/* 滑块拖柄（Firefox 内核） */
 .intensity-slider::-moz-range-thumb {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #6c8cff;
+  background: #e8e8e8;
   cursor: pointer;
   border: none;
 }
 
+/* 滑块当前值显示 */
 .intensity-value {
   font-size: 12px;
-  color: #6c8cff;
+  color: #e8e8e8;
   min-width: 36px;
   text-align: right;
   font-weight: 600;
 }
 
-/* ---- Sub Setting ---- */
+/* 子设置块：单属性的按钮组 + 自定义滑块（粒子元素页） */
 .sub-setting {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
+/* 子设置块标题 */
 .sub-title {
   font-size: 11px;
   font-weight: 500;
-  color: #6a6f88;
+  color: #9a9a9a;
   letter-spacing: 0.5px;
 }
 
-/* ---- Element Setting (per-element particle block) ---- */
-.element-setting {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 10px 0;
-  border-top: 1px solid #2a2f3e;
+/* 点击灰色波纹：由 effects.ts 在点击点注入，扩散淡出 */
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.35); /* 灰色：比白底暗，比界面底色 #3c3c3c 亮 */
+  transform: scale(0);
+  opacity: 0.6;
+  pointer-events: none;
+  z-index: -1; /* 落于白底之上、文字之下 */
+  animation: ripple-grey 0.32s ease-out forwards;
 }
 
-.element-setting:first-of-type {
-  border-top: none;
-  padding-top: 0;
-}
-
-.element-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #c0c4d8;
-  letter-spacing: 0.5px;
-}
-
-/* ---- Tab Bar ---- */
-.tab-bar {
-  display: flex;
-  gap: 4px;
-  margin-top: 12px;
-}
-
-.tab-btn {
-  flex: 1;
-  padding: 6px 0;
-  font-size: 12px;
-  border: 1px solid #3a3f52;
-  border-radius: 6px;
-  background: transparent;
-  color: #b0b4c8;
-  cursor: pointer;
-  font-family: inherit;
-  transition: all 0.2s ease;
-}
-
-.tab-btn:hover {
-  border-color: #5a5f72;
-  color: #e0e0e0;
-}
-
-.tab-btn.active {
-  border-color: #6c8cff;
-  background: rgba(108, 140, 255, 0.12);
-  color: #6c8cff;
-  font-weight: 600;
-}
-
-/* ---- Tab Panels ---- */
-.tab-panel {
-  display: none;
-}
-
-.tab-panel.active {
-  display: flex;
+/* 灰色波纹扩散淡出动画 */
+@keyframes ripple-grey {
+  from {
+    transform: scale(0);
+    opacity: 0.6;
+  }
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
 }
