@@ -10,7 +10,8 @@ import { getAsset } from '../../../lib/asset-store';
 
 interface AssetEntry {
   source: CanvasImageSource | null; // 已可绘制的图像源
-  failed: boolean; // 是否加载失败（失败后不再重试）
+  loading: boolean; // 是否正在加载
+  failed: boolean; // 是否加载失败
 }
 
 const cache = new Map<string, AssetEntry>();
@@ -38,13 +39,20 @@ export function getImage(assetId: string): CanvasImageSource | null {
   return cache.get(assetId)?.source ?? null;
 }
 
-/* 预加载一批图片资产（幂等：已缓存/加载中/已失败的直接跳过） */
-export async function preloadAssets(assetIds: string[]): Promise<void> {
+/* 预加载一批图片资产（幂等）；retryFailed 时对失败条目重试 */
+export async function preloadAssets(
+  assetIds: string[],
+  retryFailed = false,
+): Promise<void> {
   released = false;
   const tasks: Promise<void>[] = [];
   for (const id of assetIds) {
-    if (!id || cache.has(id)) continue;
-    cache.set(id, { source: null, failed: false });
+    if (!id) continue;
+    const existing = cache.get(id);
+    // 已加载或加载中 → 跳过；失败过的仅在允许重试时重来
+    if (existing && !existing.failed) continue;
+    if (existing?.failed && !retryFailed) continue;
+    cache.set(id, { source: null, loading: true, failed: false });
     tasks.push(loadOne(id));
   }
   await Promise.all(tasks);
@@ -70,29 +78,20 @@ export function releaseAssets(): void {
 async function loadOne(assetId: string): Promise<void> {
   const entry = cache.get(assetId);
   if (!entry) return;
-
-  let dataUrl = '';
   try {
     const record = await getAsset(assetId);
     if (!record) throw new Error('资产不存在');
-    dataUrl = record.dataUrl;
-  } catch {
-    entry.failed = true;
-    return;
-  }
-
-  try {
-    entry.source = await decodeViaImage(dataUrl);
-    return;
-  } catch {
-    // <img> 解码失败（常见于站点 CSP 拦截 data: 图片）→ 退化为静态位图
-  }
-
-  try {
-    entry.source = await decodeViaBitmap(dataUrl);
+    try {
+      entry.source = await decodeViaImage(record.dataUrl);
+    } catch {
+      // <img> 解码失败（常见于站点 CSP 拦截 data: 图片）→ 退化为静态位图
+      entry.source = await decodeViaBitmap(record.dataUrl);
+    }
   } catch {
     entry.failed = true;
     entry.source = null;
+  } finally {
+    entry.loading = false;
   }
 }
 

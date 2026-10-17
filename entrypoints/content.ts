@@ -107,8 +107,7 @@ class AtmosphereRenderer {
     await registry.init();
     this.registryUnsub = registry.subscribe(() => this.onRegistryChanged());
     await this.preloadImages();
-    const settings = await loadSettings();
-    this.applySettings(settings);
+    this.applySettings(await loadSettings());
     this.animate();
   }
 
@@ -122,19 +121,19 @@ class AtmosphereRenderer {
   }
 
   /* 预加载图片资产（失败不阻塞渲染，粒子在就绪后自动出现） */
-  private async preloadImages() {
+  private async preloadImages(retryFailed = false) {
     try {
-      await preloadAssets(this.imageAssetIds());
+      await preloadAssets(this.imageAssetIds(), retryFailed);
     } catch {
       // 资产加载异常不影响粒子循环
     }
   }
 
-  /* 注册表变更：清理失效粒子、补载新图片、重算配置 */
+  /* 注册表变更：清理失效粒子、补载（含重试）新图片、重算配置 */
   private onRegistryChanged() {
     this.particleManager.sync();
-    void this.preloadImages();
-    if (this.settings) this.configs = getElementConfigs(this.settings);
+    void this.preloadImages(true);
+    if (this.settings && registry.isReady) this.configs = getElementConfigs(this.settings);
   }
 
   /* 应用设置：计算权重/强度/配置/亮度并刷新各层与光晕 */
@@ -142,7 +141,8 @@ class AtmosphereRenderer {
     this.settings = settings;
     this.weights = getSeasonWeights(settings.season, settings.customMonth);
     this.intensity = getIntensityValue(settings);
-    this.configs = getElementConfigs(settings);
+    // 注册表未就绪时先沿用旧配置，避免时序竞态把 configs 清空
+    if (registry.isReady) this.configs = getElementConfigs(settings);
     this.timeBrightness = getTimeBrightness(settings);
 
     if (settings.timeOfDay === 'custom-time') {
@@ -180,7 +180,7 @@ class AtmosphereRenderer {
     this.ctx.clearRect(0, 0, this.width, this.height);
     this.particleManager.spawnStep(dt, this.weights, this.width, this.height, this.configs);
     this.particleManager.maintainTwinkles(this.currentHour, this.intensity, this.width, this.height, this.configs);
-    this.particleManager.step(dt, this.height, this.intensity);
+    this.particleManager.step(dt, this.width, this.height, this.intensity);
   };
 
   /* 视口尺寸变化时更新画布尺寸与 DPR */
@@ -193,17 +193,17 @@ class AtmosphereRenderer {
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  /* 清理：取消动画、移除 DOM、清空粒子、释放资产、取消订阅 */
+  /* 清理：先退订（避免回调在清理后触发），再移除 DOM、清粒子、释放资产 */
   private destroy() {
     cancelAnimationFrame(this.frameId);
+    this.registryUnsub?.();
+    this.unsubscribe?.();
     this.overlay.remove();
     this.brightnessOverlay.remove();
     this.canvas.remove();
     this.lensFlare.remove();
     this.particleManager.clear();
     releaseAssets();
-    this.registryUnsub?.();
-    this.unsubscribe?.();
   }
 }
 

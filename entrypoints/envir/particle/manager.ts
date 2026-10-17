@@ -19,6 +19,9 @@ const ZERO_WEIGHTS: SeasonWeights = { spring: 0, summer: 0, autumn: 0, winter: 0
 // 单屏飘落粒子硬上限，避免"大图 + 高速率 + 低速"把页面拖垮
 const DEFAULT_MAX_FALL = 800;
 
+// 飞出视口左右边界多远后回收（窗口缩小 / 摆动漂移）
+const OFFSCREEN_MARGIN = 120;
+
 /* 外观签名：判断元素外观是否变化 */
 function renderKey(render: ElementRender): string {
   return JSON.stringify(render);
@@ -31,17 +34,24 @@ export class ParticleManager {
   private ctx: CanvasRenderingContext2D; // 画布上下文
   private maxFall = DEFAULT_MAX_FALL; // 飘落粒子上限
 
-  // 故障隔离：限制错误日志数量避免刷屏，clear() 时重置
+  // 故障隔离：按时间窗限制错误日志（每 60s 最多 20 条），clear() 时重置
   private static errorCount = 0;
+  private static windowStartAt = 0;
   private static readonly MAX_ERROR_LOGS = 20;
+  private static readonly ERROR_WINDOW_MS = 60_000;
 
   /* 用画布上下文构造管理器 */
   constructor(ctx: CanvasRenderingContext2D) {
     this.ctx = ctx;
   }
 
-  /* 单个粒子/生成失败时集中上报，并限制日志数量 */
+  /* 单个粒子/生成失败时集中上报，每 60s 最多上报 20 条 */
   private handleParticleError(context: string, err: unknown): void {
+    const now = Date.now();
+    if (now - ParticleManager.windowStartAt > ParticleManager.ERROR_WINDOW_MS) {
+      ParticleManager.windowStartAt = now;
+      ParticleManager.errorCount = 0;
+    }
     if (ParticleManager.errorCount < ParticleManager.MAX_ERROR_LOGS) {
       console.error(`[season-switch] 粒子故障已隔离 (${context}):`, err);
       ParticleManager.errorCount++;
@@ -143,7 +153,7 @@ export class ParticleManager {
   }
 
   /* 每帧更新+绘制所有粒子，逐粒子 try/catch 故障隔离 */
-  step(dt: number, height: number, intensity: number): void {
+  step(dt: number, width: number, height: number, intensity: number): void {
     this.enforceCap();
     for (let i = this.fallParticles.length - 1; i >= 0; i--) {
       const p = this.fallParticles[i];
@@ -155,6 +165,11 @@ export class ParticleManager {
         continue;
       }
       if (p.opacity <= 0) {
+        this.fallParticles.splice(i, 1);
+        continue;
+      }
+      // 飞出左右边界的粒子直接回收，避免长期占用上限名额
+      if (p.x < -OFFSCREEN_MARGIN || p.x > width + OFFSCREEN_MARGIN) {
         this.fallParticles.splice(i, 1);
         continue;
       }
@@ -195,5 +210,6 @@ export class ParticleManager {
     this.twinkleParticles.length = 0;
     this.accumulators = {};
     ParticleManager.errorCount = 0;
+    ParticleManager.windowStartAt = 0;
   }
 }
