@@ -33,6 +33,17 @@ export function renderParticlePage(settings: Settings): HTMLElement {
 
   page.appendChild(body);
 
+  // 「+」：页头右侧，与左侧「返回」对称；在新标签页打开独立的管理页
+  const addBtn = document.createElement('button');
+  addBtn.type = 'button';
+  addBtn.className = 'add';
+  addBtn.title = '新建粒子';
+  addBtn.textContent = '+';
+  addBtn.addEventListener('click', () => {
+    void chrome.tabs.create({ url: chrome.runtime.getURL('manager.html') });
+  });
+  header.appendChild(addBtn);
+
   header.querySelector('.back')!.addEventListener('click', () => popPage());
   return page;
 }

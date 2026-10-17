@@ -260,6 +260,38 @@ body {
   font-weight: 600;
 }
 
+/* 页头右侧「+」：与左侧「返回」对称，点击打开独立管理页 */
+.page-header .add {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 28px;
+  height: 26px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 6px;
+  background-color: transparent;
+  color: #d2d2d2;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 17px;
+  line-height: 1;
+  overflow: hidden;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* 「+」hover：光标位置处柔光跟随，与「返回」一致 */
+.page-header .add:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  background-image: radial-gradient(
+    80px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(255, 255, 255, 0.18),
+    transparent 60%
+  );
+  color: #fff;
+}
+
 /* 子设置块：单属性的按钮组 + 自定义滑块（粒子元素页） */
 .sub-setting {
   display: flex;

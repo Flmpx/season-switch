@@ -1,0 +1,156 @@
+/*
+ * Copyright (c) 2026 Flmpx
+ * Licensed under MIT (see LICENSE).
+ */
+
+/* 管理页：独立标签页布局，左侧固定侧边栏 + 右侧内容区 */
+
+/* 全局盒模型重置 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* 页面整体：深灰底、纵向占满视口 */
+body {
+  min-height: 100vh;
+  background: #2b2b2b;
+  color: #e8e8e8;
+  font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif;
+  font-size: 14px;
+}
+
+/* 外壳：侧边栏固定，内容区撑满剩余宽度 */
+#app {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* 左侧侧边栏：固定不随内容滚动 */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 200px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px 12px;
+  background: #232323;
+  border-right: 1px solid #3a3a3a;
+}
+
+/* 品牌区 */
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 8px 16px;
+}
+
+.brand-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #f2f2f2;
+}
+
+.brand-sub {
+  font-size: 11px;
+  color: #8a8a8a;
+  letter-spacing: 0.5px;
+}
+
+/* 导航按钮组 */
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 导航按钮：当前路由高亮白字与浅底 */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #d2d2d2;
+  font-family: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.nav-item.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* 导航图标 */
+.nav-icon {
+  width: 18px;
+  text-align: center;
+  color: #9a9a9a;
+  font-size: 16px;
+}
+
+.nav-item.active .nav-icon {
+  color: #fff;
+}
+
+/* 侧边栏底部说明 */
+.sidebar-foot {
+  margin-top: auto;
+  padding: 0 8px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #6f6f6f;
+}
+
+/* 右侧内容区：与固定侧边栏错开 */
+.content {
+  flex: 1;
+  margin-left: 200px;
+  min-width: 0;
+  padding: 32px 40px;
+}
+
+/* 内容面板：每个视图一个 */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 880px;
+}
+
+.panel-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #f2f2f2;
+}
+
+/* 次要说明文字 */
+.hint {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #9a9a9a;
+}
+
+/* 占位块：标出尚未实现的区域 */
+.placeholder {
+  padding: 16px;
+  border: 1px dashed #4a4a4a;
+  border-radius: 8px;
+}

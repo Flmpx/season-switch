@@ -8,6 +8,8 @@
 - 图片粒子渲染：新增 `envir/particle/assets`（优先 `<img>`，站点 CSP 拦截时降级为 `createImageBitmap` 静态位图；未就绪则跳过该帧），渲染器接入 `image` 分支（`size` 为高度、宽度按 `aspect` 等比）
 - 飘落粒子硬上限 800（超出从最旧淘汰，`setMaxFall()` 可调）
 - 元素删除或外观变更时清理在飞粒子（`ParticleManager.sync()`），内容脚本订阅注册表并预加载 / 释放图片资产
+- 新增独立管理页 `entrypoints/manager/`（构建为 `manager.html`）：左侧固定侧边栏（新建粒子 / 我的粒子）+ 右侧内容区，hash 路由（`#/new`、`#/mine`）刷新保持页面，当前两个视图为骨架
+- popup 粒子页标题栏右侧新增「+」，与左侧「返回」对称，点击在新标签页打开管理页
 
 ### Changed
 - 数据契约重构：`Settings.particles` 由"档位枚举 + 自定义百分比"改为按元素 id 存的速度/大小/数目数值，旧字符串值自动丢弃
