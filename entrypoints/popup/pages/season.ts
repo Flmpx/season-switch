@@ -38,7 +38,7 @@ export function renderSeasonPage(settings: Settings): HTMLElement {
       const value = btn.dataset.value!;
       settings.season = value;
       grid
-        .querySelectorAll('.option-btn')
+        .querySelectorAll<HTMLButtonElement>('.option-btn')
         .forEach((b) => b.classList.toggle('active', b === btn));
       const customRow = page.querySelector<HTMLElement>('.custom-row')!;
       customRow.style.display = value === 'custom-season' ? 'flex' : 'none';

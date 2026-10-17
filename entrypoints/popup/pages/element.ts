@@ -107,7 +107,7 @@ export function renderElementPage(type: string, settings: Settings): HTMLElement
         const value = btn.dataset.value!;
         cfg[prop] = value;
         grid
-          .querySelectorAll('.option-btn')
+          .querySelectorAll<HTMLButtonElement>('.option-btn')
           .forEach((b) => b.classList.toggle('active', b === btn));
         const row = page.querySelector<HTMLElement>(
           `.custom-row[data-element="${type}"][data-prop="${prop}"]`,

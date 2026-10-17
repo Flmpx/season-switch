@@ -41,7 +41,7 @@ export function renderTimePage(settings: Settings): HTMLElement {
       const value = btn.dataset.value!;
       settings.timeOfDay = value;
       grid
-        .querySelectorAll('.option-btn')
+        .querySelectorAll<HTMLButtonElement>('.option-btn')
         .forEach((b) => b.classList.toggle('active', b === btn));
       const customRow = page.querySelector<HTMLElement>('.custom-row')!;
       customRow.style.display = value === 'custom-time' ? 'flex' : 'none';

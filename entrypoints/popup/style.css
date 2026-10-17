@@ -71,16 +71,22 @@ body {
   padding: 4px 6px;
   border: none;
   border-radius: 6px;
-  background: transparent;
+  background-color: transparent;
   color: #d2d2d2;
   cursor: pointer;
   font-size: 14px; /* 比标题 15px 略小 */
   font-family: inherit;
-  transition: background 0.2s ease;
+  overflow: hidden;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .page-header .back:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background-color: rgba(255, 255, 255, 0.06);
+  background-image: radial-gradient(
+    80px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(255, 255, 255, 0.18),
+    transparent 60%
+  );
   color: #fff;
 }
 
@@ -101,6 +107,8 @@ body {
 
 /* ---- 主选项行（带 › 指示符） ---- */
 .row {
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -108,24 +116,34 @@ body {
   padding: 0 16px;
   border: none;
   border-radius: 8px;
-  background: transparent;
+  background-color: transparent;
   color: #e8e8e8;
   cursor: pointer;
   font-size: 14px;
   font-family: inherit;
   text-align: left;
-  transition: background 0.2s ease;
+  transition: background-color 0.2s ease;
 }
 
+/* hover 时光标位置处柔光跟随（--mx/--my 由 effects.ts 实时写入） */
 .row:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background-color: rgba(255, 255, 255, 0.06);
+  background-image: radial-gradient(
+    120px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(255, 255, 255, 0.14),
+    transparent 60%
+  );
 }
 
 .row-label {
   color: #e8e8e8;
+  position: relative;
+  z-index: 1; /* 浮于光斑/波纹之上 */
 }
 
 .row .chevron {
+  position: relative;
+  z-index: 1;
   color: #9a9a9a;
   font-size: 20px;
   line-height: 1;
@@ -143,6 +161,9 @@ body {
 }
 
 .option-btn {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate; /* 建立层叠上下文，使灰色波纹落于白底之上、文字之下 */
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -151,15 +172,20 @@ body {
   font-size: 14px;
   border: 1px solid #ffffff; /* 白边框 */
   border-radius: 8px;
-  background: transparent;
+  background-color: transparent;
   color: #e8e8e8;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: none; /* 点击选中立即变白，不做渐变 */
   font-family: inherit;
 }
 
 .option-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background-color: rgba(255, 255, 255, 0.06);
+  background-image: radial-gradient(
+    100px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(255, 255, 255, 0.16),
+    transparent 60%
+  );
   color: #fff;
 }
 
@@ -226,4 +252,27 @@ body {
   font-weight: 500;
   color: #9a9a9a;
   letter-spacing: 0.5px;
+}
+
+/* ---- 点击灰色波纹（仅 .option-btn；由 effects.ts 在点击点注入 .ripple 触发） ---- */
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.35); /* 灰色：比白底暗，比界面底色 #3c3c3c 亮 */
+  transform: scale(0);
+  opacity: 0.6;
+  pointer-events: none;
+  z-index: -1; /* 配合 .option-btn 的 isolation，落于白底之上、文字之下 */
+  animation: ripple-grey 0.32s ease-out forwards;
+}
+
+@keyframes ripple-grey {
+  from {
+    transform: scale(0);
+    opacity: 0.6;
+  }
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
 }
