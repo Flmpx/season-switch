@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-17
+
 ### Added
 - 图片粒子渲染：新增 `envir/particle/assets`（优先 `<img>`，站点 CSP 拦截时降级为 `createImageBitmap` 静态位图；未就绪则跳过该帧），渲染器接入 `image` 分支（`size` 为高度、宽度按 `aspect` 等比）
 - 飘落粒子硬上限 800（超出从最旧淘汰，`setMaxFall()` 可调）

@@ -2,7 +2,7 @@
   "name": "Season Switch",
   "description": "四季变幻",
   "private": true,
-  "version": "0.8.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "wxt",
