@@ -57,7 +57,7 @@ function buildSubSetting(
     </div>`;
 }
 
-/* 单个粒子元素的详细设置页（可继续下钻的叶子层） */
+/* 渲染单个粒子元素的详细设置页（速度/大小/数目） */
 export function renderElementPage(type: string, settings: Settings): HTMLElement {
   const meta = getElementMeta(type);
   const desc = getElementDescriptor(type);

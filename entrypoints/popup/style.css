@@ -1,25 +1,27 @@
+/* 全局盒模型重置 */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+/* 弹窗整体：中灰底、宽度固定、高度由内容驱动 */
 body {
   width: 340px;
-  height: auto; /* 高度由内容驱动，配合 .pages 的 height 过渡动画 */
+  height: auto; /* 高度由内容驱动，配合 .pages 的 height 过渡 */
   font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif;
-  background: #3c3c3c; /* 中深灰底色 */
+  background: #3c3c3c;
   color: #e8e8e8;
 }
 
-/* ---- 导航栈容器（iOS 式：新页右滑入、旧页左推出） ---- */
+/* 导航栈容器：裁切溢出的相邻页面 */
 .nav-stack {
   position: relative;
   width: 100%;
   overflow: hidden;
 }
 
-/* 页面容器：仅做高度过渡；层级滑动由每个 .page 各自做 translateX 完成 */
+/* 页面容器：仅做高度过渡；层级滑动由每个 .page 各自做 translateX */
 .pages {
   position: relative;
   width: 100%;
@@ -28,8 +30,7 @@ body {
   transition: height 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* 每页绝对定位叠放、按栈偏移各自横向位移；高度跟随内容（JS 写入 .pages 高度，
-   页面自身 max-height 上限 600，超出则内部滚动） */
+/* 单个页面：绝对定位叠放，按栈偏移各自横向位移，高度跟随内容 */
 .page {
   position: absolute;
   top: 0;
@@ -43,19 +44,19 @@ body {
   will-change: transform;
 }
 
-/* 首屏/重置时关闭所有过渡，避免初始入场动画与高度突变 */
+/* 首屏/重置时关闭所有过渡，避免入场动画与高度突变 */
 .pages.no-anim,
 .pages.no-anim .page {
   transition: none;
 }
 
-/* ---- 页面页头（含返回） ---- */
+/* 页面页头：标题居中、返回键绝对定位于左侧 */
 .page-header {
-  position: relative; /* 标题居中、返回键绝对定位于左侧 */
+  position: relative;
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  justify-content: center; /* 标题水平居中 */
+  justify-content: center;
   height: 48px;
   padding: 0 12px;
   border-bottom: 1px solid #2a2a2a;
@@ -63,6 +64,7 @@ body {
   font-weight: 600;
 }
 
+/* 返回按钮：左侧绝对定位，字号略小于标题 */
 .page-header .back {
   position: absolute;
   left: 8px;
@@ -74,12 +76,13 @@ body {
   background-color: transparent;
   color: #d2d2d2;
   cursor: pointer;
-  font-size: 14px; /* 比标题 15px 略小 */
+  font-size: 14px;
   font-family: inherit;
   overflow: hidden;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
+/* 返回按钮 hover：光标位置处柔光跟随 */
 .page-header .back:hover {
   background-color: rgba(255, 255, 255, 0.06);
   background-image: radial-gradient(
@@ -90,12 +93,13 @@ body {
   color: #fff;
 }
 
+/* 页头标题 */
 .page-title {
   color: #f2f2f2;
   text-align: center;
 }
 
-/* ---- 页面主体（可独立滚动） ---- */
+/* 页面主体：可独立滚动的内容区 */
 .page-body {
   flex: 1 1 auto;
   overflow-y: auto;
@@ -105,7 +109,7 @@ body {
   gap: 4px;
 }
 
-/* ---- 主选项行（带 › 指示符） ---- */
+/* 主选项行：带 › 指示符，点击下钻 */
 .row {
   position: relative;
   overflow: hidden;
@@ -125,7 +129,7 @@ body {
   transition: background-color 0.2s ease;
 }
 
-/* hover 时光标位置处柔光跟随（--mx/--my 由 effects.ts 实时写入） */
+/* 主选项行 hover：光标位置处柔光跟随 */
 .row:hover {
   background-color: rgba(255, 255, 255, 0.06);
   background-image: radial-gradient(
@@ -135,12 +139,14 @@ body {
   );
 }
 
+/* 行文字：浮于光斑/波纹之上 */
 .row-label {
   color: #e8e8e8;
   position: relative;
-  z-index: 1; /* 浮于光斑/波纹之上 */
+  z-index: 1;
 }
 
+/* 行右侧 › 指示符 */
 .row .chevron {
   position: relative;
   z-index: 1;
@@ -149,17 +155,19 @@ body {
   line-height: 1;
 }
 
+/* 主选项行 hover 时 › 变亮 */
 .row:hover .chevron {
   color: #d2d2d2;
 }
 
-/* ---- 选项按钮组（复用于各子页） ---- */
+/* 选项按钮组：复用于各子页 */
 .option-grid {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
 }
 
+/* 选项按钮：白边框、点击立即变白底黑字，灰色波纹落于其上 */
 .option-btn {
   position: relative;
   overflow: hidden;
@@ -167,10 +175,10 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 37px; /* 与历史设定一致 */
+  height: 37px;
   padding: 0 20px;
   font-size: 14px;
-  border: 1px solid #ffffff; /* 白边框 */
+  border: 1px solid #ffffff;
   border-radius: 8px;
   background-color: transparent;
   color: #e8e8e8;
@@ -179,6 +187,7 @@ body {
   font-family: inherit;
 }
 
+/* 选项按钮 hover：光标位置处柔光跟随 */
 .option-btn:hover {
   background-color: rgba(255, 255, 255, 0.06);
   background-image: radial-gradient(
@@ -189,19 +198,21 @@ body {
   color: #fff;
 }
 
+/* 选项按钮选中态：白底黑字 */
 .option-btn.active {
-  background: #ffffff; /* 选中：白底 */
-  color: #161616; /* 选中：黑字 */
+  background: #ffffff;
+  color: #161616;
   font-weight: 600;
 }
 
-/* ---- 自定义滑块行 ---- */
+/* 自定义滑块行 */
 .custom-row {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
+/* 强度/自定义滑块 */
 .intensity-slider {
   flex: 1;
   -webkit-appearance: none;
@@ -212,6 +223,7 @@ body {
   outline: none;
 }
 
+/* 滑块拖柄（Chromium 内核） */
 .intensity-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
@@ -223,6 +235,7 @@ body {
   border: none;
 }
 
+/* 滑块拖柄（Firefox 内核） */
 .intensity-slider::-moz-range-thumb {
   width: 14px;
   height: 14px;
@@ -232,6 +245,7 @@ body {
   border: none;
 }
 
+/* 滑块当前值显示 */
 .intensity-value {
   font-size: 12px;
   color: #e8e8e8;
@@ -240,13 +254,14 @@ body {
   font-weight: 600;
 }
 
-/* ---- 单个属性的子设置块（粒子元素页：速度/大小/数目） ---- */
+/* 子设置块：单属性的按钮组 + 自定义滑块（粒子元素页） */
 .sub-setting {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
+/* 子设置块标题 */
 .sub-title {
   font-size: 11px;
   font-weight: 500;
@@ -254,7 +269,7 @@ body {
   letter-spacing: 0.5px;
 }
 
-/* ---- 点击灰色波纹（仅 .option-btn；由 effects.ts 在点击点注入 .ripple 触发） ---- */
+/* 点击灰色波纹：由 effects.ts 在点击点注入，扩散淡出 */
 .ripple {
   position: absolute;
   border-radius: 50%;
@@ -262,10 +277,11 @@ body {
   transform: scale(0);
   opacity: 0.6;
   pointer-events: none;
-  z-index: -1; /* 配合 .option-btn 的 isolation，落于白底之上、文字之下 */
+  z-index: -1; /* 落于白底之上、文字之下 */
   animation: ripple-grey 0.32s ease-out forwards;
 }
 
+/* 灰色波纹扩散淡出动画 */
 @keyframes ripple-grey {
   from {
     transform: scale(0);

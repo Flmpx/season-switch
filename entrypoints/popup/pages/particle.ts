@@ -3,7 +3,7 @@ import { ELEMENT_TYPES, getElementMeta } from '../../envir/particle';
 import type { Settings } from '../../../lib/settings';
 import { renderElementPage } from './element';
 
-/* 粒子页：与主页同构的元素列表，点元素进入其详细设置（可继续下钻） */
+/* 渲染粒子设置页：元素列表，点元素进入其详细设置 */
 export function renderParticlePage(settings: Settings): HTMLElement {
   const page = document.createElement('div');
   page.className = 'page';

@@ -1,6 +1,7 @@
 import { popPage, refreshHeight } from '../nav';
 import { saveSettings, type Settings } from '../../../lib/settings';
 
+/* 季节选项：[值, 显示文字] */
 const SEASON_OPTS: [string, string][] = [
   ['spring', '春'],
   ['summer', '夏'],
@@ -10,6 +11,7 @@ const SEASON_OPTS: [string, string][] = [
   ['system-season', '跟随系统'],
 ];
 
+/* 渲染季节设置页 */
 export function renderSeasonPage(settings: Settings): HTMLElement {
   const page = document.createElement('div');
   page.className = 'page';

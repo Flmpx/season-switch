@@ -1,6 +1,7 @@
 import { popPage, refreshHeight } from '../nav';
 import { saveSettings, type Settings } from '../../../lib/settings';
 
+/* 显示程度选项：[值, 显示文字] */
 const INTENSITY_OPTS: [string, string][] = [
   ['misty', '朦朦'],
   ['light', '浅'],
@@ -9,6 +10,7 @@ const INTENSITY_OPTS: [string, string][] = [
   ['custom-intensity', '自定义'],
 ];
 
+/* 渲染显示程度设置页 */
 export function renderDisplayPage(settings: Settings): HTMLElement {
   const page = document.createElement('div');
   page.className = 'page';

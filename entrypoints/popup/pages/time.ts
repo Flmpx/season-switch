@@ -1,6 +1,7 @@
 import { popPage, refreshHeight } from '../nav';
 import { saveSettings, type Settings } from '../../../lib/settings';
 
+/* 时间选项：[值, 显示文字] */
 const TIME_OPTS: [string, string][] = [
   ['dawn', '清晨'],
   ['morning', '上午'],
@@ -13,6 +14,7 @@ const TIME_OPTS: [string, string][] = [
   ['system-time', '跟随系统'],
 ];
 
+/* 渲染时间设置页 */
 export function renderTimePage(settings: Settings): HTMLElement {
   const page = document.createElement('div');
   page.className = 'page';

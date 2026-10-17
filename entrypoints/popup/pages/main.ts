@@ -6,10 +6,11 @@ import { renderParticlePage } from './particle';
 import type { Settings } from '../../../lib/settings';
 
 interface MainItem {
-  label: string;
-  render: (s: Settings) => HTMLElement;
+  label: string; // 主选项显示文字
+  render: (s: Settings) => HTMLElement; // 点击后渲染的子页面
 }
 
+/* 主页选项：[显示文字, 渲染函数] */
 const ITEMS: MainItem[] = [
   { label: '季节', render: renderSeasonPage },
   { label: '时间', render: renderTimePage },
@@ -17,6 +18,7 @@ const ITEMS: MainItem[] = [
   { label: '粒子', render: renderParticlePage },
 ];
 
+/* 渲染主页：四个主选项入口 */
 export function renderMainPage(settings: Settings): HTMLElement {
   const page = document.createElement('div');
   page.className = 'page';
