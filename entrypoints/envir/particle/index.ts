@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Flmpx
+ * Licensed under MIT (see LICENSE).
+ */
+
 // 粒子系统：按元素分别的设置映射（速度/大小/数目）与配置聚合
 import {
   DEFAULT_ELEMENT_CONFIG,

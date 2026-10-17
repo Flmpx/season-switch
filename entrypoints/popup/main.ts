@@ -2,6 +2,7 @@
  * Copyright (c) 2026 Flmpx
  * Licensed under MIT (see LICENSE).
  */
+
 import { loadSettings } from '../../lib/settings';
 import { initNav, pushPage } from './nav';
 import { initEffects } from './effects';

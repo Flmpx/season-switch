@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Flmpx
+ * Licensed under MIT (see LICENSE).
+ */
+
 // 显示程度相关：将设置映射为强度系数，影响色调、光晕、粒子与星光
 import type { Settings } from '../../../lib/settings';
 

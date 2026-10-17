@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Flmpx
+ * Licensed under MIT (see LICENSE).
+ */
+
 // 粒子基类与派生类：通用属性与控制方法收归粒子自身，渲染走 renderer.drawParticle
 import { drawParticle } from './renderer';
 

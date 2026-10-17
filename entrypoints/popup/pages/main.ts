@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Flmpx
+ * Licensed under MIT (see LICENSE).
+ */
+
 import { pushPage } from '../nav';
 import { renderSeasonPage } from './season';
 import { renderTimePage } from './time';

@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Flmpx
+ * Licensed under MIT (see LICENSE).
+ */
+
 // 亮度（时段光线）相关：根据设置计算页面整体亮度并应用到遮罩层
 import type { Settings } from '../../../lib/settings';
 

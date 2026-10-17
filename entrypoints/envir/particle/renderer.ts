@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Flmpx
+ * Licensed under MIT (see LICENSE).
+ */
+
 // 统一渲染器：按 elements.json 的描述符绘制粒子（内置 SVG 或用户 emoji）
 import elementsData from './elements.json';
 

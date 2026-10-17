@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Flmpx
+ * Licensed under MIT (see LICENSE).
+ */
+
 import { pushPage, popPage } from '../nav';
 import { ELEMENT_TYPES, getElementMeta } from '../../envir/particle';
 import type { Settings } from '../../../lib/settings';

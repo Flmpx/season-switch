@@ -2,6 +2,7 @@
  * Copyright (c) 2026 Flmpx
  * Licensed under MIT (see LICENSE).
  */
+
 // 每个氛围元素的独立粒子设置：速度/大小/数目三者互相独立，叶子、雪花、星光各自一套
 export type ParticleSpeedPreset =
   | 'slow'

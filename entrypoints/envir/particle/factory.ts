@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Flmpx
+ * Licensed under MIT (see LICENSE).
+ */
+
 // 数据驱动粒子工厂：读 elements.json 描述符构造粒子实例，新增元素只需改 JSON
 import { Particle } from './particle';
 import { FallingParticle } from './particle';

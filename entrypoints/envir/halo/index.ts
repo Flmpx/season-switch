@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Flmpx
+ * Licensed under MIT (see LICENSE).
+ */
+
 // 镜头炫光（夏季光晕）：夏权重足够且为白天时在右上区域显示暖色光晕
 import type { SeasonWeights } from '../../../lib/season-weights';
 

@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Flmpx
+ * Licensed under MIT (see LICENSE).
+ */
+
 // 元素描述符：elements.json 的类型与访问器，新增元素只改 JSON 即可
 import elementsData from './elements.json';
 import type { SeasonWeights } from '../../../lib/season-weights';

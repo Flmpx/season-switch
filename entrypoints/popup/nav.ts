@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2026 Flmpx
+ * Licensed under MIT (see LICENSE).
+ */
+
+
 /* 导航栈：管理弹窗页面的层级切换与高度自适应 */
 
 const MAX_HEIGHT = 600; // 与 .page 的 max-height 一致，避免超出 Chrome 弹窗高度上限

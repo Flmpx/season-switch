@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2026 Flmpx
+ * Licensed under MIT (see LICENSE).
+ */
+
+
 /* 交互特效：hover 光标跟随光斑 + 选项按钮点击灰色波纹（事件委托实现） */
 
 const SPOTLIGHT = '.row, .option-btn, .back'; // 光斑作用的元素选择器

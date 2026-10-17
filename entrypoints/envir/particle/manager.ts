@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Flmpx
+ * Licensed under MIT (see LICENSE).
+ */
+
 // 粒子统一管理器：生成、更新（飘落/闪烁）、绘制与消失，元素类型由 elements.json 驱动
 import { Particle } from './particle';
 import { TwinklingParticle } from './particle';
