@@ -14,6 +14,7 @@ import { getSeasonWeights, type SeasonWeights } from '../lib/season-weights';
 import { getIntensityValue } from './envir/intensity';
 import { ParticleManager } from './envir/particle/manager';
 import { getElementConfigs, registry } from './envir/particle';
+import { preloadAssets, releaseAssets } from './envir/particle/assets';
 import {
   TIME_OF_DAY_HOURS,
   getTimeBrightness,
@@ -47,6 +48,7 @@ class AtmosphereRenderer {
   private width = 0; // 视口宽
   private height = 0; // 视口高
   private unsubscribe: (() => void) | null = null; // 设置变更取消订阅
+  private registryUnsub: (() => void) | null = null; // 注册表变更取消订阅
   private ctxRef: ContentScriptContext; // 内容脚本上下文
   private lastTime = 0; // 上一帧时间戳（毫秒）
 
@@ -103,9 +105,36 @@ class AtmosphereRenderer {
   /* 首次加载元素注册表与设置并启动动画 */
   private async init() {
     await registry.init();
+    this.registryUnsub = registry.subscribe(() => this.onRegistryChanged());
+    await this.preloadImages();
     const settings = await loadSettings();
     this.applySettings(settings);
     this.animate();
+  }
+
+  /* 收集注册表里所有图片元素引用的资产 id */
+  private imageAssetIds(): string[] {
+    const ids: string[] = [];
+    for (const desc of registry.list()) {
+      if (desc.render.kind === 'image' && desc.render.assetId) ids.push(desc.render.assetId);
+    }
+    return ids;
+  }
+
+  /* 预加载图片资产（失败不阻塞渲染，粒子在就绪后自动出现） */
+  private async preloadImages() {
+    try {
+      await preloadAssets(this.imageAssetIds());
+    } catch {
+      // 资产加载异常不影响粒子循环
+    }
+  }
+
+  /* 注册表变更：清理失效粒子、补载新图片、重算配置 */
+  private onRegistryChanged() {
+    this.particleManager.sync();
+    void this.preloadImages();
+    if (this.settings) this.configs = getElementConfigs(this.settings);
   }
 
   /* 应用设置：计算权重/强度/配置/亮度并刷新各层与光晕 */
@@ -164,7 +193,7 @@ class AtmosphereRenderer {
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  /* 清理：取消动画、移除 DOM、清空粒子、取消订阅 */
+  /* 清理：取消动画、移除 DOM、清空粒子、释放资产、取消订阅 */
   private destroy() {
     cancelAnimationFrame(this.frameId);
     this.overlay.remove();
@@ -172,6 +201,8 @@ class AtmosphereRenderer {
     this.canvas.remove();
     this.lensFlare.remove();
     this.particleManager.clear();
+    releaseAssets();
+    this.registryUnsub?.();
     this.unsubscribe?.();
   }
 }

@@ -5,6 +5,7 @@
 
 // 统一渲染器：按元素外观描述符（render）绘制粒子，四种来源共用同一入口。
 import type { ElementRender, PathFill, PathSpec } from './elements';
+import { getImage } from './assets';
 
 // Path2D 缓存：同一条 path 数据只构建一次
 const pathCache = new Map<string, Path2D>();
@@ -37,7 +38,7 @@ function resolveFill(
 export interface DrawParticleOpts {
   x: number; // 横坐标
   y: number; // 纵坐标
-  size: number; // 尺寸（px，也是文字/emoji 字号）
+  size: number; // 尺寸（px；图片/emoji/文字均为高度）
   rotation: number; // 旋转角
   opacity: number; // 不透明度 0-1
   color: string; // 颜色（svg 的 source:particle 与文字使用）
@@ -65,6 +66,24 @@ function drawSvg(ctx: CanvasRenderingContext2D, paths: PathSpec[], o: DrawPartic
   ctx.restore();
 }
 
+/* 绘制图片精灵：size 为高度，宽度按 aspect（宽/高）等比 */
+function drawImageSprite(
+  ctx: CanvasRenderingContext2D,
+  source: CanvasImageSource,
+  aspect: number,
+  o: DrawParticleOpts,
+): void {
+  const ratio = Math.max(0.1, Math.min(10, aspect || 1));
+  const h = o.size;
+  const w = h * ratio;
+  ctx.save();
+  ctx.translate(o.x, o.y);
+  ctx.rotate(o.rotation);
+  ctx.globalAlpha = Math.max(0, o.opacity);
+  ctx.drawImage(source, -w / 2, -h / 2, w, h);
+  ctx.restore();
+}
+
 /* 统一绘制入口：按外观 kind 分四路 */
 export function drawParticle(
   ctx: CanvasRenderingContext2D,
@@ -75,8 +94,13 @@ export function drawParticle(
     drawSvg(ctx, render.paths, o);
     return;
   }
-  // image 分支：待 P2 接入资产加载（assets.ts + drawImage），当前不绘制
-  if (render.kind === 'image') return;
+
+  if (render.kind === 'image') {
+    // 图片未加载就绪时跳过本帧，就绪后自动出现
+    const source = getImage(render.assetId);
+    if (source) drawImageSprite(ctx, source, render.aspect, o);
+    return;
+  }
 
   ctx.save();
   ctx.translate(o.x, o.y);

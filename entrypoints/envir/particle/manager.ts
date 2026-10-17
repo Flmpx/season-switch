@@ -8,6 +8,7 @@ import { Particle, TwinklingParticle } from './particle';
 import { createElement } from './factory';
 import type { SeasonWeights } from '../../../lib/season-weights';
 import type { ParticleValue } from '../../../lib/settings';
+import type { ElementRender } from './elements';
 import { registry } from './registry';
 import { seasonWeightFor } from './elements';
 import { getTwinkleTarget } from './target';
@@ -15,11 +16,20 @@ import { getTwinkleTarget } from './target';
 // 闪烁粒子生成不需要季节权重
 const ZERO_WEIGHTS: SeasonWeights = { spring: 0, summer: 0, autumn: 0, winter: 0 };
 
+// 单屏飘落粒子硬上限，避免"大图 + 高速率 + 低速"把页面拖垮
+const DEFAULT_MAX_FALL = 800;
+
+/* 外观签名：判断元素外观是否变化 */
+function renderKey(render: ElementRender): string {
+  return JSON.stringify(render);
+}
+
 export class ParticleManager {
   private fallParticles: Particle[] = []; // 飘落粒子（任意 fall 元素）
   private twinkleParticles: TwinklingParticle[] = []; // 闪烁粒子（任意 twinkle 元素）
   private accumulators: Record<string, number> = {}; // 各 fall 元素的生成累加器（秒）
   private ctx: CanvasRenderingContext2D; // 画布上下文
+  private maxFall = DEFAULT_MAX_FALL; // 飘落粒子上限
 
   // 故障隔离：限制错误日志数量避免刷屏，clear() 时重置
   private static errorCount = 0;
@@ -41,6 +51,24 @@ export class ParticleManager {
   /* 当前粒子总数（调试/状态用） */
   get count(): number {
     return this.fallParticles.length + this.twinkleParticles.length;
+  }
+
+  /* 调整飘落粒子上限（供设置页"高级"使用） */
+  setMaxFall(n: number): void {
+    this.maxFall = Math.max(0, Math.floor(n));
+  }
+
+  /* 元素被删除或其外观变更后，丢弃在飞粒子并清理累加器 */
+  sync(): void {
+    const alive = (p: Particle): boolean => {
+      const desc = registry.get(p.type);
+      return !!desc && renderKey(p.render) === renderKey(desc.render);
+    };
+    this.fallParticles = this.fallParticles.filter(alive);
+    this.twinkleParticles = this.twinkleParticles.filter(alive);
+    for (const id of Object.keys(this.accumulators)) {
+      if (!registry.get(id)) delete this.accumulators[id];
+    }
   }
 
   /* 按元素分别的生成速率生成飘落粒子；仅对应季节权重>0 时生成 */
@@ -116,6 +144,7 @@ export class ParticleManager {
 
   /* 每帧更新+绘制所有粒子，逐粒子 try/catch 故障隔离 */
   step(dt: number, height: number, intensity: number): void {
+    this.enforceCap();
     for (let i = this.fallParticles.length - 1; i >= 0; i--) {
       const p = this.fallParticles[i];
       try {
@@ -154,7 +183,13 @@ export class ParticleManager {
     }
   }
 
-  /* 清空所有粒子（resize / destroy / 元素被删除时） */
+  /* 超出上限时从最旧的飘落粒子开始淘汰 */
+  private enforceCap(): void {
+    const over = this.fallParticles.length - this.maxFall;
+    if (over > 0) this.fallParticles.splice(0, over);
+  }
+
+  /* 清空所有粒子（destroy 时） */
   clear(): void {
     this.fallParticles.length = 0;
     this.twinkleParticles.length = 0;

@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### Added
+- 图片粒子渲染：新增 `envir/particle/assets`（优先 `<img>`，站点 CSP 拦截时降级为 `createImageBitmap` 静态位图；未就绪则跳过该帧），渲染器接入 `image` 分支（`size` 为高度、宽度按 `aspect` 等比）
+- 飘落粒子硬上限 800（超出从最旧淘汰，`setMaxFall()` 可调）
+- 元素删除或外观变更时清理在飞粒子（`ParticleManager.sync()`），内容脚本订阅注册表并预加载 / 释放图片资产
+
 ### Changed
 - 数据契约重构：`Settings.particles` 由"档位枚举 + 自定义百分比"改为按元素 id 存的速度/大小/数目数值，旧字符串值自动丢弃
 - `elements.json` 改为 `speedPresets` / `sizePresets` / `countPresets` / `motion`（单值 + jitter）/ `defaults`；`countPresets` 从死字段变为生效档位，删除 `target.max`
