@@ -3,30 +3,31 @@
  * Licensed under MIT (see LICENSE).
  */
 
-/* 管理页外壳：左侧固定侧边栏 + 右侧内容区，负责导航按钮与当前路由高亮 */
+/* 管理页外壳：左侧边栏 + 右侧内容区，负责导航与高亮 */
 
+/* 管理页路由标识 */
 export type ManagerRoute = 'new' | 'mine' | 'detail';
 
-/* 详情页在侧边栏里归属「我的粒子」 */
+/* 各路由对应的侧边栏高亮项 */
 const NAV_OF: Record<ManagerRoute, 'new' | 'mine'> = {
-  new: 'new',
-  mine: 'mine',
-  detail: 'mine',
+  new: 'new', // 新建页
+  mine: 'mine', // 列表页
+  detail: 'mine', // 详情归列表
 };
 
+/* 侧边栏导航项 */
 export const ROUTES: ReadonlyArray<{ id: ManagerRoute; label: string; icon: string }> = [
-  { id: 'new', label: '新建粒子', icon: '＋' },
-  { id: 'mine', label: '我的粒子', icon: '☰' },
+  { id: 'new', label: '新建粒子', icon: '＋' }, // 新建页
+  { id: 'mine', label: '我的粒子', icon: '☰' }, // 列表页
 ];
 
+/* 管理页外壳实例 */
 export interface Shell {
-  /** 右侧内容容器，视图挂载于此 */
-  content: HTMLElement;
-  /** 高亮当前路由对应的导航按钮 */
-  setActive(route: ManagerRoute): void;
+  content: HTMLElement; // 右侧内容容器
+  setActive(route: ManagerRoute): void; // 同步侧边栏高亮
 }
 
-/* 构建外壳并绑定导航点击；点击只上报路由，由调用方决定如何渲染 */
+/* 构建外壳并绑定导航点击，点击只上报路由 */
 export function createShell(root: HTMLElement, onRoute: (route: ManagerRoute) => void): Shell {
   root.classList.add('app');
   root.innerHTML = `

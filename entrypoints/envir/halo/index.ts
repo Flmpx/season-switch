@@ -6,7 +6,7 @@
 // 镜头炫光（夏季光晕）：夏权重足够且为白天时在右上区域显示暖色光晕
 import type { SeasonWeights } from '../../../lib/season-weights';
 
-/** 夏季镜头炫光管理：创建/更新/移除光晕元素 */
+/* 夏季镜头炫光管理：创建/更新/移除光晕元素 */
 export class LensFlare {
   private el: HTMLDivElement | null = null; // 光晕 DOM 元素
 

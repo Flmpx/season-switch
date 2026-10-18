@@ -3,25 +3,25 @@
  * Licensed under MIT (see LICENSE).
  */
 
-// 内容脚本侧的图片资产：从 lib/asset-store 取出 dataURL 并解码缓存。
-// 未就绪时 getImage 返回 null（该帧跳过绘制），失败也不抛给渲染循环。
-// 优先用 <img>（动态 GIF 能继续解码）；若被站点 CSP 拦截 data: 图片，则降级为静态 Bitmap。
 import { getAsset } from '../../../lib/asset-store';
 
+/* 一条解码缓存 */
 interface AssetEntry {
-  source: CanvasImageSource | null; // 已可绘制的图像源
+  source: CanvasImageSource | null; // 可绘制的图像源
   loading: boolean; // 是否正在加载
   failed: boolean; // 是否加载失败
 }
 
+/* 解码缓存 */
 const cache = new Map<string, AssetEntry>();
 
-// 离屏容器：把 <img> 挂到 DOM 上，保证动态 GIF 持续解码
+/* 离屏容器，把 <img> 挂在 DOM 上保证动态 GIF 持续解码 */
 let holder: HTMLDivElement | null = null;
 
-// 是否已释放：释放后仍未完成的解码结果丢弃，避免重新创建离屏容器
+/* 是否已释放，释放后晚到的解码结果会被丢弃 */
 let released = false;
 
+/* 取得（必要时创建）离屏容器 */
 function ensureHolder(): HTMLDivElement | null {
   if (typeof document === 'undefined') return null;
   if (!holder) {
@@ -34,12 +34,15 @@ function ensureHolder(): HTMLDivElement | null {
   return holder;
 }
 
-/* 取已解码的图像源；未就绪或失败返回 null */
+/* 取已解码的图像源，未就绪或失败返回 null */
 export function getImage(assetId: string): CanvasImageSource | null {
   return cache.get(assetId)?.source ?? null;
 }
 
-/* 预加载一批图片资产（幂等）；retryFailed 时对失败条目重试 */
+/**
+ * 预加载一批图片资产，幂等
+ * 已加载或加载中的跳过；加载失败过的仅在 retryFailed 时重试
+ */
 export async function preloadAssets(
   assetIds: string[],
   retryFailed = false,
@@ -49,7 +52,6 @@ export async function preloadAssets(
   for (const id of assetIds) {
     if (!id) continue;
     const existing = cache.get(id);
-    // 已加载或加载中 → 跳过；失败过的仅在允许重试时重来
     if (existing && !existing.failed) continue;
     if (existing?.failed && !retryFailed) continue;
     cache.set(id, { source: null, loading: true, failed: false });
@@ -58,7 +60,7 @@ export async function preloadAssets(
   await Promise.all(tasks);
 }
 
-/* 清空缓存并移除离屏容器（内容脚本销毁时调用） */
+/* 清空缓存并移除离屏容器 */
 export function releaseAssets(): void {
   released = true;
   for (const entry of cache.values()) {
@@ -74,7 +76,7 @@ export function releaseAssets(): void {
   holder = null;
 }
 
-/* 加载单个资产：先 <img>，失败再静态位图 */
+/* 加载单个资产：先用 img 解码，被 CSP 拦截时退化为静态位图 */
 async function loadOne(assetId: string): Promise<void> {
   const entry = cache.get(assetId);
   if (!entry) return;
@@ -84,7 +86,6 @@ async function loadOne(assetId: string): Promise<void> {
     try {
       entry.source = await decodeViaImage(record.dataUrl);
     } catch {
-      // <img> 解码失败（常见于站点 CSP 拦截 data: 图片）→ 退化为静态位图
       entry.source = await decodeViaBitmap(record.dataUrl);
     }
   } catch {
@@ -95,7 +96,7 @@ async function loadOne(assetId: string): Promise<void> {
   }
 }
 
-/* 用 <img> 解码（支持动态 GIF） */
+/* 用 img 解码，支持动态 GIF */
 function decodeViaImage(dataUrl: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -112,7 +113,7 @@ function decodeViaImage(dataUrl: string): Promise<HTMLImageElement> {
   });
 }
 
-/* 用 createImageBitmap 解码（不经过 DOM，绕开 CSP） */
+/* 用 createImageBitmap 解码，不经过 DOM 以绕开 CSP */
 async function decodeViaBitmap(dataUrl: string): Promise<ImageBitmap> {
   if (typeof createImageBitmap !== 'function') throw new Error('不支持 createImageBitmap');
   const comma = dataUrl.indexOf(',');

@@ -3,10 +3,12 @@
  * Licensed under MIT (see LICENSE).
  */
 
-// 元素详情页：编辑一个元素的全部可调参数，改动即时落盘。
-// 内置元素编辑写入 overrides（不修改 entities.json），外观只读；用户元素直接更新用户库。
+/**
+ * 元素详情页：编辑元素参数并即时落盘。
+ * 内置元素只写覆盖项，用户元素直接更新用户库。
+ */
 import { registry } from '../../envir/particle';
-import { BUILTIN_ELEMENTS, type ElementDescriptor } from '../../envir/particle/elements';
+import { BUILTIN_ELEMENTS } from '../../envir/particle/elements';
 import {
   clearOverride,
   loadUserLibrary,
@@ -23,7 +25,7 @@ import { createPreview } from '../preview';
 import { requestRefresh } from '../refresh';
 import { toast } from '../toast';
 
-/* 需要和内置基线比较、从而生成覆盖的字段（外观除外） */
+/* 需要与内置基线比较以生成覆盖的字段 */
 const COMPARE_KEYS = [
   'label',
   'icon',
@@ -38,7 +40,7 @@ const COMPARE_KEYS = [
   'defaults',
 ] as const;
 
-/* 计算内置元素相对其基线的覆盖内容 */
+/* 计算内置元素相对基线的覆盖内容 */
 function buildOverride(id: string, state: UserElement): ElementOverride | null {
   const base = BUILTIN_ELEMENTS[id] as unknown as Record<string, unknown> | undefined;
   if (!base) return null;
@@ -54,7 +56,7 @@ function buildOverride(id: string, state: UserElement): ElementOverride | null {
   return changed ? (patch as ElementOverride) : null;
 }
 
-/* 渲染详情页；元素不存在时返回 null 由路由回退 */
+/* 渲染详情页，元素不存在时返回 null 由路由回退 */
 export function renderDetailView(id: string): HTMLElement | null {
   const desc = registry.get(id);
   if (!desc) return null;
@@ -115,7 +117,6 @@ export function renderDetailView(id: string): HTMLElement | null {
   const previewCol = h('div', 'preview-column');
   previewCol.appendChild(preview.root);
 
-  /* 输入 300ms 后落盘：避免每个滑块拖动都写一次存储 */
   let timer = 0;
   let pending = false;
 
@@ -172,10 +173,4 @@ export function renderDetailView(id: string): HTMLElement | null {
   grid.append(formCol, previewCol);
   root.append(topbar, grid);
   return root;
-}
-
-/* 元素描述符的显示名（列表与标题复用） */
-export function describeElement(desc: ElementDescriptor): string {
-  const behavior = desc.behavior === 'fall' ? '飘落' : '闪烁';
-  return `${behavior} · ${desc.render.kind}`;
 }

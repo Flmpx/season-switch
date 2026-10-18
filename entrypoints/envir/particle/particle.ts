@@ -3,19 +3,17 @@
  * Licensed under MIT (see LICENSE).
  */
 
-// 粒子基类与派生类：通用属性与控制方法收归粒子自身，渲染走 renderer.drawParticle。
-// 每个粒子持有自己的外观描述符（render），"长什么样"由 render.kind 决定。
 import { drawParticle } from './renderer';
 import type { ElementRender } from './elements';
 
-/** 粒子构造入参：所有通用字段 */
+/* 粒子构造入参 */
 export interface ParticleInit {
   type: string; // 元素 id
   render: ElementRender; // 外观描述符
   x: number; // 横坐标（像素）
   y: number; // 纵坐标（像素）
   size: number; // 尺寸（像素）
-  color: string; // 颜色（取自描述符或季节色板）
+  color: string; // 颜色，取自描述符或季节色板
   speedY: number; // 下落速度（像素/秒）
   rotation: number; // 旋转角（弧度）
   rotSpeed: number; // 旋转速度（弧度/秒）
@@ -25,7 +23,7 @@ export interface ParticleInit {
   wobbleAmp: number; // 摆幅（像素）
 }
 
-/** 粒子抽象基类：通用属性 + 更新/绘制 */
+/* 粒子基类：通用属性与更新/绘制 */
 export abstract class Particle {
   type: string; // 元素 id
   render: ElementRender; // 外观描述符
@@ -58,7 +56,7 @@ export abstract class Particle {
     this.wobbleAmp = init.wobbleAmp;
   }
 
-  /* 摆动 + 下落 + 着陆渐隐（静止粒子由派生类 override） */
+  /* 摆动 + 下落 + 着陆渐隐 */
   update(dt: number, height: number): void {
     this.wobblePhase += this.wobbleSpeed * dt;
     this.x += Math.sin(this.wobblePhase) * this.wobbleAmp * dt;
@@ -73,7 +71,7 @@ export abstract class Particle {
     }
   }
 
-  /* 按自身外观描述符渲染粒子 */
+  /* 按自身外观描述符绘制 */
   draw(ctx: CanvasRenderingContext2D, intensity: number): void {
     drawParticle(ctx, this.render, {
       x: this.x,
@@ -86,21 +84,21 @@ export abstract class Particle {
   }
 }
 
-/** 飘落派生类（leaf / snow 共用）：下落 + 摆动 + 渐隐 */
+/* 飘落粒子：继承基类的下落与摆动 */
 export class FallingParticle extends Particle {
-  /* 飘落粒子：复用基类构造 */
+  /* 直接复用基类构造 */
   constructor(init: ParticleInit) {
     super(init);
   }
 }
 
-/** 闪烁派生类（star）：静止不动，仅闪烁 */
+/* 闪烁粒子：静止不动，仅闪烁 */
 export class TwinklingParticle extends Particle {
   twinklePhase: number; // 闪烁相位
   twinkleSpeed: number; // 闪烁频率
   baseOpacity: number; // 基础不透明度
 
-  /* 用入参构造闪烁粒子（含闪烁相关字段） */
+  /* 用入参构造闪烁粒子 */
   constructor(
     init: ParticleInit & {
       twinklePhase: number;
@@ -114,12 +112,12 @@ export class TwinklingParticle extends Particle {
     this.baseOpacity = init.baseOpacity;
   }
 
-  /* 不动，仅推进闪烁相位 */
+  /* 不动，只推进闪烁相位 */
   override update(dt: number): void {
     this.twinklePhase += this.twinkleSpeed * dt;
   }
 
-  /* 透明度随正弦波闪烁 */
+  /* 透明度按正弦波闪烁后绘制 */
   override draw(ctx: CanvasRenderingContext2D, intensity: number): void {
     const twinkle = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(this.twinklePhase));
     const opacity = this.baseOpacity * twinkle * Math.min(intensity, 1.5);

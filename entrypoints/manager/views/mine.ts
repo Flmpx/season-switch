@@ -3,7 +3,10 @@
  * Licensed under MIT (see LICENSE).
  */
 
-// 我的粒子列表：内置元素 + 自定义元素各自成组，支持进入详情、删除、导入导出 JSON。
+/**
+ * 我的粒子列表：内置与自定义元素分组展示，
+ * 支持进入详情、删除和 JSON 导入导出。
+ */
 import { registry } from '../../envir/particle';
 import type { ElementDescriptor } from '../../envir/particle/elements';
 import {
@@ -18,7 +21,7 @@ import { renderKindLabel } from '../form';
 import { requestRefresh } from '../refresh';
 import { toast } from '../toast';
 
-/* 重建注册表：存储事件是异步的，这里显式重建以便刷新后立刻看到结果 */
+/* 重建注册表，刷新后立刻看到结果 */
 async function rebuild(): Promise<void> {
   registry.rebuild(await loadUserLibrary());
 }
@@ -38,7 +41,7 @@ function downloadLibrary(): void {
   })();
 }
 
-/* 导入 JSON：同 id 覆盖，未出现的旧元素保留 */
+/* 导入 JSON，同 id 覆盖、其余旧元素保留 */
 function importLibraryFile(file: File): void {
   void (async () => {
     const result = importLibrary(await file.text());
@@ -106,7 +109,7 @@ function elementRow(desc: ElementDescriptor): HTMLElement {
   return row;
 }
 
-/* 分组标题 + 行列表 */
+/* 分组标题与行列表 */
 function section(title: string, rows: HTMLElement[], emptyText?: string): HTMLElement {
   const wrap = h('section', 'list-section');
   wrap.appendChild(h('div', 'list-head', title));

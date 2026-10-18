@@ -3,7 +3,7 @@
  * Licensed under MIT (see LICENSE).
  */
 
-// 粒子系统统一出口：类型、注册表、档位、配置、工厂、管理器、渲染器、资产。
+/* 粒子系统对外出口，供内容脚本、popup、管理页共用 */
 export * from './elements';
 export * from './presets';
 export { registry } from './registry';

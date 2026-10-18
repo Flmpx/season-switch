@@ -1,11 +1,13 @@
-/*
+/**
  * Copyright (c) 2026 Flmpx
  * Licensed under MIT (see LICENSE).
  */
 
-// 元素表单：新建页与详情页共用的字段编辑器。
-// 表单状态（UserElement 草稿）在内部持有，每次修改都通过 onChange 通知外部重绘预览。
-// 所有数值字段统一用滑块（范围来自 NUMERIC_LIMITS），拖动就不可能产生越界值。
+/**
+ * 元素表单：新建页与详情页共用的字段编辑器
+ * 草稿在内部持有，每次修改经 onChange 通知外部重绘预览
+ * 数值字段统一用滑块，拖动不会产生越界值
+ */
 import {
   NUMERIC_LIMITS,
   type ElementBehavior,
@@ -34,19 +36,22 @@ import {
   type SliderSpec,
 } from './fields';
 
+/* 外观类型 */
 export type RenderKind = ElementRender['kind'];
 
+/* 元素表单选项 */
 export interface ElementFormOptions {
-  /** 内置元素：外观（render）只读，其余字段可改 */
-  lockedRender?: boolean;
-  onChange?: (state: UserElement) => void;
+  lockedRender?: boolean; // 内置元素外观只读
+  onChange?: (state: UserElement) => void; // 状态变更回调
 }
 
+/* 元素表单实例 */
 export interface ElementForm {
-  root: HTMLElement;
-  read(): UserElement;
+  root: HTMLElement; // 根节点
+  read(): UserElement; // 读取当前草稿
 }
 
+/* 季节选项 */
 const SEASON_OPTIONS: ReadonlyArray<{ value: Season; label: string }> = [
   { value: 'spring', label: '春' },
   { value: 'summer', label: '夏' },
@@ -54,6 +59,7 @@ const SEASON_OPTIONS: ReadonlyArray<{ value: Season; label: string }> = [
   { value: 'winter', label: '冬' },
 ];
 
+/* 外观类型选项 */
 const RENDER_OPTIONS: ReadonlyArray<{ value: RenderKind; label: string }> = [
   { value: 'svg', label: 'SVG' },
   { value: 'image', label: '图片' },
@@ -61,8 +67,10 @@ const RENDER_OPTIONS: ReadonlyArray<{ value: RenderKind; label: string }> = [
   { value: 'text', label: '文字' },
 ];
 
+/* 预设 emoji 字形 */
 const EMOJI_PRESETS = ['✨', '🌟', '❄️', '🍂', '🍁', '🌸', '🍃', '🦋', '💫', '🌙', '☀️', '🫧'];
 
+/* 字体选项 */
 const FONT_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
   { value: "'Microsoft YaHei', sans-serif", label: '雅黑' },
   { value: 'SimSun, serif', label: '宋体' },
@@ -71,12 +79,12 @@ const FONT_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
   { value: 'sans-serif', label: '无衬线' },
 ];
 
-/* 区间 + 单位 → 滑块参数 */
+/* 区间和单位转成滑块参数 */
 function specOf(limit: NumericLimit, unit?: string): SliderSpec {
   return { min: limit.min, max: limit.max, step: limit.step, unit };
 }
 
-/* 数量的合法区间随行为变化：飘落按个/分钟，闪烁按峰值颗数 */
+/* 按行为取数量区间：飘落按个/分钟，闪烁按峰值 */
 function countLimitOf(behavior: ElementBehavior): NumericLimit {
   return behavior === 'twinkle' ? NUMERIC_LIMITS.countTwinkle : NUMERIC_LIMITS.countFall;
 }
@@ -127,7 +135,7 @@ export function renderKindLabel(kind: RenderKind): string {
   return hit ? hit.label : kind;
 }
 
-/* 读取图片宽高比（宽/高） */
+/* 读取图片宽高比，即宽除以高 */
 async function measureAspect(blob: Blob): Promise<number> {
   const url = URL.createObjectURL(blob);
   try {
@@ -140,7 +148,11 @@ async function measureAspect(blob: Blob): Promise<number> {
   }
 }
 
-/* 构建元素表单 */
+/**
+ * 构建元素表单
+ * SVG 与图片导入后立即写入草稿
+ * 导入图片后重渲染，让宽高比滑块显示真实值
+ */
 export function createElementForm(
   initial: UserElement,
   options: ElementFormOptions = {},
@@ -151,7 +163,6 @@ export function createElementForm(
 
   const notify = (): void => options.onChange?.(state);
 
-  /* ---------- 基础 ---------- */
   const basics = group('基础', true);
   basics.body.append(
     row('名称', inputText(state.label, (v) => {
@@ -192,7 +203,6 @@ export function createElementForm(
     }
   }
 
-  /* ---------- 外观 ---------- */
   const appearance = group('外观', true);
   root.appendChild(appearance.root);
 
@@ -222,7 +232,6 @@ export function createElementForm(
     appearance.body.appendChild(editor);
   }
 
-  /* SVG 外观：文件导入或粘贴代码，导入后立即写入 paths */
   function svgEditor(): HTMLElement {
     const wrap = h('div', 'stack');
     const status = hint(
@@ -267,7 +276,6 @@ export function createElementForm(
     return wrap;
   }
 
-  /* 图片外观：读成 dataURL 存进资产库，渲染时按 assetId 取图 */
   function imageEditor(): HTMLElement {
     const wrap = h('div', 'stack');
     const status = hint('支持 PNG / JPEG / WebP / GIF / SVG，单图上限 512KB');
@@ -294,7 +302,7 @@ export function createElementForm(
           status.classList.remove('error');
           status.textContent = `已导入 ${Math.round(rec.bytes / 1024)}KB`;
           notify();
-          renderAppearance(); // 宽高比滑块要显示真实值
+          renderAppearance();
         } catch (err) {
           status.classList.add('error');
           status.textContent = err instanceof Error ? err.message : String(err);
@@ -319,7 +327,6 @@ export function createElementForm(
     return wrap;
   }
 
-  /* emoji 外观：预设格子 + 手输入 */
   function emojiEditor(): HTMLElement {
     const wrap = h('div', 'stack');
     if (state.render.kind !== 'emoji') return wrap;
@@ -347,7 +354,6 @@ export function createElementForm(
     return wrap;
   }
 
-  /* 文字外观：内容 + 字体 + 字重 + 颜色 */
   function textEditor(): HTMLElement {
     const wrap = h('div', 'stack');
     if (state.render.kind !== 'text') return wrap;
@@ -393,7 +399,6 @@ export function createElementForm(
     return wrap;
   }
 
-  /* ---------- 出现 ---------- */
   const appear = group('出现', true);
   root.appendChild(appear.root);
 
@@ -440,7 +445,6 @@ export function createElementForm(
     );
   }
 
-  /* ---------- 运动 ---------- */
   const motion = group('运动', false);
   motion.body.append(
     row('随机抖动', slider(state.motion.jitter, specOf(NUMERIC_LIMITS.jitter), (v) => {
@@ -470,7 +474,6 @@ export function createElementForm(
   );
   root.appendChild(motion.root);
 
-  /* ---------- 档位与默认值 ---------- */
   const presets = group('档位与默认值', false);
   root.appendChild(presets.root);
 

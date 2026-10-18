@@ -3,9 +3,9 @@
  * Licensed under MIT (see LICENSE).
  */
 
-/* 轻提示：短暂浮在右下角，2.6 秒后自动消失 */
+/* 轻提示：右下角浮现，2.6 秒后消失 */
 
-/* 显示一条提示；kind 为 error 时用警示配色 */
+/* 显示一条提示，error 用警示配色 */
 export function toast(message: string, kind: 'info' | 'error' = 'info'): void {
   let host = document.getElementById('toast-host');
   if (!host) {

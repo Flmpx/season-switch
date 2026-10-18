@@ -3,8 +3,6 @@
  * Licensed under MIT (see LICENSE).
  */
 
-// 数据驱动粒子工厂：读描述符 + 当前值构造粒子实例。当前值（速度/大小）作为基准，
-// 每个粒子在该基准 ±jitter 内随机；颜色由描述符色板或固定色决定。
 import { FallingParticle, TwinklingParticle, type Particle } from './particle';
 import type { ElementDescriptor, Season } from './elements';
 import type { ParticleValue } from '../../../lib/settings';
@@ -15,23 +13,23 @@ function rand(min: number, max: number): number {
   return min + Math.random() * (max - min);
 }
 
-/* 从数组随机取一个 */
+/* 从数组里随机取一个 */
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-/* 限制到 [0,1] */
+/* 夹到 0-1 */
 function clamp01(v: number): number {
   return Math.max(0, Math.min(1, v));
 }
 
-/* 在基准值 ±jitter 内随机 */
+/* 在基准值 ±jitter 比例内随机 */
 function jittered(base: number, jitter: number): number {
   const j = Math.max(0, Math.min(1, jitter));
   return base * (1 - j + Math.random() * 2 * j);
 }
 
-/* 取色：优先季节色板（按权重随机），否则固定色 */
+/* 取色：有季节色板就按季节权重随机，否则用固定色 */
 function resolveColor(desc: ElementDescriptor, weights: SeasonWeights): string {
   let color = desc.color ?? '#FFFFFF';
   if (desc.palettes) {
@@ -58,7 +56,10 @@ function resolveColor(desc: ElementDescriptor, weights: SeasonWeights): string {
   return color;
 }
 
-/* 按描述符 + 当前值构造一个粒子实例 */
+/**
+ * 按描述符与当前值构造一个粒子实例
+ * 当前值作为基准，速度/大小/不透明度在该基准 ±jitter 内随机
+ */
 export function createElement(
   desc: ElementDescriptor,
   width: number,

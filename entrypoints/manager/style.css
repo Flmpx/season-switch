@@ -3,9 +3,9 @@
  * Licensed under MIT (see LICENSE).
  */
 
-/* 管理页：独立标签页布局，左侧固定侧边栏 + 右侧内容区
- * 尺寸约定：所有可点控件 44px 高，与侧边栏导航项一致；间距比 popup 更松，避免挤成一团。 */
+/* 管理页：左侧固定侧边栏 + 右侧内容区，可点控件统一 44px 高 */
 
+/* 主题变量：暗色配色、圆角、控件高度与缓动曲线 */
 :root {
   --bg: #2b2b2b;
   --bg-side: #232323;
@@ -66,6 +66,7 @@ body {
   padding: 0 10px 20px;
 }
 
+/* 品牌主标题 */
 .brand-name {
   font-size: 16px;
   font-weight: 600;
@@ -73,6 +74,7 @@ body {
   letter-spacing: 0.2px;
 }
 
+/* 品牌副标题 */
 .brand-sub {
   font-size: 11px;
   color: var(--text-faint);
@@ -107,11 +109,13 @@ body {
   transition: background-color 0.18s ease, color 0.18s ease;
 }
 
+/* 导航按钮悬停 */
 .nav-item:hover {
   background: rgba(255, 255, 255, 0.06);
   color: #fff;
 }
 
+/* 导航按钮选中态 */
 .nav-item.active {
   background: rgba(255, 255, 255, 0.12);
   color: #fff;
@@ -126,6 +130,7 @@ body {
   font-size: 16px;
 }
 
+/* 选中导航项的图标变白 */
 .nav-item.active .nav-icon {
   color: #fff;
 }
@@ -169,6 +174,7 @@ body {
   gap: 14px;
 }
 
+/* 页面标题，超长省略 */
 .topbar-title {
   font-size: 20px;
   font-weight: 600;
@@ -178,6 +184,7 @@ body {
   white-space: nowrap;
 }
 
+/* 顶栏右侧操作区，靠右对齐 */
 .topbar-actions {
   margin-left: auto;
   display: flex;
@@ -203,14 +210,17 @@ body {
   white-space: nowrap;
 }
 
+/* 按钮悬停 */
 .btn:hover {
   background: #3c3c3c;
 }
 
+/* 按钮按下轻微缩小 */
 .btn:active {
   transform: scale(0.98);
 }
 
+/* 主按钮：浅底深字 */
 .btn.primary {
   background: var(--text);
   border-color: var(--text);
@@ -218,28 +228,34 @@ body {
   font-weight: 600;
 }
 
+/* 主按钮悬停 */
 .btn.primary:hover {
   background: #fff;
 }
 
+/* 幽灵按钮：透明底 */
 .btn.ghost {
   background: transparent;
 }
 
+/* 幽灵按钮悬停 */
 .btn.ghost:hover {
   background: rgba(255, 255, 255, 0.08);
 }
 
+/* 危险按钮：红字红边 */
 .btn.danger {
   background: transparent;
   border-color: #5c3a3a;
   color: #e0a0a0;
 }
 
+/* 危险按钮悬停 */
 .btn.danger:hover {
   background: #4a2a2a;
 }
 
+/* 危险按钮二次确认态 */
 .btn.armed {
   background: #7a2f2f;
   border-color: #a04040;
@@ -253,6 +269,7 @@ body {
   gap: 12px;
 }
 
+/* 列表小标题 */
 .list-head {
   font-size: 13px;
   color: var(--text-faint);
@@ -260,6 +277,7 @@ body {
   padding-left: 2px;
 }
 
+/* 列表容器：圆角描边，内部裁剪 */
 .list {
   display: flex;
   flex-direction: column;
@@ -269,6 +287,7 @@ body {
   overflow: hidden;
 }
 
+/* 列表行 */
 .row {
   position: relative;
   isolation: isolate;
@@ -282,14 +301,17 @@ body {
   transition: background-color 0.16s ease;
 }
 
+/* 列表行悬停 */
 .row:hover {
   background: rgba(255, 255, 255, 0.025);
 }
 
+/* 最后一行去掉分隔线 */
 .row:last-child {
   border-bottom: none;
 }
 
+/* 行首图标块 */
 .row-icon {
   width: 40px;
   height: 40px;
@@ -301,6 +323,7 @@ body {
   font-size: 20px;
 }
 
+/* 行主内容区 */
 .row-main {
   flex: 1;
   min-width: 0;
@@ -309,6 +332,7 @@ body {
   gap: 3px;
 }
 
+/* 行标题，超长省略 */
 .row-name {
   font-size: 15px;
   color: #f0f0f0;
@@ -317,11 +341,13 @@ body {
   white-space: nowrap;
 }
 
+/* 行副标题 */
 .row-sub {
   font-size: 12px;
   color: var(--text-faint);
 }
 
+/* 行右侧操作区 */
 .row-actions {
   display: flex;
   align-items: center;
@@ -329,6 +355,7 @@ body {
   flex: none;
 }
 
+/* 标签胶囊 */
 .badge {
   padding: 3px 10px;
   border: 1px solid var(--line-2);
@@ -337,11 +364,13 @@ body {
   color: var(--text-dim);
 }
 
+/* 用户标签：绿色描边 */
 .badge.user {
   border-color: #4a5b4a;
   color: #a8c8a8;
 }
 
+/* 空状态提示块 */
 .empty {
   display: flex;
   align-items: center;
@@ -361,6 +390,7 @@ body {
   align-items: start;
 }
 
+/* 左栏表单 */
 .form-column {
   display: flex;
   flex-direction: column;
@@ -368,11 +398,13 @@ body {
   min-width: 0;
 }
 
+/* 右栏预览，滚动时吸顶 */
 .preview-column {
   position: sticky;
   top: 40px;
 }
 
+/* 预览区纵向布局 */
 .preview {
   display: flex;
   flex-direction: column;
@@ -380,12 +412,14 @@ body {
   gap: 10px;
 }
 
+/* 预览画布 */
 .preview canvas {
   border: 1px solid var(--line);
   border-radius: 14px;
   background: #1f1f1f;
 }
 
+/* 预览说明文字 */
 .preview-caption {
   font-size: 12px;
   color: var(--text-faint);
@@ -400,6 +434,7 @@ body {
   overflow: hidden;
 }
 
+/* 分组标题按钮，点击折叠 */
 .group-title {
   position: relative;
   isolation: isolate;
@@ -422,10 +457,12 @@ body {
   transition: background-color 0.16s ease;
 }
 
+/* 分组标题悬停 */
 .group-title:hover {
   background: rgba(255, 255, 255, 0.03);
 }
 
+/* 分组箭头 */
 .group-arrow {
   display: inline-block;
   width: 12px;
@@ -434,16 +471,19 @@ body {
   transition: transform 0.26s var(--ease);
 }
 
+/* 展开时箭头旋转 90 度 */
 .group.open .group-arrow {
   transform: rotate(90deg);
 }
 
+/* 折叠面板：高度由 JS 过渡 */
 .group-panel {
   overflow: hidden;
   height: 0;
   transition: height 0.26s var(--ease);
 }
 
+/* 分组内容区 */
 .group-body {
   display: flex;
   flex-direction: column;
@@ -451,6 +491,7 @@ body {
   padding: 4px 18px 22px;
 }
 
+/* 单行字段：左标签右控件 */
 .field {
   display: grid;
   grid-template-columns: 116px minmax(0, 1fr);
@@ -459,11 +500,13 @@ body {
   min-height: var(--control-h);
 }
 
+/* 字段标签 */
 .field-label {
   font-size: 13px;
   color: var(--text-dim);
 }
 
+/* 字段提示，占第二列 */
 .field-hint {
   grid-column: 2;
   font-size: 11px;
@@ -471,6 +514,7 @@ body {
   color: #7a7a7a;
 }
 
+/* 小节标题 */
 .sub-title {
   margin-top: 4px;
   font-size: 12px;
@@ -497,27 +541,32 @@ body {
   max-width: 720px;
 }
 
+/* 输入框悬停 */
 .input:hover {
   border-color: #5a5a5a;
 }
 
+/* 输入框聚焦 */
 .input:focus {
   outline: none;
   border-color: #7a7a7a;
   background: #2a2a2a;
 }
 
+/* 取色器输入框：固定 64px 宽 */
 .input.color {
   width: 64px;
   padding: 4px;
   cursor: pointer;
 }
 
+/* 下拉框：去掉原生箭头 */
 .select {
   appearance: none;
   cursor: pointer;
 }
 
+/* 多行文本域：等宽字体、可纵向拉伸 */
 .textarea {
   height: auto;
   padding: 12px 14px;
@@ -527,21 +576,25 @@ body {
   line-height: 1.6;
 }
 
+/* 纵向堆叠容器 */
 .stack {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
+/* 文件名文字 */
 .file {
   font-size: 12px;
   color: var(--text-dim);
 }
 
+/* 隐藏的原生文件输入 */
 .hidden-file {
   display: none;
 }
 
+/* 图片缩略图：最大 132px */
 .thumb {
   max-width: 132px;
   max-height: 132px;
@@ -558,6 +611,7 @@ body {
   min-width: 0;
 }
 
+/* 滑块轨道：5px 高 */
 .range {
   flex: 1;
   min-width: 0;
@@ -570,6 +624,7 @@ body {
   cursor: pointer;
 }
 
+/* WebKit 滑块拇指：18px 圆点 */
 .range::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 18px;
@@ -581,14 +636,17 @@ body {
   transition: box-shadow 0.15s ease, transform 0.12s ease;
 }
 
+/* 拇指悬停光晕 */
 .range:hover::-webkit-slider-thumb {
   box-shadow: 0 0 0 7px rgba(232, 232, 232, 0.1);
 }
 
+/* 拇指按下略放大 */
 .range:active::-webkit-slider-thumb {
   transform: scale(1.06);
 }
 
+/* Firefox 滑块拇指 */
 .range::-moz-range-thumb {
   width: 18px;
   height: 18px;
@@ -597,12 +655,14 @@ body {
   background: var(--text);
 }
 
+/* Firefox 滑块轨道 */
 .range::-moz-range-track {
   height: 5px;
   border-radius: 3px;
   background: var(--line);
 }
 
+/* 滑块右侧实时读数：等宽数字、右对齐 */
 .range-value {
   flex: none;
   min-width: 76px;
@@ -619,6 +679,7 @@ body {
   gap: 12px;
 }
 
+/* 单个档位滑块行 */
 .preset-line {
   display: grid;
   grid-template-columns: 64px minmax(0, 1fr);
@@ -626,6 +687,7 @@ body {
   gap: 14px;
 }
 
+/* 档位名称 */
 .preset-name {
   font-size: 12px;
   color: var(--text-faint);
@@ -638,6 +700,7 @@ body {
   gap: 6px;
 }
 
+/* 分段按钮 */
 .seg-btn {
   position: relative;
   isolation: isolate;
@@ -654,11 +717,13 @@ body {
   transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
+/* 分段按钮悬停 */
 .seg-btn:hover {
   background: #333;
   color: #eee;
 }
 
+/* 分段按钮选中态 */
 .seg-btn.active {
   background: var(--text);
   border-color: var(--text);
@@ -673,6 +738,7 @@ body {
   gap: 8px;
 }
 
+/* emoji 按钮 */
 .emoji-btn {
   position: relative;
   isolation: isolate;
@@ -687,11 +753,13 @@ body {
   transition: background-color 0.15s ease, transform 0.12s ease;
 }
 
+/* emoji 按钮悬停上浮 */
 .emoji-btn:hover {
   background: #3a3a3a;
   transform: translateY(-1px);
 }
 
+/* 底部操作按钮组 */
 .actions {
   display: flex;
   gap: 10px;
@@ -708,7 +776,7 @@ body {
   font-size: 13px;
 }
 
-/* 轻提示 */
+/* 轻提示容器 */
 #toast-host {
   position: fixed;
   right: 28px;
@@ -721,6 +789,7 @@ body {
   pointer-events: none;
 }
 
+/* 轻提示气泡 */
 .toast {
   padding: 12px 22px;
   border-radius: 999px;
@@ -731,11 +800,13 @@ body {
   animation: toast-in 0.18s ease;
 }
 
+/* 错误提示气泡 */
 .toast.error {
   background: #d85c5c;
   color: #fff;
 }
 
+/* 轻提示入场：淡入并上移 */
 @keyframes toast-in {
   from {
     opacity: 0;
@@ -769,6 +840,7 @@ body {
   z-index: 0;
 }
 
+/* 悬停时显示光斑 */
 .row:hover::after,
 .btn:hover::after,
 .seg-btn:hover::after,
@@ -799,11 +871,13 @@ body {
   z-index: 0;
 }
 
+/* 浅底按钮上的波纹改为深色 */
 .btn.primary .ripple,
 .seg-btn.active .ripple {
   background: rgba(0, 0, 0, 0.14);
 }
 
+/* 波纹扩散：放大并淡出 */
 @keyframes ripple-grow {
   to {
     transform: scale(1);
@@ -824,12 +898,14 @@ body {
 
 /* 尊重系统"减少动态效果"设置 */
 @media (prefers-reduced-motion: reduce) {
+  /* 关闭折叠与拇指的过渡 */
   .group-panel,
   .group-arrow,
   .range::-webkit-slider-thumb {
     transition: none;
   }
 
+  /* 关闭点击波纹 */
   .ripple {
     display: none;
   }

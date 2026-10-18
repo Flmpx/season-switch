@@ -1,11 +1,11 @@
-/*
+/**
  * Copyright (c) 2026 Flmpx
  * Licensed under MIT (see LICENSE).
  */
 
-/* 管理页表单控件工厂：统一暗色样式，控件全部走回调，表单状态由调用方持有 */
+/* 管理页表单控件工厂：统一暗色样式，表单状态由调用方持有 */
 
-/* 创建元素 */
+/* 创建元素节点 */
 export function h<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   cls?: string,
@@ -17,20 +17,21 @@ export function h<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
-/** 可折叠分组：root 挂到页面上，body 用来塞字段 */
+/* 可折叠分组：root 挂到页面上，body 用来塞字段 */
 export interface Group {
-  root: HTMLElement;
-  body: HTMLElement;
-  setOpen(open: boolean): void;
+  root: HTMLElement; // 根节点
+  body: HTMLElement; // 字段容器
+  setOpen(open: boolean): void; // 展开或收起
 }
 
-const GROUP_ANIM_MS = 260; // 与 style.css 里 .group-panel 的过渡时长保持一致
+/* 展开动画时长，需与 style.css 保持一致 */
+const GROUP_ANIM_MS = 260;
 
-/*
- * 可折叠分组。
- * 不用 <details>：浏览器不允许过渡它的展开高度，展开是"啪"地跳出来的。
- * 这里改成 div + 高度过渡：展开先测量 scrollHeight，动画结束后设回 auto，
- * 这样后续内容变化（切换行为、导入 SVG）仍能把分组自然撑高。
+/**
+ * 可折叠分组
+ * 不用 details：它的展开高度无法过渡，会直接跳开
+ * 改用高度过渡，先量 scrollHeight，结束后设回 auto
+ * 展开与收起前强制回流，避免过渡被浏览器合并
  */
 export function group(title: string, open = true): Group {
   const root = h('div', 'group');
@@ -53,7 +54,7 @@ export function group(title: string, open = true): Group {
     head.setAttribute('aria-expanded', 'true');
     window.clearTimeout(timer);
     panel.style.height = '0px';
-    void panel.offsetHeight; // 强制回流，让高度过渡从 0 起步
+    void panel.offsetHeight;
     panel.style.height = `${body.scrollHeight}px`;
     timer = window.setTimeout(() => {
       if (opened) panel.style.height = 'auto';
@@ -67,7 +68,7 @@ export function group(title: string, open = true): Group {
     head.setAttribute('aria-expanded', 'false');
     window.clearTimeout(timer);
     panel.style.height = `${body.scrollHeight}px`;
-    void panel.offsetHeight; // 从当前具体高度起步，否则 0 会被浏览器合并掉
+    void panel.offsetHeight;
     panel.style.height = '0px';
   }
 
@@ -100,7 +101,7 @@ export function subTitle(text: string): HTMLElement {
   return h('div', 'sub-title', text);
 }
 
-/* 一行：左标签 + 右控件，可选说明 */
+/* 一行：左标签、右控件、可选说明 */
 export function row(label: string, control: HTMLElement, hint?: string): HTMLElement {
   const root = h('div', 'field');
   root.appendChild(h('span', 'field-label', label));
@@ -153,7 +154,7 @@ export function colorPicker(value: string, onChange: (v: string) => void): HTMLI
   return input;
 }
 
-/* 把常见颜色写法收敛到 #rrggbb（input[type=color] 只接受这种格式） */
+/* 颜色统一成 #rrggbb，颜色输入框只接受该格式 */
 function normalizeColor(color: string): string {
   if (/^#[0-9a-f]{6}$/i.test(color)) return color;
   const named: Record<string, string> = {
@@ -175,16 +176,16 @@ function normalizeColor(color: string): string {
   return '#ffffff';
 }
 
-/** 滑块参数：范围、单位、显示小数位 */
+/* 滑块参数：范围、单位、显示小数位 */
 export interface SliderSpec {
-  min: number;
-  max: number;
-  step: number;
-  unit?: string;
-  digits?: number; // 不给就按 step 推断
+  min: number; // 最小值
+  max: number; // 最大值
+  step: number; // 步长
+  unit?: string; // 单位后缀
+  digits?: number; // 小数位，缺省按步长推断
 }
 
-/* 按 step 的小数位推断显示精度 */
+/* 按步长的小数位推断显示精度 */
 function decimalsOf(step: number): number {
   if (step >= 1) return 0;
   const text = String(step);
@@ -192,19 +193,20 @@ function decimalsOf(step: number): number {
   return dot < 0 ? 0 : text.length - dot - 1;
 }
 
-/* 对齐到步长并夹进区间（浏览器滑块已保证范围，这里再兜一层浮点误差） */
+/* 对齐步长并夹进区间，消除浮点误差 */
 function roundToStep(value: number, spec: SliderSpec): number {
   const snapped = spec.min + Math.round((value - spec.min) / spec.step) * spec.step;
   return Math.min(spec.max, Math.max(spec.min, Number(snapped.toFixed(6))));
 }
 
+/* 格式化读数，拼上单位 */
 function formatValue(value: number, spec: SliderSpec): string {
   return `${value.toFixed(spec.digits ?? decimalsOf(spec.step))}${spec.unit ?? ''}`;
 }
 
-/*
- * 数值滑块 + 实时读数。
- * 所有数值字段统一走它：拖动不可能越界，也就不会有手输的离谱值。
+/**
+ * 数值滑块加实时读数
+ * 所有数值字段统一走它，拖动就不会出现越界值
  */
 export function slider(
   value: number,
@@ -231,7 +233,7 @@ export function slider(
   return root;
 }
 
-/* 档位组：每个档位一行「名称 + 滑块」，比并排的小输入框更不容易敲出越界值 */
+/* 档位组：每个档位一行名称加滑块 */
 export function presetSliders(
   items: ReadonlyArray<{ label: string; value: number; onChange: (v: number) => void }>,
   spec: SliderSpec,
@@ -245,7 +247,7 @@ export function presetSliders(
   return root;
 }
 
-/* 单选按钮组（自己维护高亮状态） */
+/* 单选按钮组，自行维护高亮状态 */
 export function segGroup<T extends string>(
   options: ReadonlyArray<{ value: T; label: string }>,
   value: T,
@@ -272,7 +274,7 @@ export function segGroup<T extends string>(
   }
 }
 
-/* 多选按钮组：至少保留一项 */
+/* 多选按钮组，至少保留一项 */
 export function multiGroup<T extends string>(
   options: ReadonlyArray<{ value: T; label: string }>,
   values: T[],
@@ -286,7 +288,7 @@ export function multiGroup<T extends string>(
     btn.classList.toggle('active', selected.has(opt.value));
     btn.addEventListener('click', () => {
       if (selected.has(opt.value)) {
-        if (selected.size === 1) return; // 不允许清空
+        if (selected.size === 1) return;
         selected.delete(opt.value);
       } else {
         selected.add(opt.value);
@@ -296,22 +298,6 @@ export function multiGroup<T extends string>(
     });
     root.appendChild(btn);
   }
-  return root;
-}
-
-/* 复选开关：一行「标签 + 开关」 */
-export function toggleRow(
-  label: string,
-  checked: boolean,
-  onChange: (v: boolean) => void,
-): HTMLElement {
-  const root = h('label', 'switch-row');
-  const text = h('span', 'field-label', label);
-  const input = h('input', 'switch');
-  input.type = 'checkbox';
-  input.checked = checked;
-  input.addEventListener('change', () => onChange(input.checked));
-  root.append(text, input);
   return root;
 }
 

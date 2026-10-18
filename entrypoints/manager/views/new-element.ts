@@ -3,7 +3,7 @@
  * Licensed under MIT (see LICENSE).
  */
 
-// 新建粒子页：编辑一份草稿，点「保存」才写入用户库（避免误操作产生半成品）。
+/* 新建粒子页：编辑草稿，点保存才写入用户库 */
 import type { UserElement } from '../../../lib/element-store';
 import { addElement, validateElement } from '../../../lib/element-store';
 import { button, h } from '../fields';

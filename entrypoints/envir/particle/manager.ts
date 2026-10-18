@@ -3,7 +3,6 @@
  * Licensed under MIT (see LICENSE).
  */
 
-// 粒子统一管理器：生成、更新（飘落/闪烁）、绘制与消失，元素由注册表驱动。
 import { Particle, TwinklingParticle } from './particle';
 import { createElement } from './factory';
 import type { SeasonWeights } from '../../../lib/season-weights';
@@ -13,39 +12,39 @@ import { registry } from './registry';
 import { seasonWeightFor } from './elements';
 import { getTwinkleTarget } from './target';
 
-// 闪烁粒子生成不需要季节权重
+/* 闪烁粒子生成不需要季节权重 */
 const ZERO_WEIGHTS: SeasonWeights = { spring: 0, summer: 0, autumn: 0, winter: 0 };
 
-// 单屏飘落粒子硬上限，避免"大图 + 高速率 + 低速"把页面拖垮
+/* 单屏飘落粒子硬上限，避免大图 + 高速率把页面拖垮 */
 const DEFAULT_MAX_FALL = 800;
 
-// 飞出视口左右边界多远后回收（窗口缩小 / 摆动漂移）
+/* 飞出视口左右边界多远后回收 */
 const OFFSCREEN_MARGIN = 120;
 
-/* 外观签名：判断元素外观是否变化 */
+/* 外观签名，用于判断元素外观是否变过 */
 function renderKey(render: ElementRender): string {
   return JSON.stringify(render);
 }
 
+/* 粒子统一管理器：生成、更新、绘制与回收 */
 export class ParticleManager {
-  private fallParticles: Particle[] = []; // 飘落粒子（任意 fall 元素）
-  private twinkleParticles: TwinklingParticle[] = []; // 闪烁粒子（任意 twinkle 元素）
-  private accumulators: Record<string, number> = {}; // 各 fall 元素的生成累加器（秒）
+  private fallParticles: Particle[] = []; // 飘落粒子
+  private twinkleParticles: TwinklingParticle[] = []; // 闪烁粒子
+  private accumulators: Record<string, number> = {}; // 各飘落元素的生成累加器
   private ctx: CanvasRenderingContext2D; // 画布上下文
   private maxFall = DEFAULT_MAX_FALL; // 飘落粒子上限
 
-  // 故障隔离：按时间窗限制错误日志（每 60s 最多 20 条），clear() 时重置
-  private static errorCount = 0;
-  private static windowStartAt = 0;
-  private static readonly MAX_ERROR_LOGS = 20;
-  private static readonly ERROR_WINDOW_MS = 60_000;
+  private static errorCount = 0; // 当前时间窗内已上报的错误数
+  private static windowStartAt = 0; // 当前时间窗起点
+  private static readonly MAX_ERROR_LOGS = 20; // 每个时间窗最多上报条数
+  private static readonly ERROR_WINDOW_MS = 60_000; // 时间窗长度（毫秒）
 
   /* 用画布上下文构造管理器 */
   constructor(ctx: CanvasRenderingContext2D) {
     this.ctx = ctx;
   }
 
-  /* 单个粒子/生成失败时集中上报，每 60s 最多上报 20 条 */
+  /* 上报单个粒子或生成的故障，每 60 秒最多 20 条 */
   private handleParticleError(context: string, err: unknown): void {
     const now = Date.now();
     if (now - ParticleManager.windowStartAt > ParticleManager.ERROR_WINDOW_MS) {
@@ -58,17 +57,12 @@ export class ParticleManager {
     }
   }
 
-  /* 当前粒子总数（调试/状态用） */
+  /* 当前粒子总数 */
   get count(): number {
     return this.fallParticles.length + this.twinkleParticles.length;
   }
 
-  /* 调整飘落粒子上限（供设置页"高级"使用） */
-  setMaxFall(n: number): void {
-    this.maxFall = Math.max(0, Math.floor(n));
-  }
-
-  /* 元素被删除或其外观变更后，丢弃在飞粒子并清理累加器 */
+  /* 元素被删除或外观变更后，丢弃在飞粒子并清理累加器 */
   sync(): void {
     const alive = (p: Particle): boolean => {
       const desc = registry.get(p.type);
@@ -81,7 +75,7 @@ export class ParticleManager {
     }
   }
 
-  /* 按元素分别的生成速率生成飘落粒子；仅对应季节权重>0 时生成 */
+  /* 按各元素的数目生成飘落粒子，仅季节权重大于 0 时生成 */
   spawnStep(
     dt: number,
     weights: SeasonWeights,
@@ -111,7 +105,7 @@ export class ParticleManager {
     }
   }
 
-  /* 按当前时段与显示程度维持各 twinkle 元素的目标数量 */
+  /* 按当前时段与显示程度维持各闪烁元素的目标数量 */
   maintainTwinkles(
     currentHour: number,
     intensity: number,
@@ -152,7 +146,7 @@ export class ParticleManager {
     }
   }
 
-  /* 每帧更新+绘制所有粒子，逐粒子 try/catch 故障隔离 */
+  /* 每帧更新并绘制所有粒子，逐粒子 try/catch 做故障隔离 */
   step(dt: number, width: number, height: number, intensity: number): void {
     this.enforceCap();
     for (let i = this.fallParticles.length - 1; i >= 0; i--) {
@@ -168,7 +162,6 @@ export class ParticleManager {
         this.fallParticles.splice(i, 1);
         continue;
       }
-      // 飞出左右边界的粒子直接回收，避免长期占用上限名额
       if (p.x < -OFFSCREEN_MARGIN || p.x > width + OFFSCREEN_MARGIN) {
         this.fallParticles.splice(i, 1);
         continue;
@@ -204,7 +197,7 @@ export class ParticleManager {
     if (over > 0) this.fallParticles.splice(0, over);
   }
 
-  /* 清空所有粒子（destroy 时） */
+  /* 清空所有粒子与错误计数 */
   clear(): void {
     this.fallParticles.length = 0;
     this.twinkleParticles.length = 0;

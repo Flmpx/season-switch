@@ -22,7 +22,7 @@ import {
 } from './envir/light';
 import { LensFlare } from './envir/halo';
 
-// 季节色调：用于整页淡淡的色彩覆盖层（RGB）
+/* 季节色调，用于整页淡淡的色彩覆盖层 */
 const SEASON_TINTS: Record<string, { r: number; g: number; b: number }> = {
   spring: { r: 120, g: 200, b: 100 }, // 春：朦胧绿
   summer: { r: 255, g: 220, b: 100 }, // 夏：金黄阳光
@@ -30,29 +30,29 @@ const SEASON_TINTS: Record<string, { r: number; g: number; b: number }> = {
   winter: { r: 200, g: 210, b: 230 }, // 冬：淡蓝白
 };
 
-// 氛围渲染协调者：创建三层 DOM 并驱动每帧渲染，自身不含粒子物理
+/* 氛围渲染协调者：创建三层 DOM 并驱动每帧渲染 */
 class AtmosphereRenderer {
   private overlay: HTMLDivElement; // 季节色调层
   private canvas: HTMLCanvasElement; // 粒子画布
-  private ctx: CanvasRenderingContext2D; // 画布 2D 上下文
+  private ctx: CanvasRenderingContext2D; // 画布上下文
   private lensFlare = new LensFlare(); // 夏季镜头炫光
   private brightnessOverlay: HTMLDivElement; // 亮度遮罩层
-  private particleManager: ParticleManager; // 粒子统一管理器
+  private particleManager: ParticleManager; // 粒子管理器
   private settings: Settings | null = null; // 当前设置
   private weights: SeasonWeights = { spring: 1, summer: 0, autumn: 0, winter: 0 }; // 四季权重
   private intensity = 1.0; // 显示程度系数
-  private configs: Record<string, ParticleValue> = {}; // 各元素当前值
-  private timeBrightness = 1.0; // 时间亮度系数（1.0 = 不降低亮度）
-  private currentHour = 12; // 当前小时（0-23）
+  private configs: Record<string, ParticleValue> = {}; // 各元素的当前值
+  private timeBrightness = 1.0; // 时间亮度系数
+  private currentHour = 12; // 当前小时 0-23
   private frameId = 0; // 动画帧句柄
   private width = 0; // 视口宽
   private height = 0; // 视口高
   private unsubscribe: (() => void) | null = null; // 设置变更取消订阅
   private registryUnsub: (() => void) | null = null; // 注册表变更取消订阅
   private ctxRef: ContentScriptContext; // 内容脚本上下文
-  private lastTime = 0; // 上一帧时间戳（毫秒）
+  private lastTime = 0; // 上一帧时间戳
 
-  /* 初始化三层 DOM、绑定设置变更与清理、启动渲染 */
+  /* 建三层 DOM、绑定监听与清理，并启动渲染 */
   constructor(ctx: ContentScriptContext) {
     this.ctxRef = ctx;
 
@@ -102,7 +102,7 @@ class AtmosphereRenderer {
     this.init();
   }
 
-  /* 首次加载元素注册表与设置并启动动画 */
+  /* 加载注册表与设置后启动动画 */
   private async init() {
     await registry.init();
     this.registryUnsub = registry.subscribe(() => this.onRegistryChanged());
@@ -120,28 +120,27 @@ class AtmosphereRenderer {
     return ids;
   }
 
-  /* 预加载图片资产（失败不阻塞渲染，粒子在就绪后自动出现） */
+  /* 预加载图片资产，失败不阻塞渲染，粒子在就绪后自动出现 */
   private async preloadImages(retryFailed = false) {
     try {
       await preloadAssets(this.imageAssetIds(), retryFailed);
     } catch {
-      // 资产加载异常不影响粒子循环
+      return;
     }
   }
 
-  /* 注册表变更：清理失效粒子、补载（含重试）新图片、重算配置 */
+  /* 注册表变更：清理失效粒子、补载新图片、重算配置 */
   private onRegistryChanged() {
     this.particleManager.sync();
     void this.preloadImages(true);
     if (this.settings && registry.isReady) this.configs = getElementConfigs(this.settings);
   }
 
-  /* 应用设置：计算权重/强度/配置/亮度并刷新各层与光晕 */
+  /* 应用设置，重算权重、显示程度、配置与亮度并刷新各层 */
   private applySettings(settings: Settings) {
     this.settings = settings;
     this.weights = getSeasonWeights(settings.season, settings.customMonth);
     this.intensity = getIntensityValue(settings);
-    // 注册表未就绪时先沿用旧配置，避免时序竞态把 configs 清空
     if (registry.isReady) this.configs = getElementConfigs(settings);
     this.timeBrightness = getTimeBrightness(settings);
 
@@ -158,7 +157,7 @@ class AtmosphereRenderer {
     this.lensFlare.update(this.weights, this.intensity, this.currentHour);
   }
 
-  /* 刷新季节色调层 */
+  /* 按四季权重混合出季节色调并写入覆盖层 */
   private updateOverlay() {
     const { spring, summer, autumn, winter } = this.weights;
     const t = SEASON_TINTS;
@@ -169,7 +168,7 @@ class AtmosphereRenderer {
     this.overlay.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${a})`;
   }
 
-  /* 动画循环：每帧生成/维持/更新绘制粒子 */
+  /* 每帧生成、维持并绘制粒子 */
   private animate = () => {
     this.frameId = requestAnimationFrame(this.animate);
 
@@ -183,7 +182,7 @@ class AtmosphereRenderer {
     this.particleManager.step(dt, this.width, this.height, this.intensity);
   };
 
-  /* 视口尺寸变化时更新画布尺寸与 DPR */
+  /* 视口变化时更新画布尺寸与 DPR */
   private handleResize() {
     const dpr = window.devicePixelRatio || 1;
     this.width = window.innerWidth;
@@ -193,7 +192,7 @@ class AtmosphereRenderer {
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  /* 清理：先退订（避免回调在清理后触发），再移除 DOM、清粒子、释放资产 */
+  /* 清理：先退订再移除 DOM、清粒子、释放资产 */
   private destroy() {
     cancelAnimationFrame(this.frameId);
     this.registryUnsub?.();
@@ -207,7 +206,7 @@ class AtmosphereRenderer {
   }
 }
 
-// 内容脚本入口：避免重复注入，创建渲染器
+/* 内容脚本入口：避免重复注入，创建渲染器 */
 export default defineContentScript({
   matches: ['<all_urls>'],
   runAt: 'document_idle',

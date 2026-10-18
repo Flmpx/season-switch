@@ -3,12 +3,12 @@
  * Licensed under MIT (see LICENSE).
  */
 
-// twinkle 元素目标数量：依据描述符 target 与当前小时计算（跨午夜以午夜为峰值）。
 import type { ElementDescriptor } from './elements';
 
-// 入夜/黎明时仍保留 25% 峰值数量，避免"刚入夜瞬间一颗都没有"
+/* 入夜/黎明时保留的峰值比例，避免刚入夜一颗都没有 */
 const TWINKLE_FLOOR = 0.25;
 
+/* 按可见时段算 twinkle 元素的目标数量，跨午夜以午夜为峰值 */
 export function getTwinkleTarget(
   desc: ElementDescriptor,
   hour: number,

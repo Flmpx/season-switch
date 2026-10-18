@@ -9,7 +9,7 @@ import { initNav, pushPage } from './nav';
 import { initEffects } from './effects';
 import { renderMainPage } from './pages/main';
 
-/* 弹窗入口：加载元素注册表与设置、渲染主页并启用交互特效 */
+/* 弹窗入口：初始化注册表与设置，渲染主页 */
 async function start(): Promise<void> {
   await registry.init();
   const settings = await loadSettings();

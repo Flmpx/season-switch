@@ -3,15 +3,14 @@
  * Licensed under MIT (see LICENSE).
  */
 
-// 管理页交互特效：hover 光标跟随光斑 + 点击白色波纹（事件委托，挂在页面根上）。
-// 光斑用在所有可点元素上；波纹只留在分段按钮与 emoji 格子上——
-// 模块化按钮与侧边栏导航上的波纹按反馈去掉了，避免和光斑叠在一起显得吵。
-// 光斑与波纹都由 CSS 的 ::after / .ripple 画，这里只负责写入坐标与插入节点。
+/* 管理页交互特效：hover 光斑 + 点击波纹，均由 CSS 绘制 */
 
+/* 光斑生效的元素 */
 const SPOTLIGHT = '.row, .btn, .seg-btn, .nav-item, .emoji-btn, .group-title';
+/* 波纹触发的元素 */
 const RIPPLE = '.seg-btn, .emoji-btn';
 
-/* 启用交互特效；root 用 document.body，视图重绘后无需重新绑定 */
+/* 启用特效；body 上委托，波纹只留一个 */
 export function initEffects(root: HTMLElement): void {
   root.addEventListener('mousemove', (e) => {
     const host = (e.target as HTMLElement | null)?.closest<HTMLElement>(SPOTLIGHT);
@@ -24,7 +23,6 @@ export function initEffects(root: HTMLElement): void {
   root.addEventListener('click', (e) => {
     const host = (e.target as HTMLElement | null)?.closest<HTMLElement>(RIPPLE);
     if (!host) return;
-    // 正在动画的波纹最多留一个，连点不会堆出一堆节点
     host.querySelector(':scope > .ripple')?.remove();
     const rect = host.getBoundingClientRect();
     const size = Math.hypot(rect.width, rect.height);

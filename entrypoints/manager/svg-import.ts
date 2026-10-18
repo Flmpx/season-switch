@@ -3,26 +3,31 @@
  * Licensed under MIT (see LICENSE).
  */
 
-// SVG 导入：把 SVG 文件解析成「路径 + 仿射矩阵」。
-// 不重写路径数据（d 保留源坐标），而是给每条路径附一个矩阵，交由渲染器用 canvas transform 应用。
-// 这样弧线（A 命令）、椭圆、旋转等无需数值近似，也不会因重写引入精度误差。
+/**
+ * 导入 SVG：解析成路径与仿射矩阵，交给渲染器应用。
+ * 不重写 d 数据，弧线和旋转无需数值近似。
+ */
 import type { PathFill, PathSpec } from '../envir/particle/elements';
 
+/* SVG 命名空间地址 */
 const SVG_NS = 'http://www.w3.org/2000/svg';
+
+/* 可导入的图形标签选择器 */
 const SHAPE_SELECTOR = 'path, rect, circle, ellipse, line, polyline, polygon';
 
+/* SVG 导入结果 */
 export interface SvgImportResult {
-  paths: PathSpec[];
-  warnings: string[];
+  paths: PathSpec[]; // 解析出的路径
+  warnings: string[]; // 需要提示用户的问题
 }
 
-/* 读取元素上的数值属性（非法或缺省时用 fallback） */
+/* 读取数值属性，缺省时用 fallback */
 function num(el: Element, name: string, fallback = 0): number {
   const v = parseFloat(el.getAttribute(name) ?? '');
   return Number.isFinite(v) ? v : fallback;
 }
 
-/* 把非 path 形状转成 path 数据；保留圆弧命令，不做贝塞尔近似 */
+/* 把非 path 形状转成 path 数据，保留圆弧命令 */
 function shapeToPath(el: Element): string | null {
   const tag = el.tagName.toLowerCase();
 
@@ -77,7 +82,7 @@ function shapeToPath(el: Element): string | null {
   return tag === 'polygon' ? `${d}Z` : d;
 }
 
-/* 解析渐变引用（url(#id)）：取中间 stop 的颜色近似成纯色 */
+/* 解析渐变引用，取中间 stop 的颜色近似纯色 */
 function resolveGradientColor(root: Element, value: string): string | null {
   const match = /url\(\s*['"]?#([^'")\s]+)/.exec(value);
   if (!match) return null;
@@ -92,20 +97,23 @@ function resolveGradientColor(root: Element, value: string): string | null {
 /* 一条待归一化的路径记录 */
 interface RawPath {
   d: string; // 源坐标路径
-  m: DOMMatrix; // 源坐标 → 视口坐标
-  fill: PathFill | null;
-  strokeColor: string | null;
-  strokeWidth: number; // 源坐标单位
+  m: DOMMatrix; // 源坐标到视口的矩阵
+  fill: PathFill | null; // 填充色
+  strokeColor: string | null; // 描边颜色
+  strokeWidth: number; // 源坐标描边宽度
 }
 
-/* 保留 6 位小数，避免存储里出现超长浮点串 */
+/* 保留 6 位小数，避免浮点串过长 */
 function round6(v: number): number {
   return Math.round(v * 1e6) / 1e6;
 }
 
 /**
- * 解析 SVG 文本，归一化到渲染用的 [-1,1] 空间。
- * 失败时抛错（错误消息可直接展示给用户）。
+ * 解析 SVG 文本并归一化到 [-1,1] 空间，失败时抛错。
+ * 统一按 100×100 视口渲染，缺 viewBox 时用宽高补齐。
+ * 未写填充色时按白色处理，渐变简化为纯色。
+ * 描边宽度按 20px 渲染尺寸校准后夹到合理区间。
+ * 包围盒按四角映射近似，最长边映射为长度 2。
  */
 export function importSvg(text: string): SvgImportResult {
   const doc = new DOMParser().parseFromString(text, 'image/svg+xml');
@@ -118,13 +126,11 @@ export function importSvg(text: string): SvgImportResult {
   }
 
   const root = document.importNode(source, true) as unknown as SVGSVGElement;
-  // 没有 viewBox 时用宽高补一个，保证 getCTM() 有确定坐标系
   if (!root.getAttribute('viewBox')) {
     const w = parseFloat(root.getAttribute('width') ?? '') || 100;
     const h = parseFloat(root.getAttribute('height') ?? '') || 100;
     root.setAttribute('viewBox', `0 0 ${w} ${h}`);
   }
-  // 统一按 100×100 视口渲染，避免源坐标量级过大带来的精度问题
   root.setAttribute('width', '100');
   root.setAttribute('height', '100');
 
@@ -172,7 +178,6 @@ export function importSvg(text: string): SvgImportResult {
           !g.closest('[fill]') &&
           !style.fill.startsWith('url(')
         ) {
-          // 源文件没写任何填充色，按规范默认是黑；在深色背景上不可见，按白色处理
           color = '#ffffff';
         }
         fill = { mode: 'solid', source: 'constant', color };
@@ -198,7 +203,6 @@ export function importSvg(text: string): SvgImportResult {
       } catch {
         continue;
       }
-      // 用四角映射求包围盒（旋转图形的包围盒会略放大，可接受）
       const a = ctm.a;
       const b = ctm.b;
       const c = ctm.c;
@@ -236,7 +240,6 @@ export function importSvg(text: string): SvgImportResult {
     const height = maxY - minY;
     if (!(width > 0) || !(height > 0)) throw new Error('图形尺寸为 0，无法导入');
 
-    // 最长边映射到长度 2（即 [-1,1]），并按包围盒中心居中
     const k = 2 / Math.max(width, height);
     const cx = (minX + maxX) / 2;
     const cy = (minY + maxY) / 2;
@@ -251,7 +254,6 @@ export function importSvg(text: string): SvgImportResult {
             ? null
             : {
                 color: r.strokeColor,
-                // 换算成「渲染尺寸 20px 时的视觉像素宽」，再夹到合理区间
                 widthPx: Math.max(0.6, Math.min(4, r.strokeWidth * k * 20)),
               },
         matrix: [

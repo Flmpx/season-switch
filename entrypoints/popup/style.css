@@ -3,7 +3,6 @@
  * Licensed under MIT (see LICENSE).
  */
 
-
 /* 全局盒模型重置 */
 * {
   margin: 0;
@@ -14,7 +13,7 @@
 /* 弹窗整体：中灰底、宽度固定、高度由内容驱动 */
 body {
   width: 340px;
-  height: auto; /* 高度由内容驱动，配合 .pages 的 height 过渡 */
+  height: auto;
   font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif;
   background: #3c3c3c;
   color: #e8e8e8;
@@ -27,22 +26,22 @@ body {
   overflow: hidden;
 }
 
-/* 页面容器：仅做高度过渡；层级滑动由每个 .page 各自做 translateX */
+/* 页面容器：高度由 JS 写入并做过渡，横向位移由各 .page 自己做 */
 .pages {
   position: relative;
   width: 100%;
-  height: 0; /* 初始 0，首屏由 JS 写入实际高度 */
+  height: 0;
   overflow: hidden;
   transition: height 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* 单个页面：绝对定位叠放，按栈偏移各自横向位移，高度跟随内容 */
+/* 单个页面：绝对定位叠放，最高 600px（Chrome 弹窗上限），超出由正文滚动 */
 .page {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
-  max-height: 600px; /* Chrome 弹窗高度上限，超出则内部滚动 */
+  max-height: 600px;
   display: flex;
   flex-direction: column;
   background: #3c3c3c;
@@ -50,13 +49,13 @@ body {
   will-change: transform;
 }
 
-/* 首屏/重置时关闭所有过渡，避免入场动画与高度突变 */
+/* 首屏或重置时关闭过渡，避免入场动画与高度突变打架 */
 .pages.no-anim,
 .pages.no-anim .page {
   transition: none;
 }
 
-/* 页面页头：标题居中、返回键绝对定位于左侧 */
+/* 页面页头：标题居中，返回键与「+」分别绝对定位在左右 */
 .page-header {
   position: relative;
   flex: 0 0 auto;
@@ -115,9 +114,7 @@ body {
   gap: 4px;
 }
 
-/* 页面正文里的块保持自身高度，不允许被压缩：
- * 条目一多（比如粒子列表长了）时，flex 布局本来会把每行挤扁来塞进 600px 上限里，
- * 改为禁止收缩，超出的部分由 .page-body 自己滚动。 */
+/* 正文里的块保持自身高度：条目多时改为滚动，而不是被 flex 挤扁 */
 .page-body > * {
   flex: 0 0 auto;
 }
@@ -127,11 +124,13 @@ body {
   width: 6px;
 }
 
+/* 正文滚动条的滑块 */
 .page-body::-webkit-scrollbar-thumb {
   border-radius: 3px;
   background: #4a4a4a;
 }
 
+/* 正文滚动条的轨道 */
 .page-body::-webkit-scrollbar-track {
   background: transparent;
 }
@@ -166,7 +165,7 @@ body {
   );
 }
 
-/* 行文字：浮于光斑/波纹之上 */
+/* 行文字：压在光斑之上 */
 .row-label {
   color: #e8e8e8;
   position: relative;
@@ -182,23 +181,23 @@ body {
   line-height: 1;
 }
 
-/* 主选项行 hover 时 › 变亮 */
+/* 行 hover 时 › 变亮 */
 .row:hover .chevron {
   color: #d2d2d2;
 }
 
-/* 选项按钮组：复用于各子页 */
+/* 选项按钮组：各子页复用 */
 .option-grid {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
 }
 
-/* 选项按钮：白边框、点击立即变白底黑字，灰色波纹落于其上 */
+/* 选项按钮：白边框、点击立即变白底黑字；层叠上下文让波纹落在文字之下 */
 .option-btn {
   position: relative;
   overflow: hidden;
-  isolation: isolate; /* 建立层叠上下文，使灰色波纹落于白底之上、文字之下 */
+  isolation: isolate;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -210,7 +209,7 @@ body {
   background-color: transparent;
   color: #e8e8e8;
   cursor: pointer;
-  transition: none; /* 点击选中立即变白，不做渐变 */
+  transition: none;
   font-family: inherit;
 }
 
@@ -232,14 +231,14 @@ body {
   font-weight: 600;
 }
 
-/* 自定义滑块行 */
+/* 自定义滑块行：滑块与数值并排 */
 .custom-row {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-/* 强度/自定义滑块 */
+/* 自定义滑块轨道 */
 .intensity-slider {
   flex: 1;
   -webkit-appearance: none;
@@ -313,7 +312,7 @@ body {
   color: #fff;
 }
 
-/* 子设置块：单属性的按钮组 + 自定义滑块（粒子元素页） */
+/* 子设置块：一个属性一组，标题 + 档位按钮 + 自定义滑块 */
 .sub-setting {
   display: flex;
   flex-direction: column;
@@ -328,19 +327,19 @@ body {
   letter-spacing: 0.5px;
 }
 
-/* 点击灰色波纹：由 effects.ts 在点击点注入，扩散淡出 */
+/* 点击波纹：由 effects.ts 在点击点注入，比白底暗、比界面底色亮，落于文字之下 */
 .ripple {
   position: absolute;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.35); /* 灰色：比白底暗，比界面底色 #3c3c3c 亮 */
+  background: rgba(0, 0, 0, 0.35);
   transform: scale(0);
   opacity: 0.6;
   pointer-events: none;
-  z-index: -1; /* 落于白底之上、文字之下 */
+  z-index: -1;
   animation: ripple-grey 0.32s ease-out forwards;
 }
 
-/* 灰色波纹扩散淡出动画 */
+/* 灰色波纹扩散淡出 */
 @keyframes ripple-grey {
   from {
     transform: scale(0);

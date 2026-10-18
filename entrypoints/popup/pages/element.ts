@@ -19,9 +19,10 @@ import {
   type ElementDescriptor,
 } from '../../envir/particle';
 
+/* 可调节的三个轴 */
 const AXES: Axis[] = ['speed', 'size', 'count'];
 
-/* 渲染单个粒子元素的设置页（速度/大小/数目：档位 + 自定义数值） */
+/* 渲染粒子设置页，缺失值用默认值初始化并写回 */
 export function renderElementPage(id: string, settings: Settings): HTMLElement {
   const desc = registry.get(id);
   const page = document.createElement('div');
@@ -38,7 +39,6 @@ export function renderElementPage(id: string, settings: Settings): HTMLElement {
     return page;
   }
 
-  // 取当前值；缺失时以描述符 defaults 初始化并写回设置
   const value: ParticleValue = settings.particles[id] ?? { ...desc.defaults };
   if (!settings.particles[id]) settings.particles[id] = value;
 
@@ -63,7 +63,7 @@ export function renderElementPage(id: string, settings: Settings): HTMLElement {
   return page;
 }
 
-/* 生成单轴 HTML：标题 + 档位按钮 + 自定义滑块行 */
+/* 生成单轴 HTML：标题、档位按钮与自定义滑块 */
 function buildAxis(axis: Axis, desc: ElementDescriptor): string {
   const presets = axisPresets(axis, desc);
   const labels = axisLabels(axis);
@@ -84,7 +84,7 @@ function buildAxis(axis: Axis, desc: ElementDescriptor): string {
     </div>`;
 }
 
-/* 绑定单轴交互：档位点击 / 自定义展开 / 滑块拖动，均即时保存 */
+/* 绑定单轴交互：档位、自定义展开与滑块；展开后须 refreshHeight 重测高度 */
 function bindAxis(
   page: HTMLElement,
   axis: Axis,
@@ -101,7 +101,6 @@ function bindAxis(
   const slider = row.querySelector<HTMLInputElement>('input')!;
   const valSpan = row.querySelector<HTMLElement>('.intensity-value')!;
 
-  // 当前是否处于"自定义"状态（值不落在任何档位，或用户主动展开）
   let customOpen = matchPreset(value[axis], presets) === -1;
 
   function refresh(): void {
@@ -131,7 +130,7 @@ function bindAxis(
   customBtn.addEventListener('click', () => {
     customOpen = true;
     refresh();
-    refreshHeight(); // 展开自定义滑块后容器要重新测高，否则多出的行被 .pages 的 overflow 裁掉
+    refreshHeight();
   });
 
   slider.addEventListener('input', async () => {
