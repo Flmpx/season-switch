@@ -7,7 +7,7 @@
 
 - **四种外观走同一条绘制路径**：SVG 路径、图片、emoji、文字都抽象成一处「外观描述」，渲染器只认 `render` 字段，不关心它是内置元素还是用户自建的。
 - **用户可扩展而不改代码**：管理页里造元素、传图、导入导出 JSON，运行期与弹窗自动识别。
-- **数值即真相**：速度是 `px/s`、大小是 `px`、数目是「个」或「个/分钟」。档位（慢 / 中 / 快）只是描述符里的一组常用值，不再是数据模型里的枚举。
+- **数值即真相**：速度是 `px/s`、大小是 `px`、数量是「个」或「个/分钟」。档位（慢 / 中 / 快）只是描述符里的一组常用值，不再是数据模型里的枚举。
 - **出问题只影响自己**：单个粒子异常不影响其他粒子；越界数值在读取层就被夹住，手改存储或导入 JSON 也不会让粒子瞬间飞出屏幕。
 
 ## 2. 分层结构
@@ -18,6 +18,7 @@ flowchart TD
         CS["content.ts\n(内容脚本)"]
         POP["popup/\n设置弹窗"]
         MGR["manager/\n管理页"]
+        RM["region-modal\n(区域框选)"]
     end
 
     subgraph coord["协调层"]
@@ -48,6 +49,7 @@ flowchart TD
         ES["element-store\n(用户库/覆盖)"]
         AS["asset-store\n(图片资产)"]
         SW["season-weights"]
+        ICO["icons\n(线性图标)"]
     end
 
     CS --> AR
@@ -73,6 +75,9 @@ flowchart TD
     MGR --> ES
     MGR --> AS
     MGR --> PRE
+    MGR --> RM
+    MGR --> ICO
+    POP --> ICO
     ES --> AS
 ```
 
@@ -87,17 +92,20 @@ flowchart TD
 | `envir/particle/config.ts` | 把档位选择与 `settings.particles[id]` 合成「当前生效值」（`resolveParticleValue`），并再夹一次区间。 |
 | `envir/particle/target.ts` | 星光按时段的数量曲线，含 `TWINKLE_FLOOR` 保底。 |
 | `envir/particle/factory.ts` | 按描述符造粒子：抖动、随机取色（按季节权重选调色板）、区域落位。 |
-| `envir/particle/particle.ts` | 粒子数据类：位置 / 速度 / 相位，外加一个指向 `render` 的指针。 |
-| `envir/particle/manager.ts` | 生命周期总控：按元素累加器生成、按时段维持、统一更新与绘制、800 颗硬上限、边界回收、`sync()` 丢弃已失配的在飞粒子、逐粒子故障隔离。 |
+| `envir/particle/particle.ts` | 粒子数据类：位置 / 速度 / 相位 / 区域下边界，外加一个指向 `render` 的指针；`TwinklingParticle` 覆写更新与绘制。 |
+| `envir/particle/manager.ts` | 生命周期总控：按元素累加器生成、按时段与季节门控、统一更新与绘制、800 颗硬上限、边界回收、`sync()` 丢弃已失配的在飞粒子、逐粒子故障隔离。 |
 | `envir/particle/renderer.ts` | 唯一绘制入口：处理四种外观、仿射矩阵、描边宽度补偿。 |
 | `envir/particle/assets.ts` | 图片资产解码与缓存：优先 `<img>`（GIF 会动），被 CSP 拦截时降级 `createImageBitmap`。 |
-| `lib/settings.ts` | `Settings` 类型与存储读写；`particles` 为「元素 id → 数值三件套」。 |
+| `lib/settings.ts` | `Settings` 类型与存储读写；`particles` 为「元素 id → 三轴选择」（档位下标或自定义数值）。 |
 | `lib/element-store.ts` | 用户元素库的增删改查、校验、导入导出，以及内置元素的覆盖字段（overrides）。 |
 | `lib/asset-store.ts` | 图片以 dataURL 存 `chrome.storage.local`，按内容哈希去重，单张上限 512 KB。 |
 | `lib/season-weights.ts` | 月份 → 四季权重插值（3 月 = 春 0.7 + 夏 0.3）。 |
+| `lib/icons.ts` | 21 个 `24×24` 内联 SVG 线性图标，界面里替代 emoji。 |
 | `envir/intensity` / `light` / `halo` | 显示程度、时段亮度、夏季镜头炫光。 |
 | `popup/` | 快速设置弹窗：季节 / 时间 / 显示程度 / 每个元素的三根轴。 |
-| `manager/` | 管理页（独立标签页）：新建 / 我的粒子 / 详情，含实时预览与 JSON 导入导出。 |
+| `manager/` | 管理页（独立标签页）：新建 / 我的粒子 / 详情，含实时预览、区域框选与 JSON 导入导出。 |
+| `manager/region-modal.ts` | 出现区域的框选遮罩（管理页内，shadow DOM 隔离）。 |
+| `manager/fields.ts` | 表单控件工厂，其中 `createTrack` 是单圆点/多圆点共用的自绘滑块。 |
 
 ## 4. 数据模型
 
@@ -105,11 +113,12 @@ flowchart TD
 
 | 键 | 内容 | 写入方 |
 | --- | --- | --- |
-| `settings` | 季节 / 时间 / 显示程度 + `particles: Record<元素 id, {speed, size, count}>` | popup、管理页详情页 |
-| `userLibrary` | `{ version: 1, elements: 用户元素[], overrides: 内置覆盖 }` | 管理页（新建 / 详情 / 导入） |
-| `asset:<id>` | `{ id, mime, dataUrl, bytes, aspect }` | 管理页上传图片 |
+| `settings` | 季节 / 时间 / 显示程度 + `particles: Record<元素 id, { speed: AxisChoice; size: AxisChoice; count: AxisChoice }>` | popup、管理页详情页 |
+| `userLibrary` | `{ version: 2, elements: 用户元素[], overrides: 内置覆盖 }` | 管理页（新建 / 详情 / 导入） |
+| `asset:<id>` | `{ id, mime, dataUrl, bytes, aspect }`（`bytes` 是文件原始字节数） | 管理页上传图片 |
 
-`settings.particles` 只存**数值**。旧版本的档位字符串（`'normal'`、`'custom-speed'` 等）会在读取时被判为非数值而丢弃，回落到描述符默认值——不写迁移代码。
+`AxisChoice` 是 `{ kind: 'preset'; index } | { kind: 'custom'; value }`：前者记住"选中的是第几档"，后者存用户拖出来的连续数值。分开存，元素档位日后调整时不会把旧数值误当成档位。
+`settings.schemaVersion` 与 `userLibrary.version` 都是 `2`；读到旧版本（数值型三件套或 `version: 1`）时整体丢弃、回落到各轴中间档，不写迁移代码。
 
 ### 4.2 元素描述符（`ElementDescriptor`）
 
@@ -121,10 +130,12 @@ flowchart TD
 | `render` | 外观，四种之一（见 4.3） |
 | `color` | 固定颜色，颜色选择器作用于此 |
 | `palettes` | 按季节权重取色的色板（内置叶子用；用户元素可选） |
-| `speedPresets` / `sizePresets` / `countPresets` | 三根轴的常用值（也是弹窗档位按钮的值） |
 | `motion` | `jitter` / `wobbleSpeed` / `wobbleAmp` / `rotationSpeed` / `opacity` / `twinkleSpeed` |
-| `target` | 仅闪烁元素：`region`（上三分之一 / 全屏）+ `visibleFrom` / `visibleTo` 小时 |
-| `defaults` | 默认 `speed` / `size` / `count`，新建元素时的初始值 |
+| `presets` | 三根轴的档位数组：`{ speed, size, count }`，空数组表示该轴不设档位（如星光的速度） |
+| `region` | 出现区域，`{ x, y, w, h }` 全是 `0–1` 的窗口比例 |
+| `visible` | 出现时段，`{ from, to, wrap }`：`from`/`to` 是 `0–24` 的小时，`wrap` 表示时段跨午夜 |
+
+三根轴的初始值不再单独存字段：新建元素时自动取各轴档位的**中间档**（长度 3 取下标 1，长度 4 取下标 2），写入 `settings.particles[id]`。
 
 ### 4.3 四种外观
 
@@ -139,7 +150,7 @@ flowchart TD
 | --- | --- | --- |
 | `speed` | 0 – 200 px/s | 1 |
 | `size` | 1 – 120 px | 0.5 |
-| `count`（飘落） | 0 – 1800 个/分钟 | 1 |
+| `count`（飘落） | 0 – 360 个/分钟 | 1 |
 | `count`（闪烁） | 0 – 300 个 | 1 |
 | `jitter` | 0 – 1 | 0.01 |
 | `wobbleSpeed` | 0 – 5 | 0.1 |
@@ -147,7 +158,8 @@ flowchart TD
 | `rotationSpeed` | −3 – 3 rad/s | 0.05 |
 | `opacity` | 0 – 1 | 0.01 |
 | `twinkleSpeed` | 0 – 10 | 0.1 |
-| `hour` | 0 – 23 | 1 |
+| `hour` | 0 – 24 点 | 0.5 |
+| `region` | 0 – 1（窗口比例） | 0.01 |
 | `aspect` | 0.1 – 10 | 0.1 |
 
 UI 滑块与读取层共用这一份定义：滑块负责不让用户手滑，读取层负责挡住手改存储与导入的 JSON。
@@ -185,11 +197,13 @@ sequenceDiagram
 sequenceDiagram
     participant A as AtmosphereRenderer
     participant M as ParticleManager
-    A->>M: spawnStep(dt, 季节权重, 配置)
+    A->>M: spawnStep(dt, 当前小时, 季节权重, 宽, 高, 配置)
     A->>M: maintainTwinkles(当前小时, 显示程度, 配置)
-    A->>M: step(dt, width, height, 显示程度)
+    A->>M: step(dt, 宽, 显示程度)
     M->>M: 每粒子 update/draw（各自 try/catch）
 ```
+
+`step` 不再接收高度：每个粒子自带 `bottom`（出现区域下边界换算成的像素），落到自己的区域底部就停下渐隐，而不是落到整页底部。
 
 ## 6. 关键取舍
 
@@ -201,6 +215,9 @@ sequenceDiagram
 | SVG 导入方式 | 保留原始 `d`，另附仿射矩阵（`ctx.transform`） | 不引入 `svgpath` 之类的解析依赖（当前环境装不了新包），且弧线、椭圆、旋转都是精确变换而非数值近似 |
 | 图片解码 | 先 `<img>`，失败再 `createImageBitmap` | `<img>` 支持 GIF 动画；严格 CSP 站点拦下内联 SVG/图片时用位图兜底 |
 | 数值夹取位置 | `NUMERIC_LIMITS` 单一来源，UI 与读取层共用 | 一处改，两边同步；也便于文档与代码对齐 |
+| 滑块实现 | 自绘轨道（`createTrack`），不用原生 `input[type=range]` | 原生圆点是伪元素，无法在其上挂数值气泡；自绘后单圆点与多圆点共用一套代码，还能把段位卡位、键盘、aria 一次做全 |
+| 出现区域如何选 | 在管理页内盖遮罩框选，不再注入到网页上 | 跨页注入需要内容脚本消息通道、切标签、处理页面卸载，链路长且容易在"用户切走"时留下遮罩；管理页内框选与网页窗口同比例映射，结果等价而链路短 |
+| 界面主题 | 白底卡片 + 单一强调色 `#4a7bd8` | 氛围类插件的界面不该抢画面；浅色也更接近系统设置页的观感 |
 | 代码组织 | 每个页面 / 视图独立成文件，允许重复 | 单文件即可看懂一个界面；用户明确要求"模块化、允许代码重复" |
 
 ## 7. 特例与注意事项
@@ -213,4 +230,8 @@ sequenceDiagram
 - **上限与回收**：飘落粒子硬上限 800 颗（超限淘汰最旧）；飘出左右各 120px 的粒子立即回收，缩窗后不会长期占名额。
 - **故障隔离**：`step()` 内每个粒子的更新与绘制各自 `try/catch`，异常只移除该粒子；错误日志按 60 秒时间窗限流（每窗最多 20 条）。
 - **图层层级**：色调层 `z-index: 2147483645`，亮度层与夏季炫光 `2147483646`，粒子画布 `2147483647`，保证粒子始终可见。
-- **已知限制**：严格 CSP 站点下 GIF 会退化为首帧、内联 SVG 可能解码失败；导出的 JSON **不含**图片资产（`asset:*` 键不在其中），换环境导入后图片元素会静默不显示；管理页预览不参与季节体系，内置叶子预览显示为白色。
+- **会话小时是小数**：内容脚本每帧算一次 `小时 + 分钟 / 60`，亮度、粒子出现时段、星光曲线共用这一个值，所以 `23:30` 不会因为按整点取整而当成 `23:00`；`wrapHour` 负责把滑块的 `24` 折算成 `0`。
+- **内置元素锁两处**：外观与「基础」（名称 / 图标 / 行为）都只读，展开后只显示一句说明；可改的是出现、运动、档位，改动写进 `overrides`，「恢复默认」清空它。
+- **预览不参与季节**：预览画布按 `size` 画单颗粒子、演示运动，不计算季节权重，所以内置叶子在预览里显示为白色（真机上按季节取色）。
+- **预览不裁边**：预览把绘制尺寸压到画布的 72%（`SPRITE = 52`、摆动上限 `12px`），图片类再把宽高比夹在 `0.5 ~ 2`，保证任何旋转角都不会被画布边缘裁出直边。
+- **已知限制**：严格 CSP 站点下 GIF 会退化为首帧、内联 SVG 可能解码失败；导出的 JSON **不含**图片资产（`asset:*` 键不在其中），换环境导入后图片元素会静默不显示。
