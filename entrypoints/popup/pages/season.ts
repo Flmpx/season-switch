@@ -7,8 +7,7 @@ import { popPage, refreshHeight } from '../nav';
 import { cardRow, pageShell, setRowActive, sliderCard, type SliderCard } from '../ui';
 import { saveSettings, type Settings } from '../../../lib/settings';
 
-/** 季节选项：[取值, 显示文字, 图标] */
-const SEASON_OPTS: [string, string, string][] = [
+const SEASON_OPTS: [string, string, string][] = [ // 季节选项：[取值, 显示文字, 图标]
   ['spring', '春', 'sprout'],
   ['summer', '夏', 'sun'],
   ['autumn', '秋', 'leaf'],
@@ -19,13 +18,13 @@ const SEASON_OPTS: [string, string, string][] = [
 
 /**
  * 渲染季节设置页：选项卡片列表，选中自定义月份时展开滑块
+ * 选中状态与滑块显隐随时保持同步
  */
 export function renderSeasonPage(settings: Settings): HTMLElement {
   const shell = pageShell('季节', true, () => popPage());
   const rows = new Map<string, HTMLButtonElement>();
   let slider: SliderCard | null = null;
 
-  /** 把选中状态与滑块显隐同步到界面 */
   function sync(): void {
     for (const [value, row] of rows) setRowActive(row, value === settings.season);
     if (slider) slider.root.style.display = settings.season === 'custom-season' ? 'flex' : 'none';

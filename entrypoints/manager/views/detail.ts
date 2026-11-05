@@ -25,8 +25,7 @@ import { createPreview } from '../preview';
 import { requestRefresh } from '../refresh';
 import { toast } from '../toast';
 
-/* 需要与内置基线比较以生成覆盖的字段 */
-const COMPARE_KEYS = [
+const COMPARE_KEYS = [ // 需要与内置基线比较以生成覆盖的字段
   'label',
   'icon',
   'behavior',
@@ -38,7 +37,7 @@ const COMPARE_KEYS = [
   'visible',
 ] as const;
 
-/* 计算内置元素相对基线的覆盖内容 */
+/** 计算内置元素相对基线的覆盖内容 */
 function buildOverride(id: string, state: UserElement): ElementOverride | null {
   const base = BUILTIN_ELEMENTS[id] as unknown as Record<string, unknown> | undefined;
   if (!base) return null;
@@ -54,7 +53,7 @@ function buildOverride(id: string, state: UserElement): ElementOverride | null {
   return changed ? (patch as ElementOverride) : null;
 }
 
-/* 渲染详情页，元素不存在时返回 null 由路由回退 */
+/** 渲染详情页，元素不存在时返回 null 由路由回退 */
 export function renderDetailView(id: string): HTMLElement | null {
   const desc = registry.get(id);
   if (!desc) return null;

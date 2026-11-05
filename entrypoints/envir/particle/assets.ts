@@ -5,23 +5,20 @@
 
 import { getAsset } from '../../../lib/asset-store';
 
-/* 一条解码缓存 */
+/** 一条解码缓存 */
 interface AssetEntry {
   source: CanvasImageSource | null; // 可绘制的图像源
   loading: boolean; // 是否正在加载
   failed: boolean; // 是否加载失败
 }
 
-/* 解码缓存 */
-const cache = new Map<string, AssetEntry>();
+const cache = new Map<string, AssetEntry>(); // 解码缓存
 
-/* 离屏容器，把 <img> 挂在 DOM 上保证动态 GIF 持续解码 */
-let holder: HTMLDivElement | null = null;
+let holder: HTMLDivElement | null = null; // 离屏容器，把 <img> 挂在 DOM 上保证动态 GIF 持续解码
 
-/* 是否已释放，释放后晚到的解码结果会被丢弃 */
-let released = false;
+let released = false; // 是否已释放，释放后晚到的解码结果会被丢弃
 
-/* 取得（必要时创建）离屏容器 */
+/** 取得（必要时创建）离屏容器 */
 function ensureHolder(): HTMLDivElement | null {
   if (typeof document === 'undefined') return null;
   if (!holder) {
@@ -34,7 +31,7 @@ function ensureHolder(): HTMLDivElement | null {
   return holder;
 }
 
-/* 取已解码的图像源，未就绪或失败返回 null */
+/** 取已解码的图像源，未就绪或失败返回 null */
 export function getImage(assetId: string): CanvasImageSource | null {
   return cache.get(assetId)?.source ?? null;
 }
@@ -60,7 +57,7 @@ export async function preloadAssets(
   await Promise.all(tasks);
 }
 
-/* 清空缓存并移除离屏容器 */
+/** 清空缓存并移除离屏容器 */
 export function releaseAssets(): void {
   released = true;
   for (const entry of cache.values()) {
@@ -76,7 +73,7 @@ export function releaseAssets(): void {
   holder = null;
 }
 
-/* 加载单个资产：先用 img 解码，被 CSP 拦截时退化为静态位图 */
+/** 加载单个资产：先用 img 解码，被 CSP 拦截时退化为静态位图 */
 async function loadOne(assetId: string): Promise<void> {
   const entry = cache.get(assetId);
   if (!entry) return;
@@ -96,7 +93,7 @@ async function loadOne(assetId: string): Promise<void> {
   }
 }
 
-/* 用 img 解码，支持动态 GIF */
+/** 用 img 解码，支持动态 GIF */
 function decodeViaImage(dataUrl: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -113,7 +110,7 @@ function decodeViaImage(dataUrl: string): Promise<HTMLImageElement> {
   });
 }
 
-/* 用 createImageBitmap 解码，不经过 DOM 以绕开 CSP */
+/** 用 createImageBitmap 解码，不经过 DOM 以绕开 CSP */
 async function decodeViaBitmap(dataUrl: string): Promise<ImageBitmap> {
   if (typeof createImageBitmap !== 'function') throw new Error('不支持 createImageBitmap');
   const comma = dataUrl.indexOf(',');

@@ -22,12 +22,12 @@ import { renderKindLabel } from '../form';
 import { requestRefresh } from '../refresh';
 import { toast } from '../toast';
 
-/* 重建注册表，刷新后立刻看到结果 */
+/** 重建注册表，刷新后立刻看到结果 */
 async function rebuild(): Promise<void> {
   registry.rebuild(await loadUserLibrary());
 }
 
-/* 导出自定义元素库为 JSON 文件 */
+/** 导出自定义元素库为 JSON 文件 */
 function downloadLibrary(): void {
   void (async () => {
     const lib = await loadUserLibrary();
@@ -42,7 +42,7 @@ function downloadLibrary(): void {
   })();
 }
 
-/* 导入 JSON，同 id 覆盖、其余旧元素保留 */
+/** 导入 JSON，同 id 覆盖、其余旧元素保留 */
 function importLibraryFile(file: File): void {
   void (async () => {
     const result = importLibrary(await file.text());
@@ -62,7 +62,7 @@ function importLibraryFile(file: File): void {
   })();
 }
 
-/* 单个元素行 */
+/** 单个元素行 */
 function elementRow(desc: ElementDescriptor): HTMLElement {
   const row = h('div', 'row');
 
@@ -111,7 +111,7 @@ function elementRow(desc: ElementDescriptor): HTMLElement {
   return row;
 }
 
-/* 分组标题与行列表 */
+/** 分组标题与行列表 */
 function section(title: string, rows: HTMLElement[], emptyText?: string): HTMLElement {
   const wrap = h('section', 'list-section');
   wrap.appendChild(h('div', 'list-head', title));
@@ -132,7 +132,7 @@ function section(title: string, rows: HTMLElement[], emptyText?: string): HTMLEl
   return wrap;
 }
 
-/* 渲染列表页 */
+/** 渲染列表页 */
 export function renderMineView(): HTMLElement {
   const root = h('div', 'view mine');
 

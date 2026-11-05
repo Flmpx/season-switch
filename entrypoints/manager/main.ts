@@ -11,13 +11,12 @@ import { renderDetailView } from './views/detail';
 import { renderMineView } from './views/mine';
 import { renderNewElementView } from './views/new-element';
 
-/* 页面路由：新建、列表、详情 */
+/** 页面路由：新建、列表、详情 */
 type Route = { name: 'new' } | { name: 'mine' } | { name: 'detail'; id: string };
 
-/* 默认落到新建页 */
-const DEFAULT_ROUTE: Route = { name: 'new' };
+const DEFAULT_ROUTE: Route = { name: 'new' }; // 默认落到新建页
 
-/* 解析 location.hash 路由 */
+/** 解析 location.hash 路由 */
 function parseRoute(): Route {
   const raw = location.hash.replace(/^#\/?/, '');
   const slash = raw.indexOf('/');
@@ -29,7 +28,7 @@ function parseRoute(): Route {
   return DEFAULT_ROUTE;
 }
 
-/* 生成页面标题 */
+/** 生成页面标题 */
 function titleOf(route: Route, desc?: ElementDescriptor): string {
   if (route.name === 'new') return '新建粒子 · Season Switch';
   if (route.name === 'mine') return '我的粒子 · Season Switch';
@@ -38,7 +37,7 @@ function titleOf(route: Route, desc?: ElementDescriptor): string {
 
 let shell: Shell | null = null;
 
-/* 渲染路由视图，元素失效则退回列表 */
+/** 渲染路由视图，元素失效则退回列表 */
 function render(route: Route): void {
   if (!shell) return;
 
@@ -68,7 +67,7 @@ function render(route: Route): void {
   document.title = titleOf(route, desc);
 }
 
-/* 写 hash 跳转，统一由 hashchange 渲染 */
+/** 写 hash 跳转，统一由 hashchange 渲染 */
 function go(route: ManagerRoute): void {
   const target = route === 'detail' ? '#/mine' : `#/${route}`;
   if (location.hash === target) {
@@ -78,7 +77,7 @@ function go(route: ManagerRoute): void {
   location.hash = target;
 }
 
-/* 启动管理页：注册表、外壳、特效与消息监听 */
+/** 启动管理页：注册表、外壳、特效与消息监听 */
 async function start(): Promise<void> {
   const root = document.getElementById('app');
   if (!root) return;

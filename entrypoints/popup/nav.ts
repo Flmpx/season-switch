@@ -3,27 +3,24 @@
  * Licensed under MIT (see LICENSE).
  */
 
+const MAX_HEIGHT = 600; // 与 .page 的 max-height 一致，即弹窗高度上限
 
-/* 导航栈：管理弹窗页面的层级切换与高度自适应 */
+let stack: HTMLElement[] = []; // 导航栈：管理页面层级切换与高度自适应
+let pagesEl: HTMLElement | null = null; // 导航容器
 
-const MAX_HEIGHT = 600; // 与 .page 的 max-height 一致，避免超出 Chrome 弹窗高度上限
-
-let stack: HTMLElement[] = [];
-let pagesEl: HTMLElement | null = null;
-
-/* 初始化导航容器 */
+/** 初始化导航容器 */
 export function initNav(container: HTMLElement): void {
   pagesEl = container;
 }
 
-/* 测量栈顶页面的自然高度，限制在 MAX_HEIGHT 内 */
+/** 测量栈顶页面的自然高度，限制在 MAX_HEIGHT 内 */
 function measureTopHeight(): number {
   if (!pagesEl || stack.length === 0) return 0;
   const top = stack[stack.length - 1];
   return Math.min(top.scrollHeight, MAX_HEIGHT);
 }
 
-/* 按栈下标相对当前栈顶，设置每个页面的横向位移 */
+/** 按栈下标相对当前栈顶，设置每个页面的横向位移 */
 function setPageTransforms(): void {
   if (!pagesEl) return;
   const current = stack.length - 1;
@@ -33,7 +30,7 @@ function setPageTransforms(): void {
   });
 }
 
-/* 写入容器高度；animate 为 false 时关闭过渡，避免首屏高度突变 */
+/** 写入容器高度，animate 为 false 时不做过渡 */
 function applyHeight(animate: boolean): void {
   if (!pagesEl) return;
   const h = measureTopHeight();
@@ -48,7 +45,7 @@ function applyHeight(animate: boolean): void {
   }
 }
 
-/* 推入新页面：新页右滑入、旧页左滑出 */
+/** 推入新页面：新页右滑入、旧页左滑出 */
 export function pushPage(page: HTMLElement, animate = true): void {
   if (!pagesEl) return;
   pagesEl.appendChild(page);
@@ -70,7 +67,7 @@ export function pushPage(page: HTMLElement, animate = true): void {
   }
 }
 
-/* 弹出栈顶页面：当前页右滑出、下层页归位 */
+/** 弹出栈顶页面：当前页右滑出、下层页归位 */
 export function popPage(): void {
   if (!pagesEl || stack.length <= 1) return;
   const top = stack.pop()!;
@@ -87,7 +84,7 @@ export function popPage(): void {
   window.setTimeout(remove, 400);
 }
 
-/* 当前页内容高度变化时调用（如展开自定义滑块），重新做高度过渡 */
+/** 当前页内容高度变化时再次做高度过渡 */
 export function refreshHeight(): void {
   applyHeight(true);
 }

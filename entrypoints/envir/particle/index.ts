@@ -3,7 +3,7 @@
  * Licensed under MIT (see LICENSE).
  */
 
-/* 粒子系统对外出口，供内容脚本、popup、管理页共用 */
+/** 粒子系统对外出口，供内容脚本、popup、管理页共用 */
 export * from './elements';
 export * from './presets';
 export { registry } from './registry';
@@ -17,7 +17,7 @@ export type { ResolvedValue } from './config';
 export { getTwinkleTarget, isVisible } from './target';
 export { createElement } from './factory';
 export { ParticleManager } from './manager';
-export { Particle, FallingParticle, TwinklingParticle } from './particle';
+export { Particle, TwinklingParticle } from './particle';
 export type { ParticleInit } from './particle';
 export { drawParticle } from './renderer';
 export type { DrawParticleOpts } from './renderer';

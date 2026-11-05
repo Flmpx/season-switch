@@ -3,11 +3,11 @@
  * Licensed under MIT (see LICENSE).
  */
 
-/*
+/**
  * 管理页表单控件工厂：白卡片样式，表单状态由调用方持有
  */
 
-/* 创建元素节点 */
+/** 创建元素节点 */
 export function h<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   cls?: string,
@@ -19,15 +19,14 @@ export function h<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
-/* 可折叠分组：root 挂到页面上，body 用来塞字段 */
+/** 可折叠分组：root 挂到页面上，body 用来塞字段 */
 export interface Group {
   root: HTMLElement; // 根节点
   body: HTMLElement; // 字段容器
   setOpen(open: boolean): void; // 展开或收起
 }
 
-/* 展开动画时长，需与 style.css 保持一致 */
-const GROUP_ANIM_MS = 260;
+const GROUP_ANIM_MS = 260; // 展开动画时长，需与 style.css 保持一致
 
 /**
  * 可折叠分组
@@ -124,12 +123,12 @@ export function row(label: string, control: HTMLElement, tip?: string): HTMLElem
   return root;
 }
 
-/* 说明文字 */
+/** 说明文字 */
 export function hint(text: string): HTMLElement {
   return h('span', 'field-hint', text);
 }
 
-/* 单行输入框 */
+/** 单行输入框 */
 export function inputText(
   value: string,
   onChange: (v: string) => void,
@@ -143,7 +142,7 @@ export function inputText(
   return input;
 }
 
-/* 多行输入框 */
+/** 多行输入框 */
 export function inputArea(
   value: string,
   rows: number,
@@ -159,7 +158,7 @@ export function inputArea(
   return area;
 }
 
-/* 颜色选择器 */
+/** 颜色选择器 */
 export function colorPicker(value: string, onChange: (v: string) => void): HTMLInputElement {
   const input = h('input', 'input color');
   input.type = 'color';
@@ -168,7 +167,7 @@ export function colorPicker(value: string, onChange: (v: string) => void): HTMLI
   return input;
 }
 
-/* 颜色统一成 #rrggbb，颜色输入框只接受该格式 */
+/** 颜色统一成 #rrggbb，颜色输入框只接受该格式 */
 function normalizeColor(color: string): string {
   if (/^#[0-9a-f]{6}$/i.test(color)) return color;
   const named: Record<string, string> = {
@@ -190,7 +189,7 @@ function normalizeColor(color: string): string {
   return '#ffffff';
 }
 
-/* 滑块参数：范围、单位、显示小数位 */
+/** 滑块参数：范围、单位、显示小数位 */
 export interface SliderSpec {
   min: number; // 最小值
   max: number; // 最大值
@@ -199,7 +198,7 @@ export interface SliderSpec {
   digits?: number; // 小数位，缺省按步长推断
 }
 
-/* 按步长的小数位推断显示精度 */
+/** 按步长的小数位推断显示精度 */
 function decimalsOf(step: number): number {
   if (step >= 1) return 0;
   const text = String(step);
@@ -207,13 +206,13 @@ function decimalsOf(step: number): number {
   return dot < 0 ? 0 : text.length - dot - 1;
 }
 
-/* 对齐步长并夹进区间，消除浮点误差 */
+/** 对齐步长并夹进区间，消除浮点误差 */
 function roundToStep(value: number, spec: SliderSpec): number {
   const snapped = spec.min + Math.round((value - spec.min) / spec.step) * spec.step;
   return Math.min(spec.max, Math.max(spec.min, Number(snapped.toFixed(6))));
 }
 
-/* 格式化读数，拼上单位 */
+/** 格式化读数，拼上单位 */
 function formatValue(value: number, spec: SliderSpec): string {
   return `${value.toFixed(spec.digits ?? decimalsOf(spec.step))}${spec.unit ?? ''}`;
 }
@@ -228,6 +227,7 @@ export interface TrackThumb {
  * 自绘滑块轨道：单个或多个圆点共用一条轨道
  * 读数放在圆点上方的气泡里，只在悬浮、键盘聚焦或拖动时出现
  * 点轨道任意位置会跳过去并接着拖动，方向键可逐步微调
+ * 点在圆点本身时不跳位，避免指针轻微偏移就带动数值
  */
 function createTrack(
   thumbs: ReadonlyArray<TrackThumb>,
@@ -249,12 +249,10 @@ function createTrack(
   const tipValues: HTMLElement[] = [];
   let dragging = -1;
 
-  /** 把值换算成轨道上的百分比位置 */
   function percentOf(value: number): number {
     return ((value - spec.min) / span) * 100;
   }
 
-  /** 重画某个圆点的位置与气泡读数 */
   function paint(index: number): void {
     handles[index].style.left = `${percentOf(values[index])}%`;
     handles[index].setAttribute('aria-valuenow', String(values[index]));
@@ -262,14 +260,12 @@ function createTrack(
     tipValues[index].textContent = values[index].toFixed(digits);
   }
 
-  /** 把指针横坐标换算成轨道上的值 */
   function valueAt(clientX: number): number {
     const rect = rail.getBoundingClientRect();
     const ratio = (clientX - rect.left) / Math.max(1, rect.width);
     return spec.min + ratio * span;
   }
 
-  /** 写入新值，夹在左右相邻圆点之间 */
   function setValue(index: number, raw: number): void {
     const low = index === 0 ? spec.min : values[index - 1] + spec.step;
     const high = index === values.length - 1 ? spec.max : values[index + 1] - spec.step;
@@ -280,7 +276,6 @@ function createTrack(
     onChange(index, next);
   }
 
-  /** 找离指针最近的圆点，用于点轨道时决定拖动哪一个 */
   function nearestIndex(clientX: number): number {
     const target = valueAt(clientX);
     let best = 0;
@@ -290,16 +285,14 @@ function createTrack(
     return best;
   }
 
-  /** 开始拖动：锁定指针并让气泡常亮 */
-  function startDrag(index: number, event: PointerEvent): void {
+  function startDrag(index: number, event: PointerEvent, jump: boolean): void {
     dragging = index;
     handles[index].classList.add('dragging');
     handles[index].focus();
     area.setPointerCapture(event.pointerId);
-    setValue(index, valueAt(event.clientX));
+    if (jump) setValue(index, valueAt(event.clientX));
   }
 
-  /** 结束拖动，解除高亮 */
   function stopDrag(): void {
     if (dragging < 0) return;
     handles[dragging].classList.remove('dragging');
@@ -309,10 +302,11 @@ function createTrack(
   area.addEventListener('pointerdown', (event) => {
     if (event.button !== 0) return;
     const hit = event.target instanceof Element ? event.target.closest('.track-thumb') : null;
-    const index = hit instanceof HTMLElement ? handles.indexOf(hit) : nearestIndex(event.clientX);
+    const onThumb = hit instanceof HTMLElement;
+    const index = onThumb ? handles.indexOf(hit) : nearestIndex(event.clientX);
     if (index < 0) return;
     event.preventDefault();
-    startDrag(index, event);
+    startDrag(index, event, !onThumb);
   });
 
   area.addEventListener('pointermove', (event) => {
@@ -378,7 +372,7 @@ export function rangeTrack(
   return createTrack(thumbs, spec, onChange);
 }
 
-/* 单选按钮组，自行维护高亮状态 */
+/** 单选按钮组，自行维护高亮状态 */
 export function segGroup<T extends string>(
   options: ReadonlyArray<{ value: T; label: string }>,
   value: T,
@@ -405,7 +399,7 @@ export function segGroup<T extends string>(
   }
 }
 
-/* 多选按钮组，至少保留一项 */
+/** 多选按钮组，至少保留一项 */
 export function multiGroup<T extends string>(
   options: ReadonlyArray<{ value: T; label: string }>,
   values: T[],
@@ -432,7 +426,7 @@ export function multiGroup<T extends string>(
   return root;
 }
 
-/* 按钮 */
+/** 按钮 */
 export function button(
   label: string,
   kind: 'primary' | 'ghost' | 'danger',
@@ -444,7 +438,7 @@ export function button(
   return btn;
 }
 
-/* 操作行 */
+/** 操作行 */
 export function actions(...children: HTMLElement[]): HTMLElement {
   const root = h('div', 'actions');
   root.append(...children);

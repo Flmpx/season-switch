@@ -12,36 +12,33 @@ import { renderParticlePage } from './particle';
 import { registry } from '../../envir/particle';
 import type { Settings } from '../../../lib/settings';
 
-/** 季节取值的显示文字 */
-const SEASON_LABELS: Record<string, string> = {
-  spring: '春',
-  summer: '夏',
-  autumn: '秋',
-  winter: '冬',
-  'custom-season': '自定义月份',
-  'system-season': '跟随系统',
+const SEASON_LABELS: Record<string, string> = { // 季节取值的显示文字
+  spring: '春', // 春季
+  summer: '夏', // 夏季
+  autumn: '秋', // 秋季
+  winter: '冬', // 冬季
+  'custom-season': '自定义月份', // 手动选月份
+  'system-season': '跟随系统', // 跟随系统季节
 };
 
-/** 时间取值的显示文字 */
-const TIME_LABELS: Record<string, string> = {
-  dawn: '清晨',
-  morning: '上午',
-  noon: '中午',
-  afternoon: '下午',
-  dusk: '傍晚',
-  evening: '晚上',
-  midnight: '深夜',
-  'custom-time': '自定义时间',
-  'system-time': '跟随系统',
+const TIME_LABELS: Record<string, string> = { // 时间取值的显示文字
+  dawn: '清晨', // 天将亮时
+  morning: '上午', // 上午
+  noon: '中午', // 正午
+  afternoon: '下午', // 下午
+  dusk: '傍晚', // 日落前后
+  evening: '晚上', // 入夜之后
+  midnight: '深夜', // 午夜
+  'custom-time': '自定义时间', // 手动设定小时
+  'system-time': '跟随系统', // 跟随系统时间
 };
 
-/** 显示程度取值的显示文字 */
-const INTENSITY_LABELS: Record<string, string> = {
-  misty: '朦朦',
-  light: '浅',
-  medium: '中',
-  deep: '深',
-  'custom-intensity': '自定义',
+const INTENSITY_LABELS: Record<string, string> = { // 显示程度取值的显示文字
+  misty: '朦朦', // 最淡一档
+  light: '浅', // 偏淡
+  medium: '中', // 中等
+  deep: '深', // 最浓一档
+  'custom-intensity': '自定义', // 手动调百分比
 };
 
 /** 主页面的一项入口 */
@@ -70,12 +67,11 @@ function intensityDesc(settings: Settings): string {
   return INTENSITY_LABELS[settings.intensity] ?? settings.intensity;
 }
 
-/** 主页四个入口 */
-const ITEMS: MainItem[] = [
-  { icon: 'leaf', label: '季节', desc: seasonDesc, open: renderSeasonPage },
-  { icon: 'clock', label: '时间', desc: timeDesc, open: renderTimePage },
-  { icon: 'sun', label: '显示程度', desc: intensityDesc, open: renderDisplayPage },
-  { icon: 'sparkle', label: '粒子', desc: () => `${registry.list().length} 种粒子`, open: renderParticlePage },
+const ITEMS: MainItem[] = [ // 主页四个入口
+  { icon: 'leaf', label: '季节', desc: seasonDesc, open: renderSeasonPage }, // 季节设置
+  { icon: 'clock', label: '时间', desc: timeDesc, open: renderTimePage }, // 时间设置
+  { icon: 'sun', label: '显示程度', desc: intensityDesc, open: renderDisplayPage }, // 显示程度设置
+  { icon: 'sparkle', label: '粒子', desc: () => `${registry.list().length} 种粒子`, open: renderParticlePage }, // 粒子设置
 ];
 
 /**

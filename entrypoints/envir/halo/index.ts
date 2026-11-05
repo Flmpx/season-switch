@@ -3,14 +3,14 @@
  * Licensed under MIT (see LICENSE).
  */
 
-// 镜头炫光（夏季光晕）：夏权重足够且为白天时在右上区域显示暖色光晕
+/** 镜头炫光（夏季光晕）：夏权重足够且为白天时在右上区域显示暖色光晕 */
 import type { SeasonWeights } from '../../../lib/season-weights';
 
-/* 夏季镜头炫光管理：创建/更新/移除光晕元素 */
+/** 夏季镜头炫光管理：创建/更新/移除光晕元素 */
 export class LensFlare {
   private el: HTMLDivElement | null = null; // 光晕 DOM 元素
 
-  /* 根据季节权重与时段更新光晕的显示与透明度 */
+  /** 根据季节权重与时段更新光晕的显示与透明度 */
   update(weights: SeasonWeights, intensity: number, currentHour: number): void {
     const isDaytime = currentHour >= 6 && currentHour <= 18;
     const show = weights.summer > 0.3 && isDaytime;
@@ -34,14 +34,14 @@ export class LensFlare {
         });
         document.documentElement.appendChild(this.el);
       }
-      this.el.style.opacity = String(weights.summer * intensity * 0.6);
+      this.el.style.opacity = String(Math.min(1, weights.summer * intensity * 0.6));
     } else if (this.el) {
       this.el.remove();
       this.el = null;
     }
   }
 
-  /* 移除光晕元素（清理时调用） */
+  /** 移除光晕元素（清理时调用） */
   remove(): void {
     this.el?.remove();
     this.el = null;

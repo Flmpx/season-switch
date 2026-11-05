@@ -11,16 +11,12 @@
 import { drawParticle, preloadAssets, middlePresetIndex } from '../envir/particle';
 import type { ElementDescriptor, ElementRender } from '../envir/particle/elements';
 
-/* 画布边长，单位为 CSS 像素 */
-const VIEW = 180;
-/* 单个粒子的绘制尺寸，保证旋转到斜角也不碰画布边缘 */
-const SPRITE = 52;
-/* 摆动位移上限，避免粒子飘出画布 */
-const MAX_DRIFT = 12;
-/* 图片宽高比上限，过宽的图形横向会捅出画布 */
-const MAX_ASPECT = 2;
+const VIEW = 180; // 画布边长，单位为 CSS 像素
+const SPRITE = 52; // 单个粒子的绘制尺寸，保证旋转到斜角也不碰画布边缘
+const MAX_DRIFT = 12; // 摆动位移上限，避免粒子飘出画布
+const MAX_ASPECT = 2; // 图片宽高比上限，过宽的图形横向会捅出画布
 
-/* 预览面板实例 */
+/** 预览面板实例 */
 export interface Preview {
   root: HTMLElement; // 根节点
   update(desc: ElementDescriptor, color: string): void; // 更新预览内容

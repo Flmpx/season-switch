@@ -6,7 +6,7 @@
 import { drawParticle } from './renderer';
 import type { ElementRender } from './elements';
 
-/* 粒子构造入参 */
+/** 粒子构造入参 */
 export interface ParticleInit {
   type: string; // 元素 id
   render: ElementRender; // 外观描述符
@@ -24,8 +24,8 @@ export interface ParticleInit {
   bottom: number; // 下落终点（像素），取元素区域下边界
 }
 
-/* 粒子基类：通用属性与更新/绘制 */
-export abstract class Particle {
+/** 飘落粒子：通用属性与更新/绘制 */
+export class Particle {
   type: string; // 元素 id
   render: ElementRender; // 外观描述符
   x: number; // 横坐标
@@ -41,7 +41,7 @@ export abstract class Particle {
   wobbleAmp: number; // 摆幅
   bottom: number; // 下落终点
 
-  /* 用入参初始化所有字段 */
+  /** 用入参初始化所有字段 */
   constructor(init: ParticleInit) {
     this.type = init.type;
     this.render = init.render;
@@ -59,7 +59,7 @@ export abstract class Particle {
     this.bottom = init.bottom;
   }
 
-  /* 摆动 + 下落 + 到区域下边界后着陆渐隐 */
+  /** 摆动下落，触底后停住并渐隐 */
   update(dt: number): void {
     this.wobblePhase += this.wobbleSpeed * dt;
     this.x += Math.sin(this.wobblePhase) * this.wobbleAmp * dt;
@@ -74,7 +74,7 @@ export abstract class Particle {
     }
   }
 
-  /* 按自身外观描述符绘制 */
+  /** 按自身外观描述符绘制 */
   draw(ctx: CanvasRenderingContext2D, intensity: number): void {
     drawParticle(ctx, this.render, {
       x: this.x,
@@ -87,21 +87,13 @@ export abstract class Particle {
   }
 }
 
-/* 飘落粒子：继承基类的下落与摆动 */
-export class FallingParticle extends Particle {
-  /* 直接复用基类构造 */
-  constructor(init: ParticleInit) {
-    super(init);
-  }
-}
-
-/* 闪烁粒子：静止不动，仅闪烁 */
+/** 闪烁粒子：静止不动，仅闪烁 */
 export class TwinklingParticle extends Particle {
   twinklePhase: number; // 闪烁相位
   twinkleSpeed: number; // 闪烁频率
   baseOpacity: number; // 基础不透明度
 
-  /* 用入参构造闪烁粒子 */
+  /** 用入参构造闪烁粒子 */
   constructor(
     init: ParticleInit & {
       twinklePhase: number;
@@ -115,12 +107,12 @@ export class TwinklingParticle extends Particle {
     this.baseOpacity = init.baseOpacity;
   }
 
-  /* 不动，只推进闪烁相位 */
+  /** 不动，只推进闪烁相位 */
   override update(dt: number): void {
     this.twinklePhase += this.twinkleSpeed * dt;
   }
 
-  /* 透明度按正弦波闪烁后绘制 */
+  /** 透明度按正弦波闪烁后绘制 */
   override draw(ctx: CanvasRenderingContext2D, intensity: number): void {
     const twinkle = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(this.twinklePhase));
     const opacity = this.baseOpacity * twinkle * Math.min(intensity, 1.5);

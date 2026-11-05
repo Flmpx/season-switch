@@ -3,7 +3,7 @@
  * Licensed under MIT (see LICENSE).
  */
 
-/* 新建粒子页：编辑草稿，点保存才写入用户库 */
+/** 新建粒子页：编辑草稿，点保存才写入用户库 */
 import type { UserElement } from '../../../lib/element-store';
 import { addElement, validateElement } from '../../../lib/element-store';
 import { button, h } from '../fields';
@@ -11,7 +11,7 @@ import { createElementForm, defaultElement } from '../form';
 import { createPreview } from '../preview';
 import { toast } from '../toast';
 
-/* 渲染新建页 */
+/** 渲染新建页 */
 export function renderNewElementView(): HTMLElement {
   const draft = defaultElement();
   const root = h('div', 'view new');

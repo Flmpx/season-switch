@@ -7,8 +7,7 @@ import { popPage, refreshHeight } from '../nav';
 import { cardRow, pageShell, setRowActive, sliderCard, type SliderCard } from '../ui';
 import { saveSettings, type Settings } from '../../../lib/settings';
 
-/** 时间选项：[取值, 显示文字, 图标] */
-const TIME_OPTS: [string, string, string][] = [
+const TIME_OPTS: [string, string, string][] = [ // 时间选项：[取值, 显示文字, 图标]
   ['dawn', '清晨', 'sunrise'],
   ['morning', '上午', 'sun'],
   ['noon', '中午', 'sun'],
@@ -27,13 +26,13 @@ function formatHour(value: number): string {
 
 /**
  * 渲染时间设置页：选项卡片列表，选中自定义时间时展开半小时步长的滑块
+ * 选中状态与滑块显隐随时保持同步
  */
 export function renderTimePage(settings: Settings): HTMLElement {
   const shell = pageShell('时间', true, () => popPage());
   const rows = new Map<string, HTMLButtonElement>();
   let slider: SliderCard | null = null;
 
-  /** 把选中状态与滑块显隐同步到界面 */
   function sync(): void {
     for (const [value, row] of rows) setRowActive(row, value === settings.timeOfDay);
     if (slider) slider.root.style.display = settings.timeOfDay === 'custom-time' ? 'flex' : 'none';

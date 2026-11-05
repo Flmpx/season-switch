@@ -25,15 +25,14 @@ import {
 } from './envir/light';
 import { LensFlare } from './envir/halo';
 
-/* 季节色调，用于整页淡淡的色彩覆盖层 */
-const SEASON_TINTS: Record<string, { r: number; g: number; b: number }> = {
+const SEASON_TINTS: Record<string, { r: number; g: number; b: number }> = { // 季节色调映射
   spring: { r: 120, g: 200, b: 100 }, // 春：朦胧绿
   summer: { r: 255, g: 220, b: 100 }, // 夏：金黄阳光
   autumn: { r: 220, g: 180, b: 60 }, // 秋：秋日黄
   winter: { r: 200, g: 210, b: 230 }, // 冬：淡蓝白
 };
 
-/* 氛围渲染协调者：创建三层 DOM 并驱动每帧渲染 */
+/** 氛围渲染协调者：创建三层 DOM 并驱动每帧渲染 */
 class AtmosphereRenderer {
   private overlay: HTMLDivElement; // 季节色调层
   private canvas: HTMLCanvasElement; // 粒子画布
@@ -52,13 +51,10 @@ class AtmosphereRenderer {
   private height = 0; // 视口高
   private unsubscribe: (() => void) | null = null; // 设置变更取消订阅
   private registryUnsub: (() => void) | null = null; // 注册表变更取消订阅
-  private ctxRef: ContentScriptContext; // 内容脚本上下文
   private lastTime = 0; // 上一帧时间戳
 
-  /* 建三层 DOM、绑定监听与清理，并启动渲染 */
+  /** 建三层 DOM、绑定监听与清理，并启动渲染 */
   constructor(ctx: ContentScriptContext) {
-    this.ctxRef = ctx;
-
     this.overlay = document.createElement('div');
     this.overlay.id = 'atmo-overlay';
     Object.assign(this.overlay.style, {
@@ -105,7 +101,7 @@ class AtmosphereRenderer {
     this.init();
   }
 
-  /* 加载注册表与设置后启动动画 */
+  /** 加载注册表与设置后启动动画 */
   private async init() {
     await registry.init();
     this.registryUnsub = registry.subscribe(() => this.onRegistryChanged());
@@ -114,7 +110,7 @@ class AtmosphereRenderer {
     this.animate();
   }
 
-  /* 收集注册表里所有图片元素引用的资产 id */
+  /** 收集注册表里所有图片元素引用的资产 id */
   private imageAssetIds(): string[] {
     const ids: string[] = [];
     for (const desc of registry.list()) {
@@ -123,7 +119,7 @@ class AtmosphereRenderer {
     return ids;
   }
 
-  /* 预加载图片资产，失败不阻塞渲染，粒子在就绪后自动出现 */
+  /** 预加载图片资产，失败不阻塞渲染，粒子在就绪后自动出现 */
   private async preloadImages(retryFailed = false) {
     try {
       await preloadAssets(this.imageAssetIds(), retryFailed);
@@ -132,20 +128,22 @@ class AtmosphereRenderer {
     }
   }
 
-  /* 注册表变更：清理失效粒子、补载新图片、重算配置 */
+  /** 注册表变更：清理失效粒子、补载新图片、重算配置 */
   private onRegistryChanged() {
     this.particleManager.sync();
     void this.preloadImages(true);
     if (this.settings && registry.isReady) this.configs = getElementConfigs(this.settings);
   }
 
-  /* 应用设置，重算权重、显示程度、配置与亮度并刷新各层 */
+  /**
+   * 应用设置并刷新权重、配置、亮度与各层
+   * 亮度与粒子共用小数小时，避免重复计算时间
+   */
   private applySettings(settings: Settings) {
     this.settings = settings;
     this.weights = getSeasonWeights(settings.season, settings.customMonth);
     this.intensity = getIntensityValue(settings);
     if (registry.isReady) this.configs = getElementConfigs(settings);
-    this.timeBrightness = getTimeBrightness(settings);
 
     if (settings.timeOfDay === 'custom-time') {
       this.currentHour = settings.customHour;
@@ -156,12 +154,14 @@ class AtmosphereRenderer {
       this.currentHour = TIME_OF_DAY_HOURS[settings.timeOfDay] ?? 12;
     }
 
+    this.timeBrightness = getTimeBrightness(settings, this.currentHour);
+
     this.updateOverlay();
     updateBrightnessOverlay(this.brightnessOverlay, this.timeBrightness);
     this.lensFlare.update(this.weights, this.intensity, this.currentHour);
   }
 
-  /* 按四季权重混合出季节色调并写入覆盖层 */
+  /** 按四季权重混合出季节色调并写入覆盖层 */
   private updateOverlay() {
     const { spring, summer, autumn, winter } = this.weights;
     const t = SEASON_TINTS;
@@ -172,7 +172,7 @@ class AtmosphereRenderer {
     this.overlay.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${a})`;
   }
 
-  /* 每帧生成、维持并绘制粒子 */
+  /** 每帧生成、维持并绘制粒子 */
   private animate = () => {
     this.frameId = requestAnimationFrame(this.animate);
 
@@ -186,7 +186,7 @@ class AtmosphereRenderer {
     this.particleManager.step(dt, this.width, this.intensity);
   };
 
-  /* 视口变化时更新画布尺寸与 DPR */
+  /** 视口变化时更新画布尺寸与 DPR */
   private handleResize() {
     const dpr = window.devicePixelRatio || 1;
     this.width = window.innerWidth;
@@ -196,7 +196,7 @@ class AtmosphereRenderer {
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  /* 清理：先退订再移除 DOM、清粒子、释放资产 */
+  /** 清理：先退订再移除 DOM、清粒子、释放资产 */
   private destroy() {
     cancelAnimationFrame(this.frameId);
     this.registryUnsub?.();
@@ -210,11 +210,11 @@ class AtmosphereRenderer {
   }
 }
 
-/* 内容脚本入口：避免重复注入，创建渲染器 */
 export default defineContentScript({
   matches: ['<all_urls>'],
   runAt: 'document_idle',
 
+  /** 内容脚本入口：避免重复注入，创建渲染器 */
   main(ctx) {
     if (document.getElementById('atmo-overlay')) return;
     new AtmosphereRenderer(ctx);

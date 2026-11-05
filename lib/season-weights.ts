@@ -3,7 +3,7 @@
  * Licensed under MIT (see LICENSE).
  */
 
-/* 四季权重：各季节在当前设定下的占比（建议和为 1） */
+/** 四季权重：各季节在当前设定下的占比（建议和为 1） */
 export interface SeasonWeights {
   spring: number; // 春
   summer: number; // 夏
@@ -11,8 +11,7 @@ export interface SeasonWeights {
   winter: number; // 冬
 }
 
-/* 每月对应的四季权重，交界月份做线性插值 */
-const MONTH_WEIGHTS: SeasonWeights[] = [
+const MONTH_WEIGHTS: SeasonWeights[] = [ // 每月对应的四季权重
   { spring: 0.05, summer: 0,    autumn: 0,    winter: 0.95 }, // 1月
   { spring: 0.2,  summer: 0,    autumn: 0,    winter: 0.8  }, // 2月
   { spring: 0.7,  summer: 0.3,  autumn: 0,    winter: 0    }, // 3月
@@ -27,7 +26,7 @@ const MONTH_WEIGHTS: SeasonWeights[] = [
   { spring: 0.05, summer: 0,    autumn: 0,    winter: 0.95 }, // 12月
 ];
 
-/* 根据季节设置和自定义月份计算四季权重 */
+/** 根据季节设置和自定义月份计算四季权重 */
 export function getSeasonWeights(
   season: string,
   customMonth: number,

@@ -6,21 +6,21 @@
 import elementsData from './elements.json';
 import type { SeasonWeights } from '../../../lib/season-weights';
 
-/* 季节 */
+/** 季节 */
 export type Season = 'spring' | 'summer' | 'autumn' | 'winter';
 
-/* 元素行为：fall 飘落，twinkle 闪烁 */
+/** 元素行为：fall 飘落，twinkle 闪烁 */
 export type ElementBehavior = 'fall' | 'twinkle';
 
-/* 元素来源：内置或用户创建 */
+/** 元素来源：内置或用户创建 */
 export type ElementSource = 'builtin' | 'user';
 
-/* SVG 路径填充：纯色（可跟随粒子色）或径向渐变 */
+/** SVG 路径填充：纯色（可跟随粒子色）或径向渐变 */
 export type PathFill =
   | { mode: 'solid'; source: 'particle' | 'constant'; color?: string }
   | { mode: 'radial'; stops: { offset: number; color: string }[] };
 
-/* 单条 SVG 路径 */
+/** 单条 SVG 路径 */
 export interface PathSpec {
   d: string; // 路径数据（源坐标）
   fill: PathFill | null; // 填充，null 表示不填充
@@ -28,26 +28,26 @@ export interface PathSpec {
   matrix?: [number, number, number, number, number, number]; // 源坐标到 [-1,1] 的仿射矩阵，导入的 SVG 用
 }
 
-/* SVG 外观 */
+/** SVG 外观 */
 export interface SvgRender {
   kind: 'svg'; // 外观类型
   paths: PathSpec[]; // 路径集合
 }
 
-/* 图片外观 */
+/** 图片外观 */
 export interface ImageRender {
   kind: 'image'; // 外观类型
   assetId: string; // 资产库里的图片 id
   aspect: number; // 宽/高
 }
 
-/* emoji 外观 */
+/** emoji 外观 */
 export interface EmojiRender {
   kind: 'emoji'; // 外观类型
   glyph: string; // 字形
 }
 
-/* 文字外观 */
+/** 文字外观 */
 export interface TextRender {
   kind: 'text'; // 外观类型
   text: string; // 文字内容
@@ -56,10 +56,10 @@ export interface TextRender {
   color: string; // 颜色
 }
 
-/* 元素外观（四种来源之一） */
+/** 元素外观（四种来源之一） */
 export type ElementRender = SvgRender | ImageRender | EmojiRender | TextRender;
 
-/* 运动参数 */
+/** 运动参数 */
 export interface MotionSpec {
   jitter: number; // 抖动比例 0-1，速度/尺寸/不透明度在该比例内随机
   wobbleSpeed: number; // 摆动频率
@@ -69,7 +69,7 @@ export interface MotionSpec {
   twinkleSpeed: number; // 闪烁频率，仅 twinkle 使用
 }
 
-/* 出现区域，相对视口的比例 */
+/** 出现区域，相对视口的比例 */
 export interface Region {
   x: number; // 左边界 0-1
   y: number; // 上边界 0-1
@@ -77,21 +77,21 @@ export interface Region {
   h: number; // 高度 0-1
 }
 
-/* 出现时段，按小时计 */
+/** 出现时段，按小时计 */
 export interface VisibleWindow {
   from: number; // 开始小时 0-24
   to: number; // 结束小时 0-24
   wrap: boolean; // 为 true 时出现时段为两点之外，即跨午夜
 }
 
-/* 三个轴的档位值 */
+/** 三个轴的档位值 */
 export interface AxisPresets {
   speed: number[]; // 速度档位（px/s），闪烁元素可为空
   size: number[]; // 大小档位（px）
   count: number[]; // 数目档位：fall 为个/分钟，twinkle 为颗
 }
 
-/* 元素描述符，内置元素与用户元素共用 */
+/** 元素描述符，内置元素与用户元素共用 */
 export interface ElementDescriptor {
   id: string; // 唯一键，内置为 leaf/snow/star，用户为 u_xxxxxxxx
   source: ElementSource; // 来源
@@ -108,13 +108,12 @@ export interface ElementDescriptor {
   visible: VisibleWindow; // 出现时段，两种行为都使用
 }
 
-/* 内置元素的一条定义，id/source 由注册表注入 */
+/** 内置元素的一条定义，id/source 由注册表注入 */
 export type BuiltinElement = Omit<ElementDescriptor, 'id' | 'source'>;
 
-/* 内置元素表，键序即展示顺序 */
-export const BUILTIN_ELEMENTS = elementsData as unknown as Record<string, BuiltinElement>;
+export const BUILTIN_ELEMENTS = elementsData as unknown as Record<string, BuiltinElement>; // 内置元素表，键序即展示顺序
 
-/* 飘落元素在当前季节权重下的出现权重 */
+/** 飘落元素在当前季节权重下的出现权重 */
 export function seasonWeightFor(
   desc: Pick<ElementDescriptor, 'seasons'>,
   weights: SeasonWeights,
@@ -122,18 +121,17 @@ export function seasonWeightFor(
   return desc.seasons.reduce((sum, s) => sum + (weights[s] ?? 0), 0);
 }
 
-/* 数值字段的取值范围 */
+/** 数值字段的取值范围 */
 export interface NumericLimit {
   min: number; // 下限
   max: number; // 上限
   step: number; // 步长
 }
 
-/* 拼一个范围对象 */
+/** 拼一个范围对象 */
 const limit = (min: number, max: number, step: number): NumericLimit => ({ min, max, step });
 
-/* 全部数值字段的合法区间，UI 滑块与读取层夹取共用 */
-export const NUMERIC_LIMITS = {
+export const NUMERIC_LIMITS = { // 全部数值字段的合法区间，UI 滑块与读取层夹取共用
   speed: limit(0, 200, 1), // 速度 px/s
   size: limit(1, 120, 0.5), // 大小 px
   countFall: limit(0, 360, 1), // 飘落数目 个/分钟
@@ -149,24 +147,24 @@ export const NUMERIC_LIMITS = {
   aspect: limit(0.1, 10, 0.1), // 图片宽高比
 } as const;
 
-/* 把值夹进区间，非有限值回退到 fallback */
+/** 把值夹进区间，非有限值回退到 fallback */
 function num(value: unknown, l: NumericLimit, fallback: number): number {
   const n = typeof value === 'number' && Number.isFinite(value) ? value : fallback;
   return Math.min(l.max, Math.max(l.min, n));
 }
 
-/* 夹取档位数组，最多保留 8 档 */
+/** 夹取档位数组，最多保留 8 档 */
 function clampList(values: unknown, l: NumericLimit): number[] {
   if (!Array.isArray(values)) return [];
   return values.slice(0, 8).map((v) => num(v, l, l.min));
 }
 
-/* 按步长取整，去掉浮点尾巴 */
+/** 按步长取整，去掉浮点尾巴 */
 function roundStep(value: number, step: number): number {
   return Math.round(value / step) * step;
 }
 
-/* 夹取出现区域，宽高至少 0.05，右下边界不越界 */
+/** 夹取出现区域，宽高至少 0.05，右下边界不越界 */
 export function clampRegion(region: Region | undefined): Region {
   const l = NUMERIC_LIMITS.region;
   const w = Math.min(1, Math.max(0.05, num(region?.w, l, 1)));
@@ -179,7 +177,7 @@ export function clampRegion(region: Region | undefined): Region {
   };
 }
 
-/* 夹取出现时段，按半小时取整 */
+/** 夹取出现时段，按半小时取整 */
 function clampVisible(visible: VisibleWindow | undefined): VisibleWindow {
   const l = NUMERIC_LIMITS.hour;
   return {
@@ -189,7 +187,7 @@ function clampVisible(visible: VisibleWindow | undefined): VisibleWindow {
   };
 }
 
-/* 档位中间的档位下标，新建元素默认落在这里 */
+/** 档位中间的档位下标，新建元素默认落在这里 */
 export function middlePresetIndex(length: number): number {
   if (length <= 0) return 0;
   return Math.min(length - 1, Math.floor(length / 2));

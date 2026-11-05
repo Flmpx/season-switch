@@ -24,8 +24,7 @@ import {
   type NumericLimit,
 } from '../../envir/particle';
 
-/** 可调节的三个轴 */
-const AXES: Axis[] = ['speed', 'size', 'count'];
+const AXES: Axis[] = ['speed', 'size', 'count']; // 可调节的三个轴
 
 /** 取某轴的取值范围 */
 function limitOf(axis: Axis, desc: ElementDescriptor): NumericLimit {
@@ -55,6 +54,7 @@ export function renderElementPage(id: string, settings: Settings): HTMLElement {
 
 /**
  * 生成单轴的标题、档位胶囊与自定义滑块，返回按顺序排列的节点
+ * 取值解析、保存后重测高度、档位高亮与滑块显隐都在内部处理
  */
 function buildAxis(
   axis: Axis,
@@ -81,18 +81,15 @@ function buildAxis(
   const presetButtons: HTMLButtonElement[] = [];
   let slider: SliderCard | null = null;
 
-  /** 当前生效的数值 */
   function resolved(): number {
     return choiceValue(value[axis], presets, limit);
   }
 
-  /** 保存设置并重新测量弹窗高度，滑块显隐会改变内容高度 */
   async function commit(): Promise<void> {
     await saveSettings(settings);
     refreshHeight();
   }
 
-  /** 同步档位高亮、勾选与滑块显隐 */
   function refresh(): void {
     const choice = value[axis];
     const index = choice.kind === 'preset' ? choice.index : -1;

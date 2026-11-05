@@ -9,31 +9,28 @@
  */
 import type { Region } from '../envir/particle/elements';
 
-/* 方框的最小边长，单位为像素 */
-const MIN_SIZE = 40;
+const MIN_SIZE = 40; // 方框的最小边长，单位为像素
 
-/* 八个缩放手柄的方向 */
-const HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'] as const;
+const HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'] as const; // 八个缩放手柄的方向
 
-/* 缩放手柄方向 */
+/** 缩放手柄方向 */
 type HandleDir = (typeof HANDLES)[number];
 
-/* 手柄方向对应的光标 */
-const CURSORS: Record<HandleDir, string> = {
-  nw: 'nwse-resize',
-  n: 'ns-resize',
-  ne: 'nesw-resize',
-  e: 'ew-resize',
-  se: 'nwse-resize',
-  s: 'ns-resize',
-  sw: 'nesw-resize',
-  w: 'ew-resize',
+const CURSORS: Record<HandleDir, string> = { // 手柄方向对应的光标
+  nw: 'nwse-resize', // 左上
+  n: 'ns-resize', // 上
+  ne: 'nesw-resize', // 右上
+  e: 'ew-resize', // 右
+  se: 'nwse-resize', // 右下
+  s: 'ns-resize', // 下
+  sw: 'nesw-resize', // 左下
+  w: 'ew-resize', // 左
 };
 
-/* 拖拽状态：移动整个方框或拉伸某条边 */
+/** 拖拽状态：移动整个方框或拉伸某条边 */
 type DragMode = { kind: 'move' } | { kind: 'resize'; dir: HandleDir };
 
-/* 方框几何，像素单位 */
+/** 方框几何，像素单位 */
 interface Rect {
   left: number; // 左边距
   top: number; // 上边距
@@ -41,8 +38,7 @@ interface Rect {
   height: number; // 高度
 }
 
-/* 当前打开的选择器，同一时刻只保留一个 */
-let activeCloser: (() => void) | null = null;
+let activeCloser: (() => void) | null = null; // 当前打开的选择器，同时只保留一个
 
 /**
  * 打开区域选择器，返回用户确认的比例区域；取消时返回 null
@@ -139,7 +135,6 @@ export function openRegionModal(initial: Region): Promise<Region | null> {
   let origin = { x: 0, y: 0 };
   let startRect = rect;
 
-  /* 把当前方框写进样式并刷新尺寸文字 */
   function paint() {
     box.style.left = `${rect.left}px`;
     box.style.top = `${rect.top}px`;
@@ -150,7 +145,6 @@ export function openRegionModal(initial: Region): Promise<Region | null> {
     )}%`;
   }
 
-  /* 结束监听、移除节点并返回结果 */
   function close(result: Region | null) {
     window.removeEventListener('pointermove', onMove, true);
     window.removeEventListener('pointerup', onUp, true);
@@ -160,12 +154,10 @@ export function openRegionModal(initial: Region): Promise<Region | null> {
     resolveOnce(result);
   }
 
-  /* 被新的选择请求顶替时按取消处理 */
   function forceClose() {
     close(null);
   }
 
-  /* 拖拽过程中实时更新方框 */
   function onMove(event: PointerEvent) {
     if (!drag) return;
     event.preventDefault();
@@ -178,12 +170,10 @@ export function openRegionModal(initial: Region): Promise<Region | null> {
     paint();
   }
 
-  /* 松开指针结束本次拖拽 */
   function onUp() {
     drag = null;
   }
 
-  /* ESC 取消选择 */
   function onKey(event: KeyboardEvent) {
     if (event.key === 'Escape') {
       event.preventDefault();
@@ -191,7 +181,6 @@ export function openRegionModal(initial: Region): Promise<Region | null> {
     }
   }
 
-  /* 记录拖拽起始状态 */
   function begin(event: PointerEvent, mode: DragMode) {
     event.preventDefault();
     event.stopPropagation();
@@ -249,7 +238,7 @@ export function openRegionModal(initial: Region): Promise<Region | null> {
   return result;
 }
 
-/* 把方框限制在窗口内并保证最小尺寸 */
+/** 把方框限制在窗口内并保证最小尺寸 */
 function clampRect(rect: Rect): Rect {
   const maxW = window.innerWidth;
   const maxH = window.innerHeight;
@@ -260,7 +249,7 @@ function clampRect(rect: Rect): Rect {
   return { left, top, width, height };
 }
 
-/* 按拖拽方向调整方框 */
+/** 按拖拽方向调整方框 */
 function resizeRect(start: Rect, dir: HandleDir, dx: number, dy: number): Rect {
   let { left, top, width, height } = start;
   if (dir.includes('w')) {
@@ -278,7 +267,7 @@ function resizeRect(start: Rect, dir: HandleDir, dx: number, dy: number): Rect {
   return clampRect({ left, top, width, height });
 }
 
-/* 把像素方框换算成 0-1 比例 */
+/** 把像素方框换算成 0-1 比例 */
 function toRegion(rect: Rect): Region {
   const w = window.innerWidth || 1;
   const h = window.innerHeight || 1;

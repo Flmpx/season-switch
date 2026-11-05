@@ -18,9 +18,8 @@ interface TabContext {
 }
 
 /**
- * 复用已打开的管理页标签，没有才新建。
- * 只操作扩展自身页面，故不申请 tabs 权限；Firefox 无 getContexts，退化为新开。
- * 优先按 URL 精确匹配，取不到地址时取第一个可用标签。
+ * 复用已打开的管理页标签，没有才新建
+ * 只操作扩展自身页面，故不申请 tabs 权限；Firefox 无 getContexts 则新开
  */
 async function openManager(): Promise<void> {
   const url = chrome.runtime.getURL('manager.html');

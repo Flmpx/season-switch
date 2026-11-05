@@ -38,43 +38,39 @@ import {
   type SliderSpec,
 } from './fields';
 
-/* 外观类型 */
+/** 外观类型 */
 export type RenderKind = ElementRender['kind'];
 
-/* 元素表单选项 */
+/** 元素表单选项 */
 export interface ElementFormOptions {
   lockedRender?: boolean; // 内置元素外观只读
   lockedBasics?: boolean; // 内置元素基础信息只读
   onChange?: (state: UserElement) => void; // 状态变更回调
 }
 
-/* 元素表单实例 */
+/** 元素表单实例 */
 export interface ElementForm {
   root: HTMLElement; // 根节点
   read(): UserElement; // 读取当前草稿
 }
 
-/* 季节选项 */
-const SEASON_OPTIONS: ReadonlyArray<{ value: Season; label: string }> = [
+const SEASON_OPTIONS: ReadonlyArray<{ value: Season; label: string }> = [ // 季节选项
   { value: 'spring', label: '春' },
   { value: 'summer', label: '夏' },
   { value: 'autumn', label: '秋' },
   { value: 'winter', label: '冬' },
 ];
 
-/* 外观类型选项 */
-const RENDER_OPTIONS: ReadonlyArray<{ value: RenderKind; label: string }> = [
+const RENDER_OPTIONS: ReadonlyArray<{ value: RenderKind; label: string }> = [ // 外观类型选项
   { value: 'svg', label: 'SVG' },
   { value: 'image', label: '图片' },
   { value: 'emoji', label: 'emoji' },
   { value: 'text', label: '文字' },
 ];
 
-/* 预设 emoji 字形 */
-const EMOJI_PRESETS = ['✨', '🌟', '❄️', '🍂', '🍁', '🌸', '🍃', '🦋', '💫', '🌙', '☀️', '🫧'];
+const EMOJI_PRESETS = ['✨', '🌟', '❄️', '🍂', '🍁', '🌸', '🍃', '🦋', '💫', '🌙', '☀️', '🫧']; // 预设 emoji 字形
 
-/* 字体选项 */
-const FONT_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
+const FONT_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [ // 字体选项
   { value: "'Microsoft YaHei', sans-serif", label: '雅黑' },
   { value: 'SimSun, serif', label: '宋体' },
   { value: 'KaiTi, serif', label: '楷体' },
@@ -82,17 +78,20 @@ const FONT_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
   { value: 'sans-serif', label: '无衬线' },
 ];
 
-/* 区间和单位转成滑块参数 */
+/** 区间和单位转成滑块参数 */
 function specOf(limit: NumericLimit, unit?: string): SliderSpec {
   return { min: limit.min, max: limit.max, step: limit.step, unit };
 }
 
-/* 按行为取数量区间：飘落按个/分钟，闪烁按峰值 */
+/** 按行为取数量区间：飘落按个/分钟，闪烁按峰值 */
 function countLimitOf(behavior: ElementBehavior): NumericLimit {
   return behavior === 'twinkle' ? NUMERIC_LIMITS.countTwinkle : NUMERIC_LIMITS.countFall;
 }
 
-/* 归一化出现时段：不跨午夜时要求 from ≤ to，跨午夜时要求 from > to，不满足就交换 */
+/**
+ * 归一化出现时段
+ * 不跨午夜要求 from ≤ to，跨午夜要求 from > to，否则交换
+ */
 function normalizeVisible(visible: VisibleWindow): void {
   const inverted = visible.wrap ? visible.from < visible.to : visible.from > visible.to;
   if (!inverted) return;
@@ -101,7 +100,7 @@ function normalizeVisible(visible: VisibleWindow): void {
   visible.to = from;
 }
 
-/* 新建元素的初始草稿 */
+/** 新建元素的初始草稿 */
 export function defaultElement(): UserElement {
   return {
     id: 'draft',
@@ -129,7 +128,7 @@ export function defaultElement(): UserElement {
   };
 }
 
-/* 切换外观类型时的初始外观 */
+/** 切换外观类型时的初始外观 */
 function emptyRender(kind: RenderKind, state: UserElement): ElementRender {
   if (kind === 'svg') return { kind: 'svg', paths: [] };
   if (kind === 'image') return { kind: 'image', assetId: '', aspect: 1 };
@@ -143,13 +142,13 @@ function emptyRender(kind: RenderKind, state: UserElement): ElementRender {
   };
 }
 
-/* 外观类型的中文名 */
+/** 外观类型的中文名 */
 export function renderKindLabel(kind: RenderKind): string {
   const hit = RENDER_OPTIONS.find((o) => o.value === kind);
   return hit ? hit.label : kind;
 }
 
-/* 读取图片宽高比，即宽除以高 */
+/** 读取图片宽高比，即宽除以高 */
 async function measureAspect(blob: Blob): Promise<number> {
   const url = URL.createObjectURL(blob);
   try {
@@ -181,7 +180,6 @@ export function createElementForm(
   const basics = group('基础', true);
   root.appendChild(basics.root);
 
-  /* 行为一行的悬浮说明，随当前行为变化 */
   function behaviorTip(behavior: ElementBehavior): string {
     return behavior === 'twinkle' ? '在固定区域内明暗闪烁' : '从上方持续飘落';
   }
@@ -437,7 +435,6 @@ export function createElementForm(
   const appear = group('出现', true);
   root.appendChild(appear.root);
 
-  /* 把当前区域比例写成一句说明 */
   function regionSummary(): string {
     const { x, y, w, h } = state.region;
     return (
@@ -446,7 +443,6 @@ export function createElementForm(
     );
   }
 
-  /* 出现区域：按钮打开遮罩框选，当前比例挂在按钮的悬浮说明里 */
   function regionControl(): HTMLElement {
     const pick = button('框选范围', 'ghost', () => void pickRegion());
     pick.classList.add('has-tip');
@@ -454,7 +450,6 @@ export function createElementForm(
     return actions(pick);
   }
 
-  /* 在遮罩上拖动方框选择区域，确认后覆盖当前比例 */
   async function pickRegion(): Promise<void> {
     const region = await openRegionModal(state.region);
     if (!region) return;
@@ -463,12 +458,10 @@ export function createElementForm(
     notify();
   }
 
-  /* 小时数转成「x 点」文本 */
   function formatHour(hour: number): string {
     return `${Number(hour.toFixed(1))} 点`;
   }
 
-  /* 用一句话描述当前出现时段，挂在行标签的悬浮说明里 */
   function timeSummary(): string {
     if (!state.visible.wrap && state.visible.from === 0 && state.visible.to === 24) return '全天';
     const from = formatHour(state.visible.from);
@@ -476,22 +469,18 @@ export function createElementForm(
     return state.visible.wrap ? `${from} 到次日 ${to}` : `${from} 到 ${to}`;
   }
 
-  /* 时段行的悬浮说明：左右圆点含义 + 当前区间 */
   function timeTipText(): string {
     return state.visible.wrap
       ? `选「是」时左侧圆点是消失时刻、右侧是出现时刻，时段跨过零点；当前 ${timeSummary()}`
       : `左侧是出现时刻，右侧是消失时刻；当前 ${timeSummary()}`;
   }
 
-  /* 时段行的标签节点，拖动轨道后要同步它的悬浮说明 */
   let timeLabel: HTMLElement | null = null;
 
-  /* 拖动圆点后重算悬浮说明，避免显示拖动前的旧区间 */
   function updateTimeTip(): void {
     if (timeLabel) timeLabel.dataset.tip = timeTipText();
   }
 
-  /* 出现时段：两个圆点共用一条 0-24 轨道，跨午夜时左右含义对调 */
   function timeControl(): HTMLElement {
     const wrap = state.visible.wrap;
     const thumbs = wrap
@@ -566,7 +555,6 @@ export function createElementForm(
   const motion = group('运动', false);
   root.appendChild(motion.root);
 
-  /* 运动参数：闪烁频率只在闪烁元素下出现 */
   function renderMotion(): void {
     motion.body.replaceChildren();
 
@@ -606,13 +594,10 @@ export function createElementForm(
   const presets = group('档位', false);
   root.appendChild(presets.root);
 
-  /* 取档位数组里的第 index 项，缺项用默认值补齐 */
   function slot(values: number[], index: number, fallback: number): number {
-    while (values.length <= index) values.push(fallback);
-    return values[index];
+    return values[index] ?? fallback;
   }
 
-  /* 一条轨道放全部档位，拖动后写回档位数组 */
   function presetTrack(
     labels: string[],
     values: number[],
@@ -624,6 +609,7 @@ export function createElementForm(
       value: slot(values, index, fallbacks[index]),
     }));
     return rangeTrack(thumbs, spec, (index, value) => {
+      while (values.length <= index) values.push(fallbacks[values.length]);
       values[index] = value;
       notify();
     });

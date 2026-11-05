@@ -6,10 +6,9 @@
 import type { ElementRender, PathFill, PathSpec } from './elements';
 import { getImage } from './assets';
 
-/* Path2D 缓存，同一条路径数据只构建一次 */
-const pathCache = new Map<string, Path2D>();
+const pathCache = new Map<string, Path2D>(); // Path2D 缓存，一条路径只构建一次
 
-/* 取缓存的 Path2D，没有就新建 */
+/** 取缓存的 Path2D，没有就新建 */
 function getPath(d: string): Path2D {
   let p = pathCache.get(d);
   if (!p) {
@@ -19,7 +18,7 @@ function getPath(d: string): Path2D {
   return p;
 }
 
-/* 解析填充：纯色取粒子色或常量色，径向渐变在归一化空间构造 */
+/** 解析填充：纯色取粒子色或常量色，渐变按色标构造 */
 function resolveFill(
   ctx: CanvasRenderingContext2D,
   fill: PathFill,
@@ -33,7 +32,7 @@ function resolveFill(
   return grad;
 }
 
-/* 绘制参数 */
+/** 绘制参数 */
 export interface DrawParticleOpts {
   x: number; // 横坐标
   y: number; // 纵坐标
@@ -45,7 +44,7 @@ export interface DrawParticleOpts {
 
 /**
  * 绘制 SVG 路径集合
- * 路径已归一化到 [-1,1]；带 matrix 的先应用坐标变换，描边按矩阵缩放补偿以保持视觉粗细
+ * 路径已归一化到 [-1,1]，带矩阵的先做坐标变换
  */
 function drawSvg(ctx: CanvasRenderingContext2D, paths: PathSpec[], o: DrawParticleOpts): void {
   ctx.save();
@@ -75,7 +74,7 @@ function drawSvg(ctx: CanvasRenderingContext2D, paths: PathSpec[], o: DrawPartic
   ctx.restore();
 }
 
-/* 绘制图片精灵：size 为高度，宽度按宽高比等比 */
+/** 绘制图片精灵，宽度按宽高比等比 */
 function drawImageSprite(
   ctx: CanvasRenderingContext2D,
   source: CanvasImageSource,
@@ -93,7 +92,7 @@ function drawImageSprite(
   ctx.restore();
 }
 
-/* 统一绘制入口，按外观类型分四路；图片未就绪时跳过本帧 */
+/** 统一绘制入口，按外观类型分四路 */
 export function drawParticle(
   ctx: CanvasRenderingContext2D,
   render: ElementRender,

@@ -7,8 +7,7 @@ import { popPage, refreshHeight } from '../nav';
 import { cardRow, pageShell, setRowActive, sliderCard, type SliderCard } from '../ui';
 import { saveSettings, type Settings } from '../../../lib/settings';
 
-/** 显示程度选项：[取值, 显示文字, 图标] */
-const INTENSITY_OPTS: [string, string, string][] = [
+const INTENSITY_OPTS: [string, string, string][] = [ // 显示程度选项：[取值, 显示文字, 图标]
   ['misty', '朦朦', 'mist'],
   ['light', '浅', 'cloud'],
   ['medium', '中', 'cloudsun'],
@@ -18,13 +17,13 @@ const INTENSITY_OPTS: [string, string, string][] = [
 
 /**
  * 渲染显示程度设置页：选项卡片列表，选中自定义时展开百分比滑块
+ * 选中状态与滑块显隐随时保持同步
  */
 export function renderDisplayPage(settings: Settings): HTMLElement {
   const shell = pageShell('显示程度', true, () => popPage());
   const rows = new Map<string, HTMLButtonElement>();
   let slider: SliderCard | null = null;
 
-  /** 把选中状态与滑块显隐同步到界面 */
   function sync(): void {
     for (const [value, row] of rows) setRowActive(row, value === settings.intensity);
     if (slider) {
