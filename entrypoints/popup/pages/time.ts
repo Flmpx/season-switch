@@ -4,67 +4,75 @@
  */
 
 import { popPage, refreshHeight } from '../nav';
+import { cardRow, pageShell, setRowActive, sliderCard, type SliderCard } from '../ui';
 import { saveSettings, type Settings } from '../../../lib/settings';
 
-/* 时间选项：[值, 显示文字] */
-const TIME_OPTS: [string, string][] = [
-  ['dawn', '清晨'],
-  ['morning', '上午'],
-  ['noon', '中午'],
-  ['afternoon', '下午'],
-  ['dusk', '傍晚'],
-  ['evening', '晚上'],
-  ['midnight', '深夜'],
-  ['custom-time', '自定义'],
-  ['system-time', '跟随系统'],
+/** 时间选项：[取值, 显示文字, 图标] */
+const TIME_OPTS: [string, string, string][] = [
+  ['dawn', '清晨', 'sunrise'],
+  ['morning', '上午', 'sun'],
+  ['noon', '中午', 'sun'],
+  ['afternoon', '下午', 'cloudsun'],
+  ['dusk', '傍晚', 'sunset'],
+  ['evening', '晚上', 'moon'],
+  ['midnight', '深夜', 'star'],
+  ['custom-time', '自定义时间', 'clock'],
+  ['system-time', '跟随系统', 'monitor'],
 ];
 
-/* 渲染时间设置页 */
+/** 小时数格式化成「7.5 点」 */
+function formatHour(value: number): string {
+  return `${Number(value.toFixed(1))} 点`;
+}
+
+/**
+ * 渲染时间设置页：选项卡片列表，选中自定义时间时展开半小时步长的滑块
+ */
 export function renderTimePage(settings: Settings): HTMLElement {
-  const page = document.createElement('div');
-  page.className = 'page';
-  page.innerHTML = `
-    <div class="page-header">
-      <button class="back" type="button">返回</button>
-      <span class="page-title">时间</span>
-    </div>
-    <div class="page-body">
-      <div class="option-grid" data-key="timeOfDay">
-        ${TIME_OPTS.map(([v, l]) => `<button class="option-btn" type="button" data-value="${v}">${l}</button>`).join('')}
-      </div>
-      <div class="custom-row" data-custom="custom-time" style="display:none;">
-        <input type="range" min="0" max="23" value="${settings.customHour}" class="intensity-slider" />
-        <span class="intensity-value">${settings.customHour}时</span>
-      </div>
-    </div>
-  `;
+  const shell = pageShell('时间', true, () => popPage());
+  const rows = new Map<string, HTMLButtonElement>();
+  let slider: SliderCard | null = null;
 
-  page.querySelector<HTMLButtonElement>('.back')!.addEventListener('click', () => popPage());
+  /** 把选中状态与滑块显隐同步到界面 */
+  function sync(): void {
+    for (const [value, row] of rows) setRowActive(row, value === settings.timeOfDay);
+    if (slider) slider.root.style.display = settings.timeOfDay === 'custom-time' ? 'flex' : 'none';
+    refreshHeight();
+  }
 
-  const grid = page.querySelector<HTMLElement>('.option-grid')!;
-  grid.querySelectorAll<HTMLButtonElement>('.option-btn').forEach((btn) => {
-    if (btn.dataset.value === settings.timeOfDay) btn.classList.add('active');
-    btn.addEventListener('click', async () => {
-      const value = btn.dataset.value!;
-      settings.timeOfDay = value;
-      grid
-        .querySelectorAll<HTMLButtonElement>('.option-btn')
-        .forEach((b) => b.classList.toggle('active', b === btn));
-      const customRow = page.querySelector<HTMLElement>('.custom-row')!;
-      customRow.style.display = value === 'custom-time' ? 'flex' : 'none';
-      refreshHeight();
-      await saveSettings(settings);
+  for (const [value, label, icon] of TIME_OPTS) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    const row = cardRow({
+      icon,
+      label,
+      right: 'none',
+      onClick: () => {
+        settings.timeOfDay = value;
+        void saveSettings(settings);
+        sync();
+      },
     });
-  });
+    rows.set(value, row);
+    card.appendChild(row);
+    shell.body.appendChild(card);
 
-  const slider = page.querySelector<HTMLInputElement>('.custom-row input')!;
-  const valueSpan = page.querySelector<HTMLElement>('.custom-row .intensity-value')!;
-  slider.addEventListener('input', async () => {
-    const val = parseInt(slider.value, 10);
-    settings.customHour = val;
-    valueSpan.textContent = `${val}时`;
-    await saveSettings(settings);
-  });
+    if (value === 'custom-time') {
+      slider = sliderCard({
+        min: 0,
+        max: 24,
+        step: 0.5,
+        value: settings.customHour,
+        format: formatHour,
+        onInput: (v) => {
+          settings.customHour = v;
+          void saveSettings(settings);
+        },
+      });
+      shell.body.appendChild(slider.root);
+    }
+  }
 
-  return page;
+  sync();
+  return shell.page;
 }

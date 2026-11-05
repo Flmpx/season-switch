@@ -3,7 +3,8 @@
  * Licensed under MIT (see LICENSE).
  */
 
-/* 管理页外壳：左侧边栏 + 右侧内容区，负责导航与高亮 */
+/** 管理页外壳：左侧边栏 + 右侧内容区，负责导航与高亮 */
+import { iconSvg } from '../../lib/icons';
 
 /* 管理页路由标识 */
 export type ManagerRoute = 'new' | 'mine' | 'detail';
@@ -15,10 +16,10 @@ const NAV_OF: Record<ManagerRoute, 'new' | 'mine'> = {
   detail: 'mine', // 详情归列表
 };
 
-/* 侧边栏导航项 */
+/** 侧边栏导航项 */
 export const ROUTES: ReadonlyArray<{ id: ManagerRoute; label: string; icon: string }> = [
-  { id: 'new', label: '新建粒子', icon: '＋' }, // 新建页
-  { id: 'mine', label: '我的粒子', icon: '☰' }, // 列表页
+  { id: 'new', label: '新建粒子', icon: 'plus' }, // 新建页
+  { id: 'mine', label: '我的粒子', icon: 'list' }, // 列表页
 ];
 
 /* 管理页外壳实例 */
@@ -39,7 +40,7 @@ export function createShell(root: HTMLElement, onRoute: (route: ManagerRoute) =>
       <nav class="nav">
         ${ROUTES.map(
           (r) =>
-            `<button class="nav-item" type="button" data-route="${r.id}"><span class="nav-icon">${r.icon}</span><span>${r.label}</span></button>`,
+            `<button class="nav-item" type="button" data-route="${r.id}"><span class="nav-icon">${iconSvg(r.icon, 18)}</span><span>${r.label}</span></button>`,
         ).join('')}
       </nav>
       <div class="sidebar-foot">本地粒子元素与内置粒子元素</div>

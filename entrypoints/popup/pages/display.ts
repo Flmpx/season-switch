@@ -4,63 +4,68 @@
  */
 
 import { popPage, refreshHeight } from '../nav';
+import { cardRow, pageShell, setRowActive, sliderCard, type SliderCard } from '../ui';
 import { saveSettings, type Settings } from '../../../lib/settings';
 
-/* 显示程度选项：[值, 显示文字] */
-const INTENSITY_OPTS: [string, string][] = [
-  ['misty', '朦朦'],
-  ['light', '浅'],
-  ['medium', '中'],
-  ['deep', '深'],
-  ['custom-intensity', '自定义'],
+/** 显示程度选项：[取值, 显示文字, 图标] */
+const INTENSITY_OPTS: [string, string, string][] = [
+  ['misty', '朦朦', 'mist'],
+  ['light', '浅', 'cloud'],
+  ['medium', '中', 'cloudsun'],
+  ['deep', '深', 'sun'],
+  ['custom-intensity', '自定义', 'level'],
 ];
 
-/* 渲染显示程度设置页 */
+/**
+ * 渲染显示程度设置页：选项卡片列表，选中自定义时展开百分比滑块
+ */
 export function renderDisplayPage(settings: Settings): HTMLElement {
-  const page = document.createElement('div');
-  page.className = 'page';
-  page.innerHTML = `
-    <div class="page-header">
-      <button class="back" type="button">返回</button>
-      <span class="page-title">显示程度</span>
-    </div>
-    <div class="page-body">
-      <div class="option-grid" data-key="intensity">
-        ${INTENSITY_OPTS.map(([v, l]) => `<button class="option-btn" type="button" data-value="${v}">${l}</button>`).join('')}
-      </div>
-      <div class="custom-row" data-custom="custom-intensity" style="display:none;">
-        <input type="range" min="0" max="100" value="${settings.customIntensity}" class="intensity-slider" />
-        <span class="intensity-value">${settings.customIntensity}%</span>
-      </div>
-    </div>
-  `;
+  const shell = pageShell('显示程度', true, () => popPage());
+  const rows = new Map<string, HTMLButtonElement>();
+  let slider: SliderCard | null = null;
 
-  page.querySelector<HTMLButtonElement>('.back')!.addEventListener('click', () => popPage());
+  /** 把选中状态与滑块显隐同步到界面 */
+  function sync(): void {
+    for (const [value, row] of rows) setRowActive(row, value === settings.intensity);
+    if (slider) {
+      slider.root.style.display = settings.intensity === 'custom-intensity' ? 'flex' : 'none';
+    }
+    refreshHeight();
+  }
 
-  const grid = page.querySelector<HTMLElement>('.option-grid')!;
-  grid.querySelectorAll<HTMLButtonElement>('.option-btn').forEach((btn) => {
-    if (btn.dataset.value === settings.intensity) btn.classList.add('active');
-    btn.addEventListener('click', async () => {
-      const value = btn.dataset.value!;
-      settings.intensity = value;
-      grid
-        .querySelectorAll<HTMLButtonElement>('.option-btn')
-        .forEach((b) => b.classList.toggle('active', b === btn));
-      const customRow = page.querySelector<HTMLElement>('.custom-row')!;
-      customRow.style.display = value === 'custom-intensity' ? 'flex' : 'none';
-      refreshHeight();
-      await saveSettings(settings);
+  for (const [value, label, icon] of INTENSITY_OPTS) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    const row = cardRow({
+      icon,
+      label,
+      right: 'none',
+      onClick: () => {
+        settings.intensity = value;
+        void saveSettings(settings);
+        sync();
+      },
     });
-  });
+    rows.set(value, row);
+    card.appendChild(row);
+    shell.body.appendChild(card);
 
-  const slider = page.querySelector<HTMLInputElement>('.custom-row input')!;
-  const valueSpan = page.querySelector<HTMLElement>('.custom-row .intensity-value')!;
-  slider.addEventListener('input', async () => {
-    const val = parseInt(slider.value, 10);
-    settings.customIntensity = val;
-    valueSpan.textContent = `${val}%`;
-    await saveSettings(settings);
-  });
+    if (value === 'custom-intensity') {
+      slider = sliderCard({
+        min: 0,
+        max: 100,
+        step: 1,
+        value: settings.customIntensity,
+        format: (v) => `${v}%`,
+        onInput: (v) => {
+          settings.customIntensity = v;
+          void saveSettings(settings);
+        },
+      });
+      shell.body.appendChild(slider.root);
+    }
+  }
 
-  return page;
+  sync();
+  return shell.page;
 }

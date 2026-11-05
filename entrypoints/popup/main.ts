@@ -6,10 +6,11 @@
 import { loadSettings } from '../../lib/settings';
 import { registry } from '../envir/particle';
 import { initNav, pushPage } from './nav';
-import { initEffects } from './effects';
 import { renderMainPage } from './pages/main';
 
-/* 弹窗入口：初始化注册表与设置，渲染主页 */
+/**
+ * 弹窗入口：初始化注册表与设置，渲染主页并挂上导航栈
+ */
 async function start(): Promise<void> {
   await registry.init();
   const settings = await loadSettings();
@@ -17,7 +18,6 @@ async function start(): Promise<void> {
   if (!pagesEl) return;
   initNav(pagesEl);
   pushPage(renderMainPage(settings), false);
-  initEffects(document.body);
 }
 
 start();

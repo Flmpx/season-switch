@@ -7,13 +7,16 @@ import {
   loadSettings,
   onSettingsChanged,
   type Settings,
-  type ParticleValue,
 } from '../lib/settings';
 import { getSeasonWeights, type SeasonWeights } from '../lib/season-weights';
 
 import { getIntensityValue } from './envir/intensity';
 import { ParticleManager } from './envir/particle/manager';
-import { getElementConfigs, registry } from './envir/particle';
+import {
+  getElementConfigs,
+  registry,
+  type ResolvedValue,
+} from './envir/particle';
 import { preloadAssets, releaseAssets } from './envir/particle/assets';
 import {
   TIME_OF_DAY_HOURS,
@@ -41,9 +44,9 @@ class AtmosphereRenderer {
   private settings: Settings | null = null; // 当前设置
   private weights: SeasonWeights = { spring: 1, summer: 0, autumn: 0, winter: 0 }; // 四季权重
   private intensity = 1.0; // 显示程度系数
-  private configs: Record<string, ParticleValue> = {}; // 各元素的当前值
+  private configs: Record<string, ResolvedValue> = {}; // 各元素解析后的速度/大小/数目
   private timeBrightness = 1.0; // 时间亮度系数
-  private currentHour = 12; // 当前小时 0-23
+  private currentHour = 12; // 当前小时 0-24，带小数
   private frameId = 0; // 动画帧句柄
   private width = 0; // 视口宽
   private height = 0; // 视口高
@@ -147,7 +150,8 @@ class AtmosphereRenderer {
     if (settings.timeOfDay === 'custom-time') {
       this.currentHour = settings.customHour;
     } else if (settings.timeOfDay === 'system-time') {
-      this.currentHour = new Date().getHours();
+      const now = new Date();
+      this.currentHour = now.getHours() + now.getMinutes() / 60;
     } else {
       this.currentHour = TIME_OF_DAY_HOURS[settings.timeOfDay] ?? 12;
     }
@@ -177,9 +181,9 @@ class AtmosphereRenderer {
     this.lastTime = now;
 
     this.ctx.clearRect(0, 0, this.width, this.height);
-    this.particleManager.spawnStep(dt, this.weights, this.width, this.height, this.configs);
+    this.particleManager.spawnStep(dt, this.currentHour, this.weights, this.width, this.height, this.configs);
     this.particleManager.maintainTwinkles(this.currentHour, this.intensity, this.width, this.height, this.configs);
-    this.particleManager.step(dt, this.width, this.height, this.intensity);
+    this.particleManager.step(dt, this.width, this.intensity);
   };
 
   /* 视口变化时更新画布尺寸与 DPR */

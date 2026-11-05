@@ -3,910 +3,944 @@
  * Licensed under MIT (see LICENSE).
  */
 
-/* 管理页：左侧固定侧边栏 + 右侧内容区，可点控件统一 44px 高 */
+/** 管理页：左侧固定侧边栏 + 右侧内容区，可点控件统一 40px 高 */
 
-/* 主题变量：暗色配色、圆角、控件高度与缓动曲线 */
+/** 主题色与尺寸变量 */
 :root {
-  --bg: #2b2b2b;
-  --bg-side: #232323;
-  --panel: #2f2f2f;
-  --panel-2: #262626;
-  --line: #3a3a3a;
-  --line-2: #4a4a4a;
-  --text: #e8e8e8;
-  --text-dim: #b8b8b8;
-  --text-faint: #8a8a8a;
-  --radius: 10px;
-  --control-h: 44px;
-  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --bg: #f4f5f7; /* 页面底色 */
+  --card: #ffffff; /* 卡片底色 */
+  --text: #1f2328; /* 主文字 */
+  --sub: #8a919b; /* 次要文字 */
+  --line: #eceff3; /* 分隔线 */
+  --accent: #4a7bd8; /* 强调色 */
+  --accent-deep: #31599f; /* 强调色的加深版，用于滑块悬停 */
+  --tint: #e8eefb; /* 浅色底 */
+  --danger: #d24545; /* 危险色 */
+  --radius: 14px; /* 卡片圆角 */
+  --control: 40px; /* 可点控件高度 */
+  --ease: cubic-bezier(0.32, 0.72, 0, 1); /* 统一缓动曲线 */
 }
 
-/* 全局盒模型重置 */
+/** 全局盒模型重置 */
 * {
+  box-sizing: border-box;
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
 }
 
-/* 页面整体：深灰底、纵向占满视口 */
+/** 页面根节点：底色与字体 */
 body {
-  min-height: 100vh;
   background: var(--bg);
   color: var(--text);
-  font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif;
-  font-size: 14px;
+  font: 14px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* 外壳：侧边栏固定，内容区撑满剩余宽度 */
-#app {
+/** 外壳：侧边栏与内容区左右分栏 */
+.app {
   display: flex;
   min-height: 100vh;
 }
 
-/* 左侧侧边栏：固定不随内容滚动 */
+/** 左侧固定侧边栏 */
 .sidebar {
-  position: fixed;
+  position: sticky;
   top: 0;
-  left: 0;
-  width: 208px;
+  flex: 0 0 220px;
   height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 24px 14px;
-  background: var(--bg-side);
+  gap: 18px;
+  padding: 24px 14px 18px;
+  background: var(--card);
   border-right: 1px solid var(--line);
 }
 
-/* 品牌区 */
+/** 品牌区 */
 .brand {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 0 10px 20px;
+  gap: 2px;
+  padding: 0 8px;
 }
 
-/* 品牌主标题 */
+/** 品牌名 */
 .brand-name {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
-  color: #f2f2f2;
   letter-spacing: 0.2px;
 }
 
-/* 品牌副标题 */
+/** 品牌副标题 */
 .brand-sub {
-  font-size: 11px;
-  color: var(--text-faint);
-  letter-spacing: 0.5px;
+  font-size: 12px;
+  color: var(--sub);
 }
 
-/* 导航按钮组 */
+/** 导航列表 */
 .nav {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-/* 导航按钮：当前路由高亮白字与浅底 */
+/** 导航项 */
 .nav-item {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
   display: flex;
   align-items: center;
-  gap: 12px;
-  height: var(--control-h);
-  padding: 0 14px;
-  border: none;
-  border-radius: var(--radius);
+  gap: 10px;
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
   background: transparent;
-  color: #d2d2d2;
-  font-family: inherit;
-  font-size: 14px;
+  color: #4b515a;
+  font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background-color 0.18s ease, color 0.18s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-/* 导航按钮悬停 */
+/** 导航项悬停 */
 .nav-item:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
+  background: #f3f6fb;
 }
 
-/* 导航按钮选中态 */
+/** 导航项选中 */
 .nav-item.active {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
-  font-weight: 600;
+  background: var(--tint);
+  color: var(--accent);
+  font-weight: 500;
 }
 
-/* 导航图标 */
+/** 导航图标 */
 .nav-icon {
-  width: 18px;
+  flex: 0 0 auto;
+  width: 20px;
   text-align: center;
-  color: #9a9a9a;
-  font-size: 16px;
+  font-size: 15px;
 }
 
-/* 选中导航项的图标变白 */
-.nav-item.active .nav-icon {
-  color: #fff;
-}
-
-/* 侧边栏底部说明 */
+/** 侧边栏底部说明 */
 .sidebar-foot {
   margin-top: auto;
-  padding: 0 10px;
-  font-size: 11px;
-  line-height: 1.6;
-  color: #6f6f6f;
+  padding: 0 8px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--sub);
 }
 
-/* 右侧内容区：与固定侧边栏错开 */
+/** 右侧内容区：唯一滚动区 */
 .content {
-  flex: 1;
-  margin-left: 208px;
+  flex: 1 1 auto;
   min-width: 0;
-  padding: 40px 48px 64px;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 32px 40px 64px;
 }
 
-/* 视图容器 */
+/** 单视图容器 */
 .view {
   display: flex;
   flex-direction: column;
-  gap: 26px;
+  gap: 22px;
   width: 100%;
 }
 
-/* 表单：竖向堆叠的折叠分组，组与组之间留出间隙，避免边框连成一片 */
+/** 表单列：多个分组纵向排列 */
 .form {
   display: flex;
   flex-direction: column;
   gap: 18px;
 }
 
-/* 顶栏：标题 + 右侧操作 */
+/** 页面标题栏 */
 .topbar {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
+  min-height: var(--control);
 }
 
-/* 页面标题，超长省略 */
+/** 页面标题 */
 .topbar-title {
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: 20px;
   font-weight: 600;
-  color: #f2f2f2;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* 顶栏右侧操作区，靠右对齐 */
+/** 标题栏右侧按钮组 */
 .topbar-actions {
-  margin-left: auto;
   display: flex;
+  flex: 0 0 auto;
   gap: 10px;
-  flex: none;
 }
 
-/* 按钮 */
+/** 按钮：白底描边 */
 .btn {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  height: var(--control-h);
-  padding: 0 22px;
-  border: 1px solid var(--line-2);
-  border-radius: var(--radius);
-  background: #333;
-  color: var(--text);
+  height: var(--control);
+  padding: 0 16px;
+  border: 1px solid #e3e7ee;
+  border-radius: 10px;
+  background: var(--card);
+  color: #33383f;
   font: inherit;
-  font-size: 14px;
+  font-size: 13.5px;
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
-  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-/* 按钮悬停 */
+/** 按钮悬停 */
 .btn:hover {
-  background: #3c3c3c;
+  background: #f7f9fc;
+  border-color: #d7dee9;
 }
 
-/* 按钮按下轻微缩小 */
+/** 按钮按下 */
 .btn:active {
-  transform: scale(0.98);
+  background: #eff2f7;
 }
 
-/* 主按钮：浅底深字 */
+/** 主按钮 */
 .btn.primary {
-  background: var(--text);
-  border-color: var(--text);
-  color: #1d1d1d;
-  font-weight: 600;
+  border-color: transparent;
+  background: var(--accent);
+  color: #ffffff;
 }
 
-/* 主按钮悬停 */
+/** 主按钮悬停 */
 .btn.primary:hover {
-  background: #fff;
+  background: #3f6dc7;
 }
 
-/* 幽灵按钮：透明底 */
+/** 次要按钮 */
 .btn.ghost {
+  border-color: transparent;
   background: transparent;
+  color: #4b515a;
 }
 
-/* 幽灵按钮悬停 */
+/** 次要按钮悬停 */
 .btn.ghost:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: #eef1f6;
 }
 
-/* 危险按钮：红字红边 */
+/** 危险按钮 */
 .btn.danger {
-  background: transparent;
-  border-color: #5c3a3a;
-  color: #e0a0a0;
+  border-color: #f0d6d6;
+  color: var(--danger);
 }
 
-/* 危险按钮悬停 */
+/** 危险按钮悬停 */
 .btn.danger:hover {
-  background: #4a2a2a;
+  background: #fdf2f2;
 }
 
-/* 危险按钮二次确认态 */
+/** 危险按钮的二次确认态 */
 .btn.armed {
-  background: #7a2f2f;
-  border-color: #a04040;
-  color: #fff;
+  border-color: transparent;
+  background: var(--danger);
+  color: #ffffff;
 }
 
-/* 列表 */
+/** 二次确认态悬停，颜色压深而不是变浅，避免白字落在浅底上 */
+.btn.armed:hover {
+  background: #b23a3a;
+}
+
+/** 列表分组 */
 .list-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
-/* 列表小标题 */
+/** 列表标题行 */
 .list-head {
-  font-size: 13px;
-  color: var(--text-faint);
-  letter-spacing: 0.5px;
-  padding-left: 2px;
-}
-
-/* 列表容器：圆角描边，内部裁剪 */
-.list {
-  display: flex;
-  flex-direction: column;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--panel);
-  overflow: hidden;
-}
-
-/* 列表行 */
-.row {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
   display: flex;
   align-items: center;
-  gap: 14px;
-  min-height: 68px;
-  padding: 12px 18px;
-  border-bottom: 1px solid var(--line);
-  transition: background-color 0.16s ease;
+  gap: 8px;
+  padding: 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
 }
 
-/* 列表行悬停 */
+/** 列表卡片 */
+.list {
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow: 0 1px 2px rgba(20, 24, 35, 0.05);
+  overflow: hidden;
+}
+
+/** 列表行 */
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+/** 首行不画分隔线 */
+.row:first-child {
+  border-top: 0;
+}
+
+/** 列表行悬停 */
 .row:hover {
-  background: rgba(255, 255, 255, 0.025);
+  background: #f8fafc;
 }
 
-/* 最后一行去掉分隔线 */
-.row:last-child {
-  border-bottom: none;
-}
-
-/* 行首图标块 */
+/** 行内图标 */
 .row-icon {
-  width: 40px;
-  height: 40px;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
   display: grid;
   place-items: center;
-  flex: none;
-  border-radius: 10px;
-  background: #3a3a3a;
-  font-size: 20px;
+  border-radius: 50%;
+  background: var(--tint);
+  font-size: 16px;
+  line-height: 1;
 }
 
-/* 行主内容区 */
+/** 行文字区 */
 .row-main {
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 
-/* 行标题，超长省略 */
+/** 行标题 */
 .row-name {
-  font-size: 15px;
-  color: #f0f0f0;
+  font-size: 14.5px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* 行副标题 */
+/** 行说明 */
 .row-sub {
   font-size: 12px;
-  color: var(--text-faint);
+  color: var(--sub);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* 行右侧操作区 */
+/** 行右侧操作区 */
 .row-actions {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex: none;
+  gap: 8px;
 }
 
-/* 标签胶囊 */
+/** 来源徽标 */
 .badge {
-  padding: 3px 10px;
-  border: 1px solid var(--line-2);
-  border-radius: 999px;
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #eef1f5;
+  color: #6b7280;
   font-size: 11px;
-  color: var(--text-dim);
+  line-height: 18px;
 }
 
-/* 用户标签：绿色描边 */
+/** 用户元素徽标 */
 .badge.user {
-  border-color: #4a5b4a;
-  color: #a8c8a8;
+  background: var(--tint);
+  color: var(--accent);
 }
 
-/* 空状态提示块 */
+/** 空状态卡片 */
 .empty {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 32px;
-  border: 1px dashed var(--line-2);
-  border-radius: 12px;
+  padding: 36px 16px;
+  border: 1px dashed #d9dee7;
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--sub);
   font-size: 13px;
-  color: var(--text-faint);
+  text-align: center;
 }
 
-/* 详情两栏：表单在左，预览在右并随滚动吸顶 */
+/** 详情页两栏：表单 + 预览 */
 .detail-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 300px;
-  gap: 32px;
+  gap: 24px;
   align-items: start;
 }
 
-/* 左栏表单 */
+/** 表单列 */
 .form-column {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
   min-width: 0;
 }
 
-/* 右栏预览，滚动时吸顶 */
+/** 预览列 */
 .preview-column {
   position: sticky;
-  top: 40px;
+  top: 24px;
 }
 
-/* 预览区纵向布局 */
+/** 预览卡片 */
 .preview {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
+  padding: 16px;
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow: 0 1px 2px rgba(20, 24, 35, 0.05);
 }
 
-/* 预览画布 */
+/** 预览画布：浅色底便于看清浅色粒子 */
 .preview canvas {
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: #1f1f1f;
+  width: 180px;
+  height: 180px;
+  border-radius: 12px;
+  background: #f2f4f8;
 }
 
-/* 预览说明文字 */
+/** 预览说明文字 */
 .preview-caption {
   font-size: 12px;
-  color: var(--text-faint);
+  color: var(--sub);
   text-align: center;
 }
 
-/* 表单分组（可折叠）：面板高度由 JS 过渡，见 fields.ts 里的 group() */
+/** 可折叠分组卡片 */
 .group {
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--panel);
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow: 0 1px 2px rgba(20, 24, 35, 0.05);
   overflow: hidden;
 }
 
-/* 分组标题按钮，点击折叠 */
+/** 分组标题按钮 */
 .group-title {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
-  height: 52px;
-  padding: 0 18px;
-  border: none;
+  padding: 14px 16px;
+  border: 0;
   background: transparent;
-  color: #dadada;
+  color: inherit;
   font: inherit;
   font-size: 14px;
   font-weight: 600;
   text-align: left;
   cursor: pointer;
-  user-select: none;
-  transition: background-color 0.16s ease;
+  transition: background-color 0.15s ease;
 }
 
-/* 分组标题悬停 */
+/** 分组标题悬停 */
 .group-title:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: #fafbfd;
 }
 
-/* 分组箭头 */
+/** 分组标题前的箭头 */
 .group-arrow {
-  display: inline-block;
-  width: 12px;
-  color: var(--text-faint);
+  flex: 0 0 auto;
+  color: var(--sub);
   font-size: 12px;
-  transition: transform 0.26s var(--ease);
+  transition: transform 0.24s var(--ease);
 }
 
-/* 展开时箭头旋转 90 度 */
+/** 展开时箭头转向 */
 .group.open .group-arrow {
   transform: rotate(90deg);
 }
 
-/* 折叠面板：高度由 JS 过渡 */
+/** 分组标题文字 */
+.group-name {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/** 分组面板：高度由 JS 过渡 */
 .group-panel {
-  overflow: hidden;
   height: 0;
+  overflow: hidden;
   transition: height 0.26s var(--ease);
 }
 
-/* 分组内容区 */
+/** 展开动画结束后放开溢出，悬浮说明才不会被裁掉 */
+.group.settled .group-panel {
+  overflow: visible;
+}
+
+/** 分组字段容器 */
 .group-body {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 4px 18px 22px;
+  gap: 14px;
+  padding: 2px 16px 18px;
 }
 
-/* 单行字段：左标签右控件 */
+/** 字段行：标签在左、控件在右 */
 .field {
-  display: grid;
-  grid-template-columns: 116px minmax(0, 1fr);
+  display: flex;
   align-items: center;
   gap: 16px;
-  min-height: var(--control-h);
+  min-height: var(--control);
 }
 
-/* 字段标签 */
+/** 字段标签 */
 .field-label {
-  font-size: 13px;
-  color: var(--text-dim);
+  flex: 0 0 116px;
+  font-size: 13.5px;
+  color: #4b515a;
 }
 
-/* 字段提示，占第二列 */
+/** 字段说明 */
 .field-hint {
-  grid-column: 2;
-  font-size: 11px;
-  line-height: 1.5;
-  color: #7a7a7a;
-}
-
-/* 小节标题 */
-.sub-title {
-  margin-top: 4px;
+  flex: 1 1 auto;
   font-size: 12px;
-  color: var(--text-faint);
-  letter-spacing: 0.3px;
+  color: var(--sub);
 }
 
-/* 输入控件 */
-.input {
-  width: 100%;
-  height: var(--control-h);
-  padding: 0 14px;
-  border: 1px solid var(--line-2);
+/** 字段说明的出错态 */
+.field-hint.error {
+  color: var(--danger);
+}
+
+/** 带悬浮说明的标签：虚线下划线提示可看解释 */
+.has-tip {
+  position: relative;
+  cursor: help;
+  text-decoration: underline dotted rgba(74, 123, 216, 0.45);
+  text-underline-offset: 4px;
+}
+
+/** 悬浮说明气泡：默认隐藏，鼠标移上去淡入 */
+.has-tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  z-index: 20;
+  width: max-content;
+  max-width: 260px;
+  padding: 8px 10px;
   border-radius: 8px;
-  background: var(--panel-2);
+  background: #1f2328;
+  color: #f4f5f7;
+  font-size: 12px;
+  line-height: 1.5;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
+}
+
+/** 悬浮说明气泡的显示态 */
+.has-tip:hover::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+/** 字段内的小标题 */
+.sub-title {
+  padding-top: 6px;
+  font-size: 12px;
+  color: var(--sub);
+}
+
+/** 文本类输入 */
+.input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: var(--control);
+  padding: 0 12px;
+  border: 1px solid #e3e7ee;
+  border-radius: 10px;
+  background: #ffffff;
   color: var(--text);
   font: inherit;
-  font-size: 14px;
-  transition: border-color 0.16s ease, background-color 0.16s ease;
-}
-
-/* 文本类输入框限宽：内容区铺满后不要把单行文本框拉成一整行 */
-.field > .input:not(.color) {
-  max-width: 720px;
-}
-
-/* 输入框悬停 */
-.input:hover {
-  border-color: #5a5a5a;
-}
-
-/* 输入框聚焦 */
-.input:focus {
+  font-size: 13.5px;
   outline: none;
-  border-color: #7a7a7a;
-  background: #2a2a2a;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-/* 取色器输入框：固定 64px 宽 */
+/** 输入框悬停 */
+.input:hover {
+  border-color: #d7dee9;
+}
+
+/** 输入框聚焦 */
+.input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(74, 123, 216, 0.14);
+}
+
+/** 颜色选择器 */
 .input.color {
-  width: 64px;
+  flex: 0 0 auto;
+  width: 44px;
   padding: 4px;
   cursor: pointer;
 }
 
-/* 下拉框：去掉原生箭头 */
+/** 下拉框 */
 .select {
-  appearance: none;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: var(--control);
+  padding: 0 10px;
+  border: 1px solid #e3e7ee;
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+  outline: none;
+}
+
+/** 多行文本 */
+.textarea {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 88px;
+  padding: 10px 12px;
+  border: 1px solid #e3e7ee;
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+  line-height: 1.55;
+  outline: none;
+  resize: vertical;
+}
+
+/** 纵向堆叠的控件组 */
+.stack {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/** 文件选择按钮 */
+.file {
+  flex: 0 0 auto;
+  height: var(--control);
+  padding: 0 16px;
+  border: 1px solid #e3e7ee;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #33383f;
+  font: inherit;
+  font-size: 13.5px;
   cursor: pointer;
 }
 
-/* 多行文本域：等宽字体、可纵向拉伸 */
-.textarea {
-  height: auto;
-  padding: 12px 14px;
-  resize: vertical;
-  font-family: Consolas, 'Courier New', monospace;
-  font-size: 12px;
-  line-height: 1.6;
-}
-
-/* 纵向堆叠容器 */
-.stack {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* 文件名文字 */
-.file {
-  font-size: 12px;
-  color: var(--text-dim);
-}
-
-/* 隐藏的原生文件输入 */
+/** 隐藏的原生文件输入 */
 .hidden-file {
   display: none;
 }
 
-/* 图片缩略图：最大 132px */
+/** 图片缩略图 */
 .thumb {
-  max-width: 132px;
-  max-height: 132px;
-  border: 1px solid var(--line-2);
+  flex: 0 0 auto;
+  width: 64px;
+  height: 64px;
+  border: 1px solid #e3e7ee;
   border-radius: 10px;
-  background: #1f1f1f;
+  object-fit: contain;
+  background: #f7f9fc;
 }
 
-/* 数值滑块：轨道 5px，拇指 18px，右侧跟实时读数 */
-.slider {
+/** 滑块：自绘轨道加圆点，读数只以气泡形式出现 */
+.track {
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
-  align-items: center;
-  gap: 14px;
-  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
 }
 
-/* 滑块轨道：5px 高 */
-.range {
-  flex: 1;
-  min-width: 0;
-  height: 5px;
-  border-radius: 3px;
-  background: var(--line);
-  appearance: none;
-  -webkit-appearance: none;
-  outline: none;
+/** 轨道的可点击区域 */
+.track-area {
+  position: relative;
+  height: 20px;
   cursor: pointer;
+  touch-action: none;
 }
 
-/* WebKit 滑块拇指：18px 圆点 */
-.range::-webkit-slider-thumb {
-  -webkit-appearance: none;
+/** 轨道底线：左右各让出 28px，圆点走不到让气泡贴边的位置 */
+.track-rail {
+  position: absolute;
+  top: 50%;
+  left: 28px;
+  right: 28px;
+  height: 4px;
+  margin-top: -2px;
+  border-radius: 2px;
+  background: #e3e7ee;
+}
+
+/** 轨道上的圆点容器：负责定位与命中区域 */
+.track-thumb {
+  position: absolute;
+  top: 50%;
   width: 18px;
   height: 18px;
-  border: none;
+  margin: -9px 0 0 -9px;
+  touch-action: none;
+}
+
+/** 圆点本体 */
+.track-dot {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 2px solid var(--accent);
   border-radius: 50%;
-  background: var(--text);
-  box-shadow: 0 0 0 0 rgba(232, 232, 232, 0.18);
-  transition: box-shadow 0.15s ease, transform 0.12s ease;
+  background: #ffffff;
+  cursor: grab;
+  transition: transform 0.15s ease, border-color 0.15s ease;
 }
 
-/* 拇指悬停光晕 */
-.range:hover::-webkit-slider-thumb {
-  box-shadow: 0 0 0 7px rgba(232, 232, 232, 0.1);
+/** 圆点悬停：放大并加深描边 */
+.track-thumb:hover .track-dot {
+  border-color: var(--accent-deep);
+  transform: scale(1.18);
 }
 
-/* 拇指按下略放大 */
-.range:active::-webkit-slider-thumb {
-  transform: scale(1.06);
+/** 圆点拖动中 */
+.track-thumb.dragging .track-dot {
+  border-color: var(--accent-deep);
+  transform: scale(1.08);
+  cursor: grabbing;
 }
 
-/* Firefox 滑块拇指 */
-.range::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  border: none;
-  border-radius: 50%;
-  background: var(--text);
+/** 圆点的键盘焦点 */
+.track-thumb:focus-visible .track-dot {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 
-/* Firefox 滑块轨道 */
-.range::-moz-range-track {
-  height: 5px;
-  border-radius: 3px;
-  background: var(--line);
+/** 圆点上方的读数气泡：位置只跟随圆点，不做位移过渡 */
+.track-tip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  z-index: 6;
+  display: flex;
+  gap: 3px;
+  align-items: baseline;
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: #1f2328;
+  color: #f4f5f7;
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateX(-50%);
+  transition: opacity 0.12s ease, visibility 0.12s;
 }
 
-/* 滑块右侧实时读数：等宽数字、右对齐 */
-.range-value {
-  flex: none;
-  min-width: 76px;
+/** 气泡里的名称更淡一些 */
+.track-tip-label {
+  color: #9aa3ae;
+}
+
+/** 气泡里的数字定宽右对齐，位数变化时气泡宽度不变 */
+.track-tip-value {
   text-align: right;
-  font-size: 13px;
-  color: #ddd;
   font-variant-numeric: tabular-nums;
 }
 
-/* 档位滑块组 */
-.preset-sliders {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+/** 气泡在悬浮、键盘聚焦或拖动时出现 */
+.track-thumb:hover .track-tip,
+.track-thumb.dragging .track-tip,
+.track-thumb:focus-visible .track-tip {
+  opacity: 1;
+  visibility: visible;
 }
 
-/* 单个档位滑块行 */
-.preset-line {
-  display: grid;
-  grid-template-columns: 64px minmax(0, 1fr);
-  align-items: center;
-  gap: 14px;
-}
-
-/* 档位名称 */
-.preset-name {
-  font-size: 12px;
-  color: var(--text-faint);
-}
-
-/* 分段按钮组 */
+/** 分段按钮组 */
 .seg {
-  display: inline-flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
 }
 
-/* 分段按钮 */
+/** 分段按钮 */
 .seg-btn {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  height: 42px;
-  padding: 0 20px;
-  border: 1px solid var(--line-2);
-  border-radius: 8px;
-  background: var(--panel-2);
-  color: #c8c8c8;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid #e3e7ee;
+  border-radius: 9px;
+  background: #fbfcfd;
+  color: #4b515a;
   font: inherit;
   font-size: 13px;
   cursor: pointer;
   transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-/* 分段按钮悬停 */
+/** 分段按钮悬停 */
 .seg-btn:hover {
-  background: #333;
-  color: #eee;
+  background: #f3f6fb;
+  border-color: #d7e0f2;
 }
 
-/* 分段按钮选中态 */
+/** 分段按钮选中 */
 .seg-btn.active {
-  background: var(--text);
-  border-color: var(--text);
-  color: #1d1d1d;
-  font-weight: 600;
+  background: var(--tint);
+  border-color: #c6d7f7;
+  color: var(--accent);
+  font-weight: 500;
 }
 
-/* emoji 预设网格 */
+/** 表情网格 */
 .emoji-grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 44px);
   gap: 8px;
 }
 
-/* emoji 按钮 */
+/** 表情按钮 */
 .emoji-btn {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  width: 46px;
-  height: 46px;
-  border: 1px solid var(--line-2);
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #e3e7ee;
   border-radius: 10px;
-  background: var(--panel-2);
-  font-size: 20px;
+  background: #fbfcfd;
+  font-size: 18px;
   cursor: pointer;
-  transition: background-color 0.15s ease, transform 0.12s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
-/* emoji 按钮悬停上浮 */
+/** 表情按钮悬停 */
 .emoji-btn:hover {
-  background: #3a3a3a;
-  transform: translateY(-1px);
+  background: #f3f6fb;
+  border-color: #d7e0f2;
 }
 
-/* 底部操作按钮组 */
+/** 表情按钮选中 */
+.emoji-btn.active {
+  background: var(--tint);
+  border-color: #c6d7f7;
+}
+
+/** 底部操作按钮组 */
 .actions {
   display: flex;
   gap: 10px;
-  flex-wrap: wrap;
 }
 
-/* 表单错误提示条 */
+/** 按钮上的悬浮说明：只借气泡，不要下划线与问号光标 */
+.btn.has-tip {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+/** 校验错误条 */
 .error-bar {
-  padding: 12px 14px;
-  border: 1px solid #6a3434;
-  border-radius: 10px;
-  background: #3d2626;
-  color: #f0b8b8;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  background: #fdf2f2;
+  color: var(--danger);
   font-size: 13px;
 }
 
-/* 轻提示容器 */
+/** 提示浮层容器 */
 #toast-host {
   position: fixed;
   right: 28px;
   bottom: 28px;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
   gap: 10px;
-  z-index: 1000;
-  pointer-events: none;
+  z-index: 100;
 }
 
-/* 轻提示气泡 */
+/** 提示卡片 */
 .toast {
-  padding: 12px 22px;
-  border-radius: 999px;
-  background: #f0f0f0;
-  color: #1d1d1d;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #33383f;
   font-size: 13px;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
-  animation: toast-in 0.18s ease;
+  box-shadow: 0 6px 20px rgba(20, 24, 35, 0.14);
+  animation: toast-in 0.2s var(--ease);
 }
 
-/* 错误提示气泡 */
+/** 错误提示卡片 */
 .toast.error {
-  background: #d85c5c;
-  color: #fff;
+  color: var(--danger);
 }
 
-/* 轻提示入场：淡入并上移 */
+/** 线条图标的容器：方形对齐，颜色跟随文字 */
+.icon-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+/** 图标内的 SVG 不参与基线对齐 */
+.icon-glyph svg {
+  display: block;
+}
+
+/** 提示出现动画 */
 @keyframes toast-in {
   from {
     opacity: 0;
     transform: translateY(6px);
   }
+
   to {
     opacity: 1;
-    transform: none;
+    transform: translateY(0);
   }
 }
 
-/* 聚光灯：光标位置由 effects.ts 写入 --mx/--my，这里只画一层跟随光斑 */
-.row::after,
-.btn::after,
-.seg-btn::after,
-.nav-item::after,
-.emoji-btn::after,
-.group-title::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background: radial-gradient(
-    140px circle at var(--mx, 50%) var(--my, 50%),
-    rgba(255, 255, 255, 0.13),
-    transparent 62%
-  );
-  opacity: 0;
-  transition: opacity 0.18s ease;
-  z-index: 0;
-}
-
-/* 悬停时显示光斑 */
-.row:hover::after,
-.btn:hover::after,
-.seg-btn:hover::after,
-.nav-item:hover::after,
-.emoji-btn:hover::after,
-.group-title:hover::after {
-  opacity: 1;
-}
-
-/* 白底按钮上的光斑要反过来才看得见 */
-.btn.primary::after,
-.seg-btn.active::after {
-  background: radial-gradient(
-    140px circle at var(--mx, 50%) var(--my, 50%),
-    rgba(0, 0, 0, 0.12),
-    transparent 62%
-  );
-}
-
-/* 点击波纹 */
-.ripple {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  pointer-events: none;
-  transform: scale(0);
-  animation: ripple-grow 0.5s ease-out forwards;
-  z-index: 0;
-}
-
-/* 浅底按钮上的波纹改为深色 */
-.btn.primary .ripple,
-.seg-btn.active .ripple {
-  background: rgba(0, 0, 0, 0.14);
-}
-
-/* 波纹扩散：放大并淡出 */
-@keyframes ripple-grow {
-  to {
-    transform: scale(1);
-    opacity: 0;
-  }
-}
-
-/* 内容元素要压在光斑与波纹之上 */
-.btn > *,
-.seg-btn > *,
-.nav-item > *,
-.emoji-btn > *,
-.group-title > *,
-.row > * {
-  position: relative;
-  z-index: 1;
-}
-
-/* 尊重系统"减少动态效果"设置 */
+/** 减少动效偏好下关闭过渡与动画 */
 @media (prefers-reduced-motion: reduce) {
-  /* 关闭折叠与拇指的过渡 */
   .group-panel,
   .group-arrow,
-  .range::-webkit-slider-thumb {
+  .row,
+  .btn,
+  .nav-item {
     transition: none;
   }
 
-  /* 关闭点击波纹 */
-  .ripple {
-    display: none;
+  .toast {
+    animation: none;
   }
 }

@@ -69,18 +69,26 @@ export interface MotionSpec {
   twinkleSpeed: number; // 闪烁频率，仅 twinkle 使用
 }
 
-/* 闪烁元素的出现规则 */
-export interface TargetSpec {
-  region: 'top-third' | 'full'; // 出现区域
-  visibleFrom: number; // 起始小时 0-23
-  visibleTo: number; // 结束小时 0-23，可跨午夜
+/* 出现区域，相对视口的比例 */
+export interface Region {
+  x: number; // 左边界 0-1
+  y: number; // 上边界 0-1
+  w: number; // 宽度 0-1
+  h: number; // 高度 0-1
 }
 
-/* 元素的出厂当前值 */
-export interface ParticleDefaults {
-  speed: number; // px/s
-  size: number; // px
-  count: number; // fall 为个/分钟，twinkle 为午夜峰值颗数
+/* 出现时段，按小时计 */
+export interface VisibleWindow {
+  from: number; // 开始小时 0-24
+  to: number; // 结束小时 0-24
+  wrap: boolean; // 为 true 时出现时段为两点之外，即跨午夜
+}
+
+/* 三个轴的档位值 */
+export interface AxisPresets {
+  speed: number[]; // 速度档位（px/s），闪烁元素可为空
+  size: number[]; // 大小档位（px）
+  count: number[]; // 数目档位：fall 为个/分钟，twinkle 为颗
 }
 
 /* 元素描述符，内置元素与用户元素共用 */
@@ -94,12 +102,10 @@ export interface ElementDescriptor {
   render: ElementRender; // 外观
   color?: string; // 固定色，无 palettes 时使用
   palettes?: Partial<Record<Season, string[]>>; // 按季节色板，仅内置叶子使用
-  speedPresets: number[]; // 速度档位（px/s），闪烁元素可为空
-  sizePresets: number[]; // 大小档位（px）
-  countPresets: number[]; // 数目档位
+  presets: AxisPresets; // 三轴档位值，弹窗里按档位选择
   motion: MotionSpec; // 运动参数
-  target?: TargetSpec; // 出现规则，仅闪烁元素
-  defaults: ParticleDefaults; // 出厂当前值
+  region: Region; // 出现区域，两种行为都使用
+  visible: VisibleWindow; // 出现时段，两种行为都使用
 }
 
 /* 内置元素的一条定义，id/source 由注册表注入 */
@@ -130,7 +136,7 @@ const limit = (min: number, max: number, step: number): NumericLimit => ({ min, 
 export const NUMERIC_LIMITS = {
   speed: limit(0, 200, 1), // 速度 px/s
   size: limit(1, 120, 0.5), // 大小 px
-  countFall: limit(0, 1800, 1), // 飘落数目 个/分钟
+  countFall: limit(0, 360, 1), // 飘落数目 个/分钟
   countTwinkle: limit(0, 300, 1), // 闪烁数目 颗
   jitter: limit(0, 1, 0.01), // 抖动比例
   wobbleSpeed: limit(0, 5, 0.1), // 摆动频率
@@ -138,7 +144,8 @@ export const NUMERIC_LIMITS = {
   rotationSpeed: limit(-3, 3, 0.05), // 旋转速度，负值反向
   opacity: limit(0, 1, 0.01), // 不透明度
   twinkleSpeed: limit(0, 10, 0.1), // 闪烁频率
-  hour: limit(0, 23, 1), // 小时
+  hour: limit(0, 24, 0.5), // 小时，允许半小时
+  region: limit(0, 1, 0.01), // 区域比例
   aspect: limit(0.1, 10, 0.1), // 图片宽高比
 } as const;
 
@@ -152,6 +159,40 @@ function num(value: unknown, l: NumericLimit, fallback: number): number {
 function clampList(values: unknown, l: NumericLimit): number[] {
   if (!Array.isArray(values)) return [];
   return values.slice(0, 8).map((v) => num(v, l, l.min));
+}
+
+/* 按步长取整，去掉浮点尾巴 */
+function roundStep(value: number, step: number): number {
+  return Math.round(value / step) * step;
+}
+
+/* 夹取出现区域，宽高至少 0.05，右下边界不越界 */
+export function clampRegion(region: Region | undefined): Region {
+  const l = NUMERIC_LIMITS.region;
+  const w = Math.min(1, Math.max(0.05, num(region?.w, l, 1)));
+  const h = Math.min(1, Math.max(0.05, num(region?.h, l, 1)));
+  return {
+    x: Math.min(num(region?.x, l, 0), 1 - w),
+    y: Math.min(num(region?.y, l, 0), 1 - h),
+    w,
+    h,
+  };
+}
+
+/* 夹取出现时段，按半小时取整 */
+function clampVisible(visible: VisibleWindow | undefined): VisibleWindow {
+  const l = NUMERIC_LIMITS.hour;
+  return {
+    from: roundStep(num(visible?.from, l, 0), l.step),
+    to: roundStep(num(visible?.to, l, 24), l.step),
+    wrap: visible?.wrap === true,
+  };
+}
+
+/* 档位中间的档位下标，新建元素默认落在这里 */
+export function middlePresetIndex(length: number): number {
+  if (length <= 0) return 0;
+  return Math.min(length - 1, Math.floor(length / 2));
 }
 
 /**
@@ -169,7 +210,7 @@ export function clampDescriptor(desc: ElementDescriptor): ElementDescriptor {
     opacity: 0.9,
     twinkleSpeed: 0,
   };
-  const defaults: ParticleDefaults = desc.defaults ?? { speed: 28, size: 8, count: 20 };
+  const presets: AxisPresets = desc.presets ?? { speed: [], size: [], count: [] };
   const render: ElementRender =
     desc.render && desc.render.kind === 'image'
       ? { ...desc.render, aspect: num(desc.render.aspect, NUMERIC_LIMITS.aspect, 1) }
@@ -178,9 +219,11 @@ export function clampDescriptor(desc: ElementDescriptor): ElementDescriptor {
   return {
     ...desc,
     render,
-    speedPresets: clampList(desc.speedPresets, NUMERIC_LIMITS.speed),
-    sizePresets: clampList(desc.sizePresets, NUMERIC_LIMITS.size),
-    countPresets: clampList(desc.countPresets, countLimit),
+    presets: {
+      speed: clampList(presets.speed, NUMERIC_LIMITS.speed),
+      size: clampList(presets.size, NUMERIC_LIMITS.size),
+      count: clampList(presets.count, countLimit),
+    },
     motion: {
       jitter: num(motion.jitter, NUMERIC_LIMITS.jitter, 0.4),
       wobbleSpeed: num(motion.wobbleSpeed, NUMERIC_LIMITS.wobbleSpeed, 1.4),
@@ -189,17 +232,7 @@ export function clampDescriptor(desc: ElementDescriptor): ElementDescriptor {
       opacity: num(motion.opacity, NUMERIC_LIMITS.opacity, 0.9),
       twinkleSpeed: num(motion.twinkleSpeed, NUMERIC_LIMITS.twinkleSpeed, 0),
     },
-    target: desc.target
-      ? {
-          region: desc.target.region === 'full' ? 'full' : 'top-third',
-          visibleFrom: num(desc.target.visibleFrom, NUMERIC_LIMITS.hour, 19),
-          visibleTo: num(desc.target.visibleTo, NUMERIC_LIMITS.hour, 5),
-        }
-      : undefined,
-    defaults: {
-      speed: num(defaults.speed, NUMERIC_LIMITS.speed, 28),
-      size: num(defaults.size, NUMERIC_LIMITS.size, 8),
-      count: num(defaults.count, countLimit, 20),
-    },
+    region: clampRegion(desc.region),
+    visible: clampVisible(desc.visible),
   };
 }

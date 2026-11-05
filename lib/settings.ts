@@ -3,48 +3,67 @@
  * Licensed under MIT (see LICENSE).
  */
 
-/* 单个元素的当前值 */
+/* 单个轴的取值：档位或自定义数值 */
+export type AxisChoice =
+  | { kind: 'preset'; index: number } // 选了第几档
+  | { kind: 'custom'; value: number }; // 自定义数值
+
+/* 单个元素的当前值，三个轴各自二选一 */
 export interface ParticleValue {
-  speed: number; // px/s（twinkle 恒为 0）
-  size: number; // px
-  count: number; // fall 为个/分钟，twinkle 为午夜峰值颗数
+  speed: AxisChoice; // px/s（twinkle 不使用）
+  size: AxisChoice; // px
+  count: AxisChoice; // fall 为个/分钟，twinkle 为午夜峰值颗数
 }
 
 /* 全局设置 */
 export interface Settings {
+  schemaVersion: number; // 数据格式版本，与当前版本不符时整体重置
   season: string; // 季节：spring/summer/autumn/winter/custom-season/system-season
   customMonth: number; // 1-12，自定义季节时使用
   timeOfDay: string; // 时间：dawn/morning/noon/afternoon/dusk/evening/midnight/custom-time/system-time
-  customHour: number; // 0-23，自定义时间时使用
+  customHour: number; // 0-24，自定义时间时使用，允许半小时
   intensity: string; // 显示程度：misty/light/medium/deep/custom-intensity
   customIntensity: number; // 自定义显示程度 0-100
   particles: Record<string, ParticleValue>; // 每个元素的当前值，键为元素 id
 }
 
+/* 当前数据格式版本 */
+export const SCHEMA_VERSION = 2;
+
 /* 全局默认设置 */
 export const DEFAULT_SETTINGS: Settings = {
+  schemaVersion: SCHEMA_VERSION, // 当前版本
   season: 'system-season', // 跟随系统时间选季节
   customMonth: new Date().getMonth() + 1, // 默认当月
   timeOfDay: 'system-time', // 跟随系统时间
   customHour: new Date().getHours(), // 默认当前小时
   intensity: 'medium', // 默认中等
   customIntensity: 50, // 自定义档位默认值
-  particles: {}, // 空表示全部用描述符 defaults
+  particles: {}, // 空表示全部用档位中间值
 };
 
-/* 只保留数值型粒子配置，丢弃旧格式与非法值 */
+/* 判断一个值是不是合法的轴选择 */
+function isChoice(value: unknown): value is AxisChoice {
+  if (!value || typeof value !== 'object') return false;
+  const choice = value as { kind?: unknown; index?: unknown; value?: unknown };
+  if (choice.kind === 'custom') {
+    return typeof choice.value === 'number' && Number.isFinite(choice.value);
+  }
+  if (choice.kind === 'preset') {
+    return typeof choice.index === 'number' && Number.isInteger(choice.index) && choice.index >= 0;
+  }
+  return false;
+}
+
+/* 只保留合法的新版粒子配置，旧格式直接丢弃 */
 function sanitizeParticles(raw: unknown): Record<string, ParticleValue> {
   if (!raw || typeof raw !== 'object') return {};
   const out: Record<string, ParticleValue> = {};
-  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
-    if (!v || typeof v !== 'object') continue;
-    const p = v as { speed?: unknown; size?: unknown; count?: unknown };
-    if (
-      typeof p.speed === 'number' && Number.isFinite(p.speed) &&
-      typeof p.size === 'number' && Number.isFinite(p.size) &&
-      typeof p.count === 'number' && Number.isFinite(p.count)
-    ) {
-      out[k] = { speed: p.speed, size: p.size, count: p.count };
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!value || typeof value !== 'object') continue;
+    const item = value as { speed?: unknown; size?: unknown; count?: unknown };
+    if (isChoice(item.speed) && isChoice(item.size) && isChoice(item.count)) {
+      out[key] = { speed: item.speed, size: item.size, count: item.count };
     }
   }
   return out;

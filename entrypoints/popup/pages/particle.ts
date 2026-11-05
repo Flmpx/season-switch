@@ -4,11 +4,13 @@
  */
 
 import { pushPage, popPage } from '../nav';
-import { registry } from '../../envir/particle';
+import { cardRow, pageShell } from '../ui';
+import { registry, resolveParticleValue } from '../../envir/particle';
 import type { Settings } from '../../../lib/settings';
 import { renderElementPage } from './element';
+import { iconNode } from '../../../lib/icons';
 
-/* 标签页上下文；getContexts 仅 Chromium 116+ 支持 */
+/** 标签页上下文；getContexts 仅 Chromium 116+ 支持 */
 interface TabContext {
   tabId: number; // 标签页 ID
   windowId: number; // 窗口 ID
@@ -42,41 +44,38 @@ async function openManager(): Promise<void> {
   await chrome.tabs.sendMessage(hit.tabId, { type: 'manager:new' }).catch(() => undefined);
 }
 
-/* 渲染粒子列表页，右上「+」在新标签页打开管理页 */
+/**
+ * 渲染粒子列表页：每个元素一行，右上「+」在新标签页打开管理页
+ */
 export function renderParticlePage(settings: Settings): HTMLElement {
-  const page = document.createElement('div');
-  page.className = 'page';
-
-  const header = document.createElement('div');
-  header.className = 'page-header';
-  header.innerHTML =
-    '<button class="back" type="button">返回</button><span class="page-title">粒子</span>';
-  page.appendChild(header);
-
-  const body = document.createElement('div');
-  body.className = 'page-body';
+  const shell = pageShell('粒子', true, () => popPage());
 
   for (const desc of registry.list()) {
-    const row = document.createElement('button');
-    row.type = 'button';
-    row.className = 'row';
-    row.innerHTML = `<span class="row-label">${desc.icon} ${desc.label}</span><span class="chevron">›</span>`;
-    row.addEventListener('click', () => pushPage(renderElementPage(desc.id, settings)));
-    body.appendChild(row);
+    const value = resolveParticleValue(desc, settings);
+    const behavior = desc.behavior === 'fall' ? '飘落' : '闪烁';
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.appendChild(
+      cardRow({
+        icon: desc.icon,
+        label: desc.label,
+        desc: `${behavior} · ${value.size}px · 数量 ${value.count}`,
+        right: 'chevron',
+        onClick: () => pushPage(renderElementPage(desc.id, settings)),
+      }),
+    );
+    shell.body.appendChild(card);
   }
 
-  page.appendChild(body);
-
-  const addBtn = document.createElement('button');
-  addBtn.type = 'button';
-  addBtn.className = 'add';
-  addBtn.title = '新建粒子';
-  addBtn.textContent = '+';
-  addBtn.addEventListener('click', () => {
+  const addButton = document.createElement('button');
+  addButton.type = 'button';
+  addButton.className = 'add';
+  addButton.title = '新建粒子';
+  addButton.appendChild(iconNode('plus', 16));
+  addButton.addEventListener('click', () => {
     void openManager();
   });
-  header.appendChild(addBtn);
+  shell.header.appendChild(addButton);
 
-  header.querySelector('.back')!.addEventListener('click', () => popPage());
-  return page;
+  return shell.page;
 }

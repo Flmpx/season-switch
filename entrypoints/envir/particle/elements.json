@@ -1,7 +1,7 @@
 {
   "leaf": {
     "label": "叶子",
-    "icon": "🍃",
+    "icon": "leaf",
     "behavior": "fall",
     "seasons": ["spring", "summer", "autumn"],
     "render": {
@@ -24,9 +24,11 @@
       "summer": ["#2E8B57", "#3CB371", "#228B22"],
       "autumn": ["#DAA520", "#FFD700", "#FF8C00", "#D2691E", "#8B4513"]
     },
-    "speedPresets": [14, 28, 50],
-    "sizePresets": [4, 7, 10],
-    "countPresets": [10, 20, 50, 120],
+    "presets": {
+      "speed": [14, 28, 50],
+      "size": [4, 7, 10],
+      "count": [10, 20, 50, 120]
+    },
     "motion": {
       "jitter": 0.4,
       "wobbleSpeed": 1.4,
@@ -35,11 +37,12 @@
       "opacity": 0.75,
       "twinkleSpeed": 0
     },
-    "defaults": { "speed": 28, "size": 7, "count": 50 }
+    "region": { "x": 0, "y": 0, "w": 1, "h": 1 },
+    "visible": { "from": 0, "to": 24, "wrap": false }
   },
   "snow": {
     "label": "雪花",
-    "icon": "❄️",
+    "icon": "snow",
     "behavior": "fall",
     "seasons": ["winter"],
     "render": {
@@ -60,9 +63,11 @@
       ]
     },
     "color": "#FFFFFF",
-    "speedPresets": [10, 20, 36],
-    "sizePresets": [4, 6.5, 10],
-    "countPresets": [10, 20, 50, 120],
+    "presets": {
+      "speed": [10, 20, 36],
+      "size": [4, 6.5, 10],
+      "count": [10, 20, 50, 120]
+    },
     "motion": {
       "jitter": 0.45,
       "wobbleSpeed": 0.8,
@@ -71,11 +76,12 @@
       "opacity": 0.65,
       "twinkleSpeed": 0
     },
-    "defaults": { "speed": 20, "size": 6.5, "count": 50 }
+    "region": { "x": 0, "y": 0, "w": 1, "h": 1 },
+    "visible": { "from": 0, "to": 24, "wrap": false }
   },
   "star": {
     "label": "星光",
-    "icon": "⭐",
+    "icon": "star",
     "behavior": "twinkle",
     "seasons": [],
     "render": {
@@ -96,9 +102,11 @@
       ]
     },
     "color": "#FFFAD6",
-    "speedPresets": [],
-    "sizePresets": [1, 2, 3],
-    "countPresets": [15, 30, 60, 120],
+    "presets": {
+      "speed": [],
+      "size": [1, 2, 3],
+      "count": [15, 30, 60, 120]
+    },
     "motion": {
       "jitter": 0.4,
       "wobbleSpeed": 0,
@@ -107,7 +115,7 @@
       "opacity": 0.75,
       "twinkleSpeed": 1.9
     },
-    "target": { "region": "top-third", "visibleFrom": 19, "visibleTo": 5 },
-    "defaults": { "speed": 0, "size": 2, "count": 60 }
+    "region": { "x": 0, "y": 0, "w": 1, "h": 0.3333 },
+    "visible": { "from": 19, "to": 5, "wrap": true }
   }
 }

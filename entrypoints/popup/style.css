@@ -3,20 +3,40 @@
  * Licensed under MIT (see LICENSE).
  */
 
-/* 全局盒模型重置 */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/**
+ * 弹窗样式：白底卡片风格，一级页是入口卡片，二级页是选项卡片列表
+ */
+
+/* 主题色与尺寸变量 */
+:root {
+  --bg: #f4f5f7; /* 弹窗底色 */
+  --card: #ffffff; /* 卡片底色 */
+  --text: #1f2328; /* 主文字 */
+  --sub: #8a919b; /* 次要文字 */
+  --accent: #4a7bd8; /* 强调色 */
+  --accent-deep: #31599f; /* 强调色的加深版，用于滑块悬停 */
+  --tint: #e8eefb; /* 图标底色 */
+  --radius: 14px; /* 卡片圆角 */
+  --ease: cubic-bezier(0.32, 0.72, 0, 1); /* 统一缓动曲线 */
 }
 
-/* 弹窗整体：中灰底、宽度固定、高度由内容驱动 */
+/* 全局盒模型重置 */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 弹窗根节点：宽度固定，高度由内容撑开 */
 body {
   width: 340px;
   height: auto;
-  font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif;
-  background: #3c3c3c;
-  color: #e8e8e8;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.45 -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 /* 导航栈容器：裁切溢出的相邻页面 */
@@ -32,7 +52,7 @@ body {
   width: 100%;
   height: 0;
   overflow: hidden;
-  transition: height 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: height 0.3s var(--ease);
 }
 
 /* 单个页面：绝对定位叠放，最高 600px（Chrome 弹窗上限），超出由正文滚动 */
@@ -44,309 +64,355 @@ body {
   max-height: 600px;
   display: flex;
   flex-direction: column;
-  background: #3c3c3c;
-  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  background: var(--bg);
+  transform: translateX(100%);
+  transition: transform 0.3s var(--ease);
   will-change: transform;
 }
 
-/* 首屏或重置时关闭过渡，避免入场动画与高度突变打架 */
+/* 首屏或无需动画时，进入前先关掉过渡避免闪烁 */
 .pages.no-anim,
 .pages.no-anim .page {
   transition: none;
 }
 
-/* 页面页头：标题居中，返回键与「+」分别绝对定位在左右 */
+/* 页头：返回按钮与标题 */
 .page-header {
-  position: relative;
-  flex: 0 0 auto;
   display: flex;
   align-items: center;
-  justify-content: center;
-  height: 48px;
-  padding: 0 12px;
-  border-bottom: 1px solid #2a2a2a;
-  font-size: 15px;
-  font-weight: 600;
+  gap: 6px;
+  padding: 14px 14px 8px;
+  background: var(--bg);
 }
 
-/* 返回按钮：左侧绝对定位，字号略小于标题 */
-.page-header .back {
-  position: absolute;
-  left: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  padding: 4px 6px;
-  border: none;
-  border-radius: 6px;
-  background-color: transparent;
-  color: #d2d2d2;
+/* 返回按钮：只用左侧箭头，不放文字 */
+.back {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
   cursor: pointer;
-  font-size: 14px;
-  font-family: inherit;
-  overflow: hidden;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.15s ease;
 }
 
-/* 返回按钮 hover：光标位置处柔光跟随 */
-.page-header .back:hover {
-  background-color: rgba(255, 255, 255, 0.06);
-  background-image: radial-gradient(
-    80px circle at var(--mx, 50%) var(--my, 50%),
-    rgba(255, 255, 255, 0.18),
-    transparent 60%
-  );
-  color: #fff;
+/* 箭头本体由两条边旋转而成 */
+.back::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border-left: 2px solid var(--text);
+  border-bottom: 2px solid var(--text);
+  transform: rotate(45deg) translate(1px, -1px);
 }
 
-/* 页头标题 */
+/* 悬停时给一层浅底 */
+.back:hover {
+  background: rgba(31, 35, 40, 0.06);
+}
+
+/* 页标题 */
 .page-title {
-  color: #f2f2f2;
-  text-align: center;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
 }
 
-/* 页面主体：可独立滚动的内容区 */
+/* 页正文：唯一滚动区，底部留出安全间距 */
 .page-body {
   flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
-  padding: 12px;
+  padding: 2px 12px 16px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 10px;
 }
 
-/* 正文里的块保持自身高度：条目多时改为滚动，而不是被 flex 挤扁 */
+/* 正文里的直接子元素一律不压缩，粒子再多也是滚动而不是挤扁 */
 .page-body > * {
   flex: 0 0 auto;
 }
 
-/* 正文滚动条：深色细条，避免默认滚动条在暗色面板上太扎眼 */
+/* 滚动条：细、浅色，不抢视觉 */
 .page-body::-webkit-scrollbar {
   width: 6px;
 }
 
-/* 正文滚动条的滑块 */
-.page-body::-webkit-scrollbar-thumb {
-  border-radius: 3px;
-  background: #4a4a4a;
-}
-
-/* 正文滚动条的轨道 */
+/* 滚动条轨道留空，只显示滑块 */
 .page-body::-webkit-scrollbar-track {
   background: transparent;
 }
 
-/* 主选项行：带 › 指示符，点击下钻 */
-.row {
-  position: relative;
+/* 滚动条滑块 */
+.page-body::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background: rgba(31, 35, 40, 0.16);
+}
+
+/* 卡片：白底、圆角、极浅投影 */
+.card {
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow: 0 1px 2px rgba(20, 24, 35, 0.05);
   overflow: hidden;
+}
+
+/* 卡片行：左侧图标、中间两行文字、右侧箭头或勾选 */
+.card-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  height: 44px;
-  padding: 0 16px;
-  border: none;
-  border-radius: 8px;
-  background-color: transparent;
-  color: #e8e8e8;
-  cursor: pointer;
-  font-size: 14px;
-  font-family: inherit;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 14px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
   text-align: left;
-  transition: background-color 0.2s ease;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
 }
 
-/* 主选项行 hover：光标位置处柔光跟随 */
-.row:hover {
-  background-color: rgba(255, 255, 255, 0.06);
-  background-image: radial-gradient(
-    120px circle at var(--mx, 50%) var(--my, 50%),
-    rgba(255, 255, 255, 0.14),
-    transparent 60%
-  );
+/* 悬停时用底色变化表示，不做聚光灯 */
+.card-row:hover {
+  background: #f7f9fc;
 }
 
-/* 行文字：压在光斑之上 */
-.row-label {
-  color: #e8e8e8;
-  position: relative;
-  z-index: 1;
+/* 按下时再深一点 */
+.card-row:active {
+  background: #eff2f7;
 }
 
-/* 行右侧 › 指示符 */
-.row .chevron {
-  position: relative;
-  z-index: 1;
-  color: #9a9a9a;
-  font-size: 20px;
+/* 圆形图标底 */
+.icon {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--tint);
+  color: var(--accent);
+  font-size: 16px;
   line-height: 1;
 }
 
-/* 行 hover 时 › 变亮 */
-.row:hover .chevron {
-  color: #d2d2d2;
-}
-
-/* 选项按钮组：各子页复用 */
-.option-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-/* 选项按钮：白边框、点击立即变白底黑字；层叠上下文让波纹落在文字之下 */
-.option-btn {
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
+/* 图标节点：线条 SVG 或一个字符 */
+.icon-glyph {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 37px;
-  padding: 0 20px;
-  font-size: 14px;
-  border: 1px solid #ffffff;
-  border-radius: 8px;
-  background-color: transparent;
-  color: #e8e8e8;
-  cursor: pointer;
-  transition: none;
-  font-family: inherit;
-}
-
-/* 选项按钮 hover：光标位置处柔光跟随 */
-.option-btn:hover {
-  background-color: rgba(255, 255, 255, 0.06);
-  background-image: radial-gradient(
-    100px circle at var(--mx, 50%) var(--my, 50%),
-    rgba(255, 255, 255, 0.16),
-    transparent 60%
-  );
-  color: #fff;
-}
-
-/* 选项按钮选中态：白底黑字 */
-.option-btn.active {
-  background: #ffffff;
-  color: #161616;
-  font-weight: 600;
-}
-
-/* 自定义滑块行：滑块与数值并排 */
-.custom-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* 自定义滑块轨道 */
-.intensity-slider {
-  flex: 1;
-  -webkit-appearance: none;
-  appearance: none;
-  height: 4px;
-  border-radius: 2px;
-  background: #3a3a3a;
-  outline: none;
-}
-
-/* 滑块拖柄（Chromium 内核） */
-.intensity-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #e8e8e8;
-  cursor: pointer;
-  border: none;
-}
-
-/* 滑块拖柄（Firefox 内核） */
-.intensity-slider::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #e8e8e8;
-  cursor: pointer;
-  border: none;
-}
-
-/* 滑块当前值显示 */
-.intensity-value {
-  font-size: 12px;
-  color: #e8e8e8;
-  min-width: 36px;
-  text-align: right;
-  font-weight: 600;
-}
-
-/* 页头右侧「+」：与左侧「返回」对称，点击打开独立管理页 */
-.page-header .add {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  min-width: 28px;
-  height: 26px;
-  padding: 0 6px;
-  border: none;
-  border-radius: 6px;
-  background-color: transparent;
-  color: #d2d2d2;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 17px;
   line-height: 1;
-  overflow: hidden;
-  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* 「+」hover：光标位置处柔光跟随，与「返回」一致 */
-.page-header .add:hover {
-  background-color: rgba(255, 255, 255, 0.06);
-  background-image: radial-gradient(
-    80px circle at var(--mx, 50%) var(--my, 50%),
-    rgba(255, 255, 255, 0.18),
-    transparent 60%
-  );
-  color: #fff;
+/* 图标内的 SVG 不与文字基线对齐 */
+.icon-glyph svg {
+  display: block;
 }
 
-/* 子设置块：一个属性一组，标题 + 档位按钮 + 自定义滑块 */
-.sub-setting {
+/* 文字区：标题在上、说明在下 */
+.text {
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
 }
 
-/* 子设置块标题 */
-.sub-title {
-  font-size: 11px;
+/* 主文字 */
+.label {
+  font-size: 14.5px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 次要文字 */
+.desc {
+  font-size: 12px;
+  color: var(--sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 右侧箭头 */
+.chevron {
+  flex: 0 0 auto;
+  color: #c6ccd6;
+  font-size: 17px;
+  line-height: 1;
+}
+
+/* 右侧勾选，表示当前选项 */
+.check {
+  flex: 0 0 auto;
+  color: var(--accent);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* 选中行：标题变色 */
+.card-row.active .label {
+  color: var(--accent);
   font-weight: 500;
-  color: #9a9a9a;
-  letter-spacing: 0.5px;
 }
 
-/* 点击波纹：由 effects.ts 在点击点注入，比白底暗、比界面底色亮，落于文字之下 */
-.ripple {
-  position: absolute;
+/* 选中行：图标底色加深 */
+.card-row.active .icon {
+  background: #dbe6fb;
+}
+
+/* 滑块卡片：轨道与数值并排 */
+.slider-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+/* 滑块本体 */
+.range {
+  flex: 1 1 auto;
+  height: 4px;
+  border-radius: 2px;
+  background: #e3e7ee;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+/* 滑块轨道（Firefox） */
+.range::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: #e3e7ee;
+}
+
+/* 滑块拇指（WebKit） */
+.range::-webkit-slider-thumb {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--accent);
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.35);
-  transform: scale(0);
-  opacity: 0.6;
-  pointer-events: none;
-  z-index: -1;
-  animation: ripple-grey 0.32s ease-out forwards;
+  background: #ffffff;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: transform 0.15s ease, border-color 0.15s ease;
 }
 
-/* 灰色波纹扩散淡出 */
-@keyframes ripple-grey {
-  from {
-    transform: scale(0);
-    opacity: 0.6;
-  }
-  to {
-    transform: scale(1);
-    opacity: 0;
+/* 滑块拇指悬停：放大并加深描边，不做光晕 */
+.range::-webkit-slider-thumb:hover {
+  border-color: var(--accent-deep);
+  transform: scale(1.18);
+}
+
+/* 滑块拇指按下 */
+.range:active::-webkit-slider-thumb {
+  border-color: var(--accent-deep);
+  transform: scale(1.08);
+}
+
+/* 滑块拇指（Firefox） */
+.range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  background: #ffffff;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+/* 滑块拇指悬停（Firefox） */
+.range::-moz-range-thumb:hover {
+  border-color: var(--accent-deep);
+  transform: scale(1.18);
+}
+
+/* 滑块右侧数值 */
+.range-value {
+  flex: 0 0 auto;
+  min-width: 58px;
+  text-align: right;
+  font-size: 13px;
+  color: var(--sub);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 档位切换：横排小胶囊 */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 14px;
+}
+
+/* 单个档位 */
+.chip {
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid #e3e7ee;
+  border-radius: 9px;
+  background: #fbfcfd;
+  color: #4b515a;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+/* 悬停变浅底 */
+.chip:hover {
+  background: #f3f6fb;
+  border-color: #d7e0f2;
+}
+
+/* 选中的档位用强调色 */
+.chip.active {
+  background: var(--tint);
+  border-color: #c6d7f7;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* 粒子详情里每一轴的标题 */
+.axis-title {
+  padding: 4px 6px 0;
+  font-size: 12px;
+  color: var(--sub);
+}
+
+/* 头部「+」按钮：圆形浅底 */
+.add {
+  margin-left: auto;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--tint);
+  color: var(--accent);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+/* 悬停时底色加深 */
+.add:hover {
+  background: #dbe6fb;
+}
+
+/* 减少动效偏好下关闭过渡 */
+@media (prefers-reduced-motion: reduce) {
+  .pages,
+  .page {
+    transition: none;
   }
 }

@@ -3,7 +3,9 @@
  * Licensed under MIT (see LICENSE).
  */
 
-/* 管理页表单控件工厂：统一暗色样式，表单状态由调用方持有 */
+/*
+ * 管理页表单控件工厂：白卡片样式，表单状态由调用方持有
+ */
 
 /* 创建元素节点 */
 export function h<K extends keyof HTMLElementTagNameMap>(
@@ -57,7 +59,9 @@ export function group(title: string, open = true): Group {
     void panel.offsetHeight;
     panel.style.height = `${body.scrollHeight}px`;
     timer = window.setTimeout(() => {
-      if (opened) panel.style.height = 'auto';
+      if (!opened) return;
+      panel.style.height = 'auto';
+      root.classList.add('settled');
     }, GROUP_ANIM_MS);
   }
 
@@ -65,6 +69,7 @@ export function group(title: string, open = true): Group {
     if (!opened) return;
     opened = false;
     root.classList.remove('open');
+    root.classList.remove('settled');
     head.setAttribute('aria-expanded', 'false');
     window.clearTimeout(timer);
     panel.style.height = `${body.scrollHeight}px`;
@@ -80,6 +85,7 @@ export function group(title: string, open = true): Group {
   if (open) {
     opened = true;
     root.classList.add('open');
+    root.classList.add('settled');
     panel.style.height = 'auto';
   } else {
     panel.style.height = '0px';
@@ -96,17 +102,25 @@ export function group(title: string, open = true): Group {
   };
 }
 
-/* 分组内的小标题 */
-export function subTitle(text: string): HTMLElement {
-  return h('div', 'sub-title', text);
+/** 分组内的小标题，tip 为鼠标悬浮时显示的说明 */
+export function subTitle(text: string, tip?: string): HTMLElement {
+  const root = h('div', 'sub-title', text);
+  if (tip) {
+    root.dataset.tip = tip;
+    root.classList.add('has-tip');
+  }
+  return root;
 }
 
-/* 一行：左标签、右控件、可选说明 */
-export function row(label: string, control: HTMLElement, hint?: string): HTMLElement {
+/** 一行：左标签、右控件，tip 悬浮在标签上才显示 */
+export function row(label: string, control: HTMLElement, tip?: string): HTMLElement {
   const root = h('div', 'field');
-  root.appendChild(h('span', 'field-label', label));
-  root.appendChild(control);
-  if (hint) root.appendChild(h('span', 'field-hint', hint));
+  const labelEl = h('span', 'field-label', label);
+  if (tip) {
+    labelEl.dataset.tip = tip;
+    labelEl.classList.add('has-tip');
+  }
+  root.append(labelEl, control);
   return root;
 }
 
@@ -204,47 +218,164 @@ function formatValue(value: number, spec: SliderSpec): string {
   return `${value.toFixed(spec.digits ?? decimalsOf(spec.step))}${spec.unit ?? ''}`;
 }
 
+/** 轨道上的一个滑块：气泡里的名称与当前值 */
+export interface TrackThumb {
+  label: string; // 名称，留空则气泡只显示数值
+  value: number; // 当前值
+}
+
 /**
- * 数值滑块加实时读数
- * 所有数值字段统一走它，拖动就不会出现越界值
+ * 自绘滑块轨道：单个或多个圆点共用一条轨道
+ * 读数放在圆点上方的气泡里，只在悬浮、键盘聚焦或拖动时出现
+ * 点轨道任意位置会跳过去并接着拖动，方向键可逐步微调
  */
+function createTrack(
+  thumbs: ReadonlyArray<TrackThumb>,
+  spec: SliderSpec,
+  onChange: (index: number, value: number) => void,
+): HTMLElement {
+  const root = h('div', 'track');
+  const area = h('div', 'track-area');
+  const rail = h('div', 'track-rail');
+  area.appendChild(rail);
+  root.appendChild(area);
+
+  const values = thumbs.map((thumb) => roundToStep(thumb.value, spec));
+  const span = Math.max(1e-6, spec.max - spec.min);
+  const digits = spec.digits ?? decimalsOf(spec.step);
+  const unit = spec.unit ?? '';
+  const valueWidth = Math.max(spec.min.toFixed(digits).length, spec.max.toFixed(digits).length);
+  const handles: HTMLElement[] = [];
+  const tipValues: HTMLElement[] = [];
+  let dragging = -1;
+
+  /** 把值换算成轨道上的百分比位置 */
+  function percentOf(value: number): number {
+    return ((value - spec.min) / span) * 100;
+  }
+
+  /** 重画某个圆点的位置与气泡读数 */
+  function paint(index: number): void {
+    handles[index].style.left = `${percentOf(values[index])}%`;
+    handles[index].setAttribute('aria-valuenow', String(values[index]));
+    handles[index].setAttribute('aria-valuetext', formatValue(values[index], spec));
+    tipValues[index].textContent = values[index].toFixed(digits);
+  }
+
+  /** 把指针横坐标换算成轨道上的值 */
+  function valueAt(clientX: number): number {
+    const rect = rail.getBoundingClientRect();
+    const ratio = (clientX - rect.left) / Math.max(1, rect.width);
+    return spec.min + ratio * span;
+  }
+
+  /** 写入新值，夹在左右相邻圆点之间 */
+  function setValue(index: number, raw: number): void {
+    const low = index === 0 ? spec.min : values[index - 1] + spec.step;
+    const high = index === values.length - 1 ? spec.max : values[index + 1] - spec.step;
+    const next = Math.min(high, Math.max(low, roundToStep(raw, spec)));
+    if (next === values[index]) return;
+    values[index] = next;
+    paint(index);
+    onChange(index, next);
+  }
+
+  /** 找离指针最近的圆点，用于点轨道时决定拖动哪一个 */
+  function nearestIndex(clientX: number): number {
+    const target = valueAt(clientX);
+    let best = 0;
+    for (let i = 1; i < values.length; i += 1) {
+      if (Math.abs(values[i] - target) < Math.abs(values[best] - target)) best = i;
+    }
+    return best;
+  }
+
+  /** 开始拖动：锁定指针并让气泡常亮 */
+  function startDrag(index: number, event: PointerEvent): void {
+    dragging = index;
+    handles[index].classList.add('dragging');
+    handles[index].focus();
+    area.setPointerCapture(event.pointerId);
+    setValue(index, valueAt(event.clientX));
+  }
+
+  /** 结束拖动，解除高亮 */
+  function stopDrag(): void {
+    if (dragging < 0) return;
+    handles[dragging].classList.remove('dragging');
+    dragging = -1;
+  }
+
+  area.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0) return;
+    const hit = event.target instanceof Element ? event.target.closest('.track-thumb') : null;
+    const index = hit instanceof HTMLElement ? handles.indexOf(hit) : nearestIndex(event.clientX);
+    if (index < 0) return;
+    event.preventDefault();
+    startDrag(index, event);
+  });
+
+  area.addEventListener('pointermove', (event) => {
+    if (dragging >= 0) setValue(dragging, valueAt(event.clientX));
+  });
+
+  area.addEventListener('pointerup', stopDrag);
+  area.addEventListener('pointercancel', stopDrag);
+
+  thumbs.forEach((thumb, index) => {
+    const handle = h('div', 'track-thumb');
+    const tip = h('span', 'track-tip');
+    if (thumb.label) tip.appendChild(h('span', 'track-tip-label', thumb.label));
+    const tipValue = h('span', 'track-tip-value');
+    tipValue.style.minWidth = `${valueWidth}ch`;
+    tip.appendChild(tipValue);
+    if (unit) tip.appendChild(h('span', 'track-tip-unit', unit));
+    handle.append(h('span', 'track-dot'), tip);
+    handle.tabIndex = 0;
+    handle.setAttribute('role', 'slider');
+    handle.setAttribute('aria-label', thumb.label || '数值');
+    handle.setAttribute('aria-valuemin', String(spec.min));
+    handle.setAttribute('aria-valuemax', String(spec.max));
+
+    handle.addEventListener('keydown', (event) => {
+      const big = spec.step * 10;
+      if (event.key === 'Home') setValue(index, spec.min);
+      else if (event.key === 'End') setValue(index, spec.max);
+      else if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
+        setValue(index, values[index] - spec.step);
+      } else if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
+        setValue(index, values[index] + spec.step);
+      } else if (event.key === 'PageDown') setValue(index, values[index] - big);
+      else if (event.key === 'PageUp') setValue(index, values[index] + big);
+      else return;
+      event.preventDefault();
+    });
+
+    handles.push(handle);
+    tipValues.push(tipValue);
+    rail.appendChild(handle);
+  });
+
+  thumbs.forEach((_, index) => paint(index));
+  return root;
+}
+
+/** 单值滑块：轨道上一个圆点，读数只在悬浮或拖动时出现 */
 export function slider(
   value: number,
   spec: SliderSpec,
   onChange: (v: number) => void,
 ): HTMLElement {
-  const root = h('div', 'slider');
-  const input = h('input', 'range');
-  input.type = 'range';
-  input.min = String(spec.min);
-  input.max = String(spec.max);
-  input.step = String(spec.step);
-  const initial = roundToStep(value, spec);
-  input.value = String(initial);
-
-  const readout = h('span', 'range-value', formatValue(initial, spec));
-  input.addEventListener('input', () => {
-    const next = roundToStep(parseFloat(input.value), spec);
-    readout.textContent = formatValue(next, spec);
-    onChange(next);
-  });
-
-  root.append(input, readout);
-  return root;
+  return createTrack([{ label: '', value }], spec, (_index, next) => onChange(next));
 }
 
-/* 档位组：每个档位一行名称加滑块 */
-export function presetSliders(
-  items: ReadonlyArray<{ label: string; value: number; onChange: (v: number) => void }>,
+/** 单轨多滑块：几个档位共用一条轨道，圆点之间互不越过 */
+export function rangeTrack(
+  thumbs: ReadonlyArray<TrackThumb>,
   spec: SliderSpec,
+  onChange: (index: number, value: number) => void,
 ): HTMLElement {
-  const root = h('div', 'preset-sliders');
-  for (const item of items) {
-    const line = h('div', 'preset-line');
-    line.append(h('span', 'preset-name', item.label), slider(item.value, spec, item.onChange));
-    root.appendChild(line);
-  }
-  return root;
+  return createTrack(thumbs, spec, onChange);
 }
 
 /* 单选按钮组，自行维护高亮状态 */

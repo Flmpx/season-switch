@@ -14,10 +14,12 @@ import {
   type ElementRender,
   type NumericLimit,
   type Season,
+  type VisibleWindow,
 } from '../envir/particle/elements';
 import type { UserElement } from '../../lib/element-store';
 import { getAsset, putAsset } from '../../lib/asset-store';
 import { importSvg } from './svg-import';
+import { openRegionModal } from './region-modal';
 import {
   actions,
   button,
@@ -28,7 +30,7 @@ import {
   inputArea,
   inputText,
   multiGroup,
-  presetSliders,
+  rangeTrack,
   row,
   segGroup,
   slider,
@@ -42,6 +44,7 @@ export type RenderKind = ElementRender['kind'];
 /* 元素表单选项 */
 export interface ElementFormOptions {
   lockedRender?: boolean; // 内置元素外观只读
+  lockedBasics?: boolean; // 内置元素基础信息只读
   onChange?: (state: UserElement) => void; // 状态变更回调
 }
 
@@ -89,19 +92,30 @@ function countLimitOf(behavior: ElementBehavior): NumericLimit {
   return behavior === 'twinkle' ? NUMERIC_LIMITS.countTwinkle : NUMERIC_LIMITS.countFall;
 }
 
+/* 归一化出现时段：不跨午夜时要求 from ≤ to，跨午夜时要求 from > to，不满足就交换 */
+function normalizeVisible(visible: VisibleWindow): void {
+  const inverted = visible.wrap ? visible.from < visible.to : visible.from > visible.to;
+  if (!inverted) return;
+  const from = visible.from;
+  visible.from = visible.to;
+  visible.to = from;
+}
+
 /* 新建元素的初始草稿 */
 export function defaultElement(): UserElement {
   return {
     id: 'draft',
     label: '新粒子',
-    icon: '✨',
+    icon: 'sparkle',
     behavior: 'fall',
     seasons: ['spring', 'summer', 'autumn', 'winter'],
     render: { kind: 'emoji', glyph: '✨' },
     color: '#ffffff',
-    speedPresets: [14, 28, 50],
-    sizePresets: [4, 8, 14],
-    countPresets: [10, 20, 50, 120],
+    presets: {
+      speed: [14, 28, 50],
+      size: [4, 8, 14],
+      count: [10, 20, 50, 120],
+    },
     motion: {
       jitter: 0.4,
       wobbleSpeed: 1.4,
@@ -110,8 +124,8 @@ export function defaultElement(): UserElement {
       opacity: 0.9,
       twinkleSpeed: 0,
     },
-    target: { region: 'top-third', visibleFrom: 19, visibleTo: 5 },
-    defaults: { speed: 28, size: 8, count: 20 },
+    region: { x: 0, y: 0, w: 1, h: 1 },
+    visible: { from: 0, to: 24, wrap: false },
   };
 }
 
@@ -158,22 +172,31 @@ export function createElementForm(
   options: ElementFormOptions = {},
 ): ElementForm {
   const state: UserElement = structuredClone(initial);
+  normalizeVisible(state.visible);
   const root = document.createElement('div');
   root.className = 'form';
 
   const notify = (): void => options.onChange?.(state);
 
   const basics = group('基础', true);
-  basics.body.append(
-    row('名称', inputText(state.label, (v) => {
-      state.label = v;
-      notify();
-    }, '例如：银杏叶')),
-    row('图标', inputText(state.icon, (v) => {
-      state.icon = v.slice(0, 4);
-      notify();
-    }, '列表里显示的 emoji')),
-    row(
+  root.appendChild(basics.root);
+
+  /* 行为一行的悬浮说明，随当前行为变化 */
+  function behaviorTip(behavior: ElementBehavior): string {
+    return behavior === 'twinkle' ? '在固定区域内明暗闪烁' : '从上方持续飘落';
+  }
+
+  function renderBasics(): void {
+    basics.body.replaceChildren();
+
+    if (options.lockedBasics) {
+      basics.body.appendChild(
+        hint('内置元素的基础信息（名称、图标、行为）不可修改，仅可调整下方参数'),
+      );
+      return;
+    }
+
+    const behaviorRow = row(
       '行为',
       segGroup<ElementBehavior>(
         [
@@ -183,24 +206,36 @@ export function createElementForm(
         state.behavior,
         (v) => {
           setBehavior(v);
+          if (tipEl) tipEl.dataset.tip = behaviorTip(v);
           notify();
           renderAppear();
+          renderMotion();
           renderPresets();
         },
       ),
-      state.behavior === 'twinkle' ? '在固定区域内明暗闪烁' : '从上方持续飘落',
-    ),
-  );
-  root.appendChild(basics.root);
+      behaviorTip(state.behavior),
+    );
+
+    const tipEl = behaviorRow.querySelector<HTMLElement>('.field-label');
+
+    basics.body.append(
+      row('名称', inputText(state.label, (v) => {
+        state.label = v;
+        notify();
+      }, '例如：银杏叶')),
+      row('图标', inputText(state.icon, (v) => {
+        state.icon = v.trim().slice(0, 12);
+        notify();
+      }, '图标名（如 leaf、snow）或一个字符')),
+      behaviorRow,
+    );
+  }
+
+  renderBasics();
 
   function setBehavior(v: ElementBehavior): void {
     state.behavior = v;
-    if (v === 'twinkle') {
-      if (!state.target) {
-        state.target = { region: 'top-third', visibleFrom: 19, visibleTo: 5 };
-      }
-      if (!state.motion.twinkleSpeed) state.motion.twinkleSpeed = 1.9;
-    }
+    if (v === 'twinkle' && !state.motion.twinkleSpeed) state.motion.twinkleSpeed = 1.9;
   }
 
   const appearance = group('外观', true);
@@ -402,6 +437,69 @@ export function createElementForm(
   const appear = group('出现', true);
   root.appendChild(appear.root);
 
+  /* 把当前区域比例写成一句说明 */
+  function regionSummary(): string {
+    const { x, y, w, h } = state.region;
+    return (
+      `左 ${Math.round(x * 100)}% · 上 ${Math.round(y * 100)}%` +
+      ` · 宽 ${Math.round(w * 100)}% · 高 ${Math.round(h * 100)}%`
+    );
+  }
+
+  /* 出现区域：按钮打开遮罩框选，当前比例挂在按钮的悬浮说明里 */
+  function regionControl(): HTMLElement {
+    const pick = button('框选区域', 'ghost', () => void pickRegion());
+    pick.classList.add('has-tip');
+    pick.dataset.tip = regionSummary();
+    return actions(pick);
+  }
+
+  /* 在遮罩上拖动方框选择区域，确认后覆盖当前比例 */
+  async function pickRegion(): Promise<void> {
+    const region = await openRegionModal(state.region);
+    if (!region) return;
+    state.region = region;
+    renderAppear();
+    notify();
+  }
+
+  /* 小时数转成「x 点」文本 */
+  function formatHour(hour: number): string {
+    return `${Number(hour.toFixed(1))} 点`;
+  }
+
+  /* 用一句话描述当前出现时段，挂在行标签的悬浮说明里 */
+  function timeSummary(): string {
+    if (!state.visible.wrap && state.visible.from === 0 && state.visible.to === 24) return '全天';
+    const from = formatHour(state.visible.from);
+    const to = formatHour(state.visible.to);
+    return state.visible.wrap ? `${from} 到次日 ${to}` : `${from} 到 ${to}`;
+  }
+
+  /* 出现时段：两个圆点共用一条 0-24 轨道，跨午夜时左右含义对调 */
+  function timeControl(): HTMLElement {
+    const wrap = state.visible.wrap;
+    const thumbs = wrap
+      ? [
+          { label: '消失', value: state.visible.to },
+          { label: '出现', value: state.visible.from },
+        ]
+      : [
+          { label: '出现', value: state.visible.from },
+          { label: '消失', value: state.visible.to },
+        ];
+
+    return rangeTrack(
+      thumbs,
+      specOf(NUMERIC_LIMITS.hour, ' 点'),
+      (index, value) => {
+        if (wrap ? index === 1 : index === 0) state.visible.from = value;
+        else state.visible.to = value;
+        notify();
+      },
+    );
+  }
+
   function renderAppear(): void {
     appear.body.replaceChildren();
 
@@ -416,82 +514,106 @@ export function createElementForm(
           '决定该季节是否出现；只有内置叶子会随季节变色',
         ),
       );
-      return;
     }
 
-    const target = state.target ?? { region: 'top-third', visibleFrom: 19, visibleTo: 5 };
-    state.target = target;
-
     appear.body.append(
-      row('出现区域', segGroup(
-        [
-          { value: 'top-third', label: '上三分之一' },
-          { value: 'full', label: '全屏' },
-        ],
-        target.region,
-        (v) => {
-          target.region = v;
-          notify();
-        },
-      )),
-      row('出现时间', slider(target.visibleFrom, specOf(NUMERIC_LIMITS.hour, ' 点'), (v) => {
-        target.visibleFrom = v;
-        notify();
-      })),
-      row('消失时间', slider(target.visibleTo, specOf(NUMERIC_LIMITS.hour, ' 点'), (v) => {
-        target.visibleTo = v;
-        notify();
-      }), '可跨午夜，例如 19 点出现、次日 5 点消失'),
+      row(
+        '出现区域',
+        regionControl(),
+        '拖动方框选择粒子在页面上的出现范围，方框占整个窗口的比例就是区域比例',
+      ),
+      subTitle('出现时段'),
+      row(
+        '时段',
+        timeControl(),
+        state.visible.wrap
+          ? `选「是」时左侧圆点是消失时刻、右侧是出现时刻，时段跨过零点；当前 ${timeSummary()}`
+          : `左侧是出现时刻，右侧是消失时刻；当前 ${timeSummary()}`,
+      ),
+      row(
+        '跨午夜',
+        segGroup(
+          [
+            { value: 'no', label: '否' },
+            { value: 'yes', label: '是' },
+          ],
+          state.visible.wrap ? 'yes' : 'no',
+          (v) => {
+            state.visible.wrap = v === 'yes';
+            normalizeVisible(state.visible);
+            notify();
+            renderAppear();
+          },
+        ),
+        '选「是」后左右两个圆点的含义对调，用于 19 点出现、次日 5 点消失这类时段',
+      ),
     );
   }
 
   const motion = group('运动', false);
-  motion.body.append(
-    row('随机抖动', slider(state.motion.jitter, specOf(NUMERIC_LIMITS.jitter), (v) => {
-      state.motion.jitter = v;
-      notify();
-    }), '速度/大小/不透明度在该比例内随机'),
-    row('摆动频率', slider(state.motion.wobbleSpeed, specOf(NUMERIC_LIMITS.wobbleSpeed), (v) => {
-      state.motion.wobbleSpeed = v;
-      notify();
-    }), '越大摆动越快'),
-    row('摆幅', slider(state.motion.wobbleAmp, specOf(NUMERIC_LIMITS.wobbleAmp, ' px'), (v) => {
-      state.motion.wobbleAmp = v;
-      notify();
-    })),
-    row('旋转速度', slider(state.motion.rotationSpeed, specOf(NUMERIC_LIMITS.rotationSpeed, ' 弧度/秒'), (v) => {
-      state.motion.rotationSpeed = v;
-      notify();
-    }), '负值反向旋转，0 为不旋转'),
-    row('不透明度', slider(state.motion.opacity, specOf(NUMERIC_LIMITS.opacity), (v) => {
-      state.motion.opacity = v;
-      notify();
-    })),
-    row('闪烁频率', slider(state.motion.twinkleSpeed, specOf(NUMERIC_LIMITS.twinkleSpeed), (v) => {
-      state.motion.twinkleSpeed = v;
-      notify();
-    }), '仅闪烁元素使用'),
-  );
   root.appendChild(motion.root);
 
-  const presets = group('档位与默认值', false);
+  /* 运动参数：闪烁频率只在闪烁元素下出现 */
+  function renderMotion(): void {
+    motion.body.replaceChildren();
+
+    motion.body.append(
+      row('随机抖动', slider(state.motion.jitter, specOf(NUMERIC_LIMITS.jitter), (v) => {
+        state.motion.jitter = v;
+        notify();
+      }), '速度/大小/不透明度在该比例内随机'),
+      row('摆动频率', slider(state.motion.wobbleSpeed, specOf(NUMERIC_LIMITS.wobbleSpeed), (v) => {
+        state.motion.wobbleSpeed = v;
+        notify();
+      }), '越大摆动越快'),
+      row('摆幅', slider(state.motion.wobbleAmp, specOf(NUMERIC_LIMITS.wobbleAmp, ' px'), (v) => {
+        state.motion.wobbleAmp = v;
+        notify();
+      })),
+      row('旋转速度', slider(state.motion.rotationSpeed, specOf(NUMERIC_LIMITS.rotationSpeed, ' 弧度/秒'), (v) => {
+        state.motion.rotationSpeed = v;
+        notify();
+      }), '负值反向旋转，0 为不旋转'),
+      row('不透明度', slider(state.motion.opacity, specOf(NUMERIC_LIMITS.opacity), (v) => {
+        state.motion.opacity = v;
+        notify();
+      })),
+    );
+
+    if (state.behavior === 'twinkle') {
+      motion.body.appendChild(
+        row('闪烁频率', slider(state.motion.twinkleSpeed, specOf(NUMERIC_LIMITS.twinkleSpeed), (v) => {
+          state.motion.twinkleSpeed = v;
+          notify();
+        }), '明暗交替的快慢'),
+      );
+    }
+  }
+
+  const presets = group('档位', false);
   root.appendChild(presets.root);
 
-  function presetItem(
-    arr: number[],
-    index: number,
-    label: string,
-    fallback: number,
-  ): { label: string; value: number; onChange: (v: number) => void } {
-    while (arr.length <= index) arr.push(fallback);
-    return {
+  /* 取档位数组里的第 index 项，缺项用默认值补齐 */
+  function slot(values: number[], index: number, fallback: number): number {
+    while (values.length <= index) values.push(fallback);
+    return values[index];
+  }
+
+  /* 一条轨道放全部档位，拖动后写回档位数组 */
+  function presetTrack(
+    labels: string[],
+    values: number[],
+    fallbacks: number[],
+    spec: SliderSpec,
+  ): HTMLElement {
+    const thumbs = labels.map((label, index) => ({
       label,
-      value: arr[index],
-      onChange: (v) => {
-        arr[index] = v;
-        notify();
-      },
-    };
+      value: slot(values, index, fallbacks[index]),
+    }));
+    return rangeTrack(thumbs, spec, (index, value) => {
+      values[index] = value;
+      notify();
+    });
   }
 
   function renderPresets(): void {
@@ -503,46 +625,22 @@ export function createElementForm(
 
     presets.body.append(
       subTitle(`速度档位${speedNote}`),
-      presetSliders([
-        presetItem(state.speedPresets, 0, '慢', 14),
-        presetItem(state.speedPresets, 1, '中', 28),
-        presetItem(state.speedPresets, 2, '快', 50),
-      ], specOf(NUMERIC_LIMITS.speed)),
+      presetTrack(['慢', '中', '快'], state.presets.speed, [14, 28, 50], specOf(NUMERIC_LIMITS.speed)),
       subTitle('大小档位（px）'),
-      presetSliders([
-        presetItem(state.sizePresets, 0, '小', 4),
-        presetItem(state.sizePresets, 1, '中', 8),
-        presetItem(state.sizePresets, 2, '大', 14),
-      ], specOf(NUMERIC_LIMITS.size)),
+      presetTrack(['小', '中', '大'], state.presets.size, [4, 8, 14], specOf(NUMERIC_LIMITS.size)),
       subTitle(
         state.behavior === 'twinkle'
           ? '数目档位（闪烁：峰值颗数）'
           : '数目档位（飘落：个/分钟）',
       ),
-      presetSliders([
-        presetItem(state.countPresets, 0, '微量', 10),
-        presetItem(state.countPresets, 1, '少量', 20),
-        presetItem(state.countPresets, 2, '中等', 50),
-        presetItem(state.countPresets, 3, '大量', 120),
-      ], specOf(countLimit)),
-      subTitle('默认当前值'),
-      row('速度', slider(state.defaults.speed, specOf(NUMERIC_LIMITS.speed, ' px/s'), (v) => {
-        state.defaults.speed = v;
-        notify();
-      })),
-      row('大小', slider(state.defaults.size, specOf(NUMERIC_LIMITS.size, ' px'), (v) => {
-        state.defaults.size = v;
-        notify();
-      })),
-      row('数目', slider(state.defaults.count, specOf(countLimit), (v) => {
-        state.defaults.count = v;
-        notify();
-      }), state.behavior === 'twinkle' ? '午夜峰值颗数' : '个/分钟'),
+      presetTrack(['微量', '少量', '中等', '大量'], state.presets.count, [10, 20, 50, 120], specOf(countLimit)),
+      hint('弹窗里按这里的档位选择，选哪一档就用哪一档的值'),
     );
   }
 
   renderAppearance();
   renderAppear();
+  renderMotion();
   renderPresets();
 
   return {

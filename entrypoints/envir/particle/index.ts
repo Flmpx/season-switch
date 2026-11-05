@@ -7,8 +7,14 @@
 export * from './elements';
 export * from './presets';
 export { registry } from './registry';
-export { getElementConfigs, effectiveParticleValue } from './config';
-export { getTwinkleTarget } from './target';
+export {
+  getElementConfigs,
+  resolveParticleValue,
+  choiceValue,
+  defaultParticleValue,
+} from './config';
+export type { ResolvedValue } from './config';
+export { getTwinkleTarget, isVisible } from './target';
 export { createElement } from './factory';
 export { ParticleManager } from './manager';
 export { Particle, FallingParticle, TwinklingParticle } from './particle';

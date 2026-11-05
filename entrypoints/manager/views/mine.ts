@@ -9,6 +9,7 @@
  */
 import { registry } from '../../envir/particle';
 import type { ElementDescriptor } from '../../envir/particle/elements';
+import { iconNode } from '../../../lib/icons';
 import {
   exportLibrary,
   importLibrary,
@@ -65,7 +66,8 @@ function importLibraryFile(file: File): void {
 function elementRow(desc: ElementDescriptor): HTMLElement {
   const row = h('div', 'row');
 
-  const icon = h('span', 'row-icon', desc.icon || '·');
+  const icon = h('span', 'row-icon');
+  icon.appendChild(iconNode(desc.icon || 'sparkle', 16));
 
   const main = h('div', 'row-main');
   main.append(

@@ -8,15 +8,17 @@
  * 复用内容脚本的 drawParticle，图形与颜色和网页一致
  * 动画按元素自身的 motion 参数播放
  */
-import { drawParticle, preloadAssets } from '../envir/particle';
-import type { ElementDescriptor } from '../envir/particle/elements';
+import { drawParticle, preloadAssets, middlePresetIndex } from '../envir/particle';
+import type { ElementDescriptor, ElementRender } from '../envir/particle/elements';
 
 /* 画布边长，单位为 CSS 像素 */
 const VIEW = 180;
-/* 单个粒子的绘制尺寸 */
-const SPRITE = 72;
+/* 单个粒子的绘制尺寸，保证旋转到斜角也不碰画布边缘 */
+const SPRITE = 52;
 /* 摆动位移上限，避免粒子飘出画布 */
-const MAX_DRIFT = 26;
+const MAX_DRIFT = 12;
+/* 图片宽高比上限，过宽的图形横向会捅出画布 */
+const MAX_ASPECT = 2;
 
 /* 预览面板实例 */
 export interface Preview {
@@ -48,6 +50,7 @@ export function createPreview(): Preview {
 
   const ctx = canvas.getContext('2d');
   let desc: ElementDescriptor | null = null;
+  let sprite: ElementRender | null = null;
   let color = '#ffffff';
   let rotation = 0;
   let elapsed = 0;
@@ -86,8 +89,8 @@ export function createPreview(): Preview {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, VIEW, VIEW);
 
-    if (desc) {
-      drawParticle(ctx, desc.render, {
+    if (desc && sprite) {
+      drawParticle(ctx, sprite, {
         x: VIEW / 2 + dx,
         y: VIEW / 2 + dy,
         size: SPRITE,
@@ -106,10 +109,19 @@ export function createPreview(): Preview {
     root,
     update(next, nextColor) {
       desc = next;
+      sprite =
+        next.render.kind === 'image'
+          ? {
+              ...next.render,
+              aspect: Math.min(MAX_ASPECT, Math.max(1 / MAX_ASPECT, next.render.aspect)),
+            }
+          : next.render;
       color = nextColor;
       if (next.render.kind === 'image') void preloadAssets([next.render.assetId]);
       const behavior = next.behavior === 'fall' ? '飘落' : '闪烁';
-      caption.textContent = `${next.label} · ${behavior} · ${next.defaults.size}px`;
+      const sizes = next.presets.size;
+      const size = sizes.length > 0 ? sizes[middlePresetIndex(sizes.length)] : 6;
+      caption.textContent = `${next.label} · ${behavior} · ${size}px`;
     },
     dispose() {
       disposed = true;

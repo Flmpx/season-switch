@@ -4,6 +4,7 @@
  */
 
 import { popPage, refreshHeight } from '../nav';
+import { pageShell, sliderCard, type SliderCard } from '../ui';
 import { saveSettings, type Settings, type ParticleValue } from '../../../lib/settings';
 import {
   registry,
@@ -14,130 +15,145 @@ import {
   axisTitle,
   axisUnit,
   axisVisible,
-  matchPreset,
+  choiceValue,
+  defaultParticleValue,
+  middlePresetIndex,
+  NUMERIC_LIMITS,
   type Axis,
   type ElementDescriptor,
+  type NumericLimit,
 } from '../../envir/particle';
 
-/* 可调节的三个轴 */
+/** 可调节的三个轴 */
 const AXES: Axis[] = ['speed', 'size', 'count'];
 
-/* 渲染粒子设置页，缺失值用默认值初始化并写回 */
+/** 取某轴的取值范围 */
+function limitOf(axis: Axis, desc: ElementDescriptor): NumericLimit {
+  if (axis === 'speed') return NUMERIC_LIMITS.speed;
+  if (axis === 'size') return NUMERIC_LIMITS.size;
+  return desc.behavior === 'twinkle' ? NUMERIC_LIMITS.countTwinkle : NUMERIC_LIMITS.countFall;
+}
+
+/**
+ * 渲染粒子设置页：每轴一组档位胶囊，选「自定义」时展开滑块
+ */
 export function renderElementPage(id: string, settings: Settings): HTMLElement {
   const desc = registry.get(id);
-  const page = document.createElement('div');
-  page.className = 'page';
+  const shell = pageShell(desc ? desc.label : '未知粒子', true, () => popPage());
+  if (!desc) return shell.page;
 
-  if (!desc) {
-    page.innerHTML = `
-      <div class="page-header">
-        <button class="back" type="button">返回</button>
-        <span class="page-title">未知粒子</span>
-      </div>
-      <div class="page-body"></div>`;
-    page.querySelector('.back')!.addEventListener('click', () => popPage());
-    return page;
-  }
-
-  const value: ParticleValue = settings.particles[id] ?? { ...desc.defaults };
+  const value: ParticleValue = settings.particles[id] ?? defaultParticleValue(desc);
   if (!settings.particles[id]) settings.particles[id] = value;
-
-  const sections = AXES.filter((axis) => axisVisible(axis, desc.behavior))
-    .map((axis) => buildAxis(axis, desc))
-    .join('');
-
-  page.innerHTML = `
-    <div class="page-header">
-      <button class="back" type="button">返回</button>
-      <span class="page-title">${desc.icon} ${desc.label}</span>
-    </div>
-    <div class="page-body">${sections}</div>`;
-
-  page.querySelector('.back')!.addEventListener('click', () => popPage());
 
   for (const axis of AXES) {
     if (!axisVisible(axis, desc.behavior)) continue;
-    bindAxis(page, axis, desc, value, settings);
+    shell.body.append(...buildAxis(axis, desc, value, settings));
   }
 
-  return page;
+  return shell.page;
 }
 
-/* 生成单轴 HTML：标题、档位按钮与自定义滑块 */
-function buildAxis(axis: Axis, desc: ElementDescriptor): string {
-  const presets = axisPresets(axis, desc);
-  const labels = axisLabels(axis);
-  const buttons = presets
-    .map((v, i) => `<button class="option-btn" type="button" data-preset="${i}">${labels[i] ?? v}</button>`)
-    .join('');
-  return `
-    <div class="sub-setting" data-axis="${axis}">
-      <h4 class="sub-title">${axisTitle(axis)}</h4>
-      <div class="option-grid">
-        ${buttons}
-        <button class="option-btn" type="button" data-custom="1">自定义</button>
-      </div>
-      <div class="custom-row" style="display:none;">
-        <input type="range" class="intensity-slider" min="0" max="${axisMax(axis, desc.behavior)}" step="${axisStep(axis)}" />
-        <span class="intensity-value"></span>
-      </div>
-    </div>`;
-}
-
-/* 绑定单轴交互：档位、自定义展开与滑块；展开后须 refreshHeight 重测高度 */
-function bindAxis(
-  page: HTMLElement,
+/**
+ * 生成单轴的标题、档位胶囊与自定义滑块，返回按顺序排列的节点
+ */
+function buildAxis(
   axis: Axis,
   desc: ElementDescriptor,
   value: ParticleValue,
   settings: Settings,
-): void {
-  const block = page.querySelector<HTMLElement>(`[data-axis="${axis}"]`)!;
+): HTMLElement[] {
   const presets = axisPresets(axis, desc);
+  const labels = axisLabels(axis);
+  const limit = limitOf(axis, desc);
   const unit = axisUnit(axis, desc.behavior);
-  const presetBtns = [...block.querySelectorAll<HTMLButtonElement>('[data-preset]')];
-  const customBtn = block.querySelector<HTMLButtonElement>('[data-custom]')!;
-  const row = block.querySelector<HTMLElement>('.custom-row')!;
-  const slider = row.querySelector<HTMLInputElement>('input')!;
-  const valSpan = row.querySelector<HTMLElement>('.intensity-value')!;
 
-  let customOpen = matchPreset(value[axis], presets) === -1;
+  const title = document.createElement('div');
+  title.className = 'axis-title';
+  title.textContent = axisTitle(axis);
 
-  function refresh(): void {
-    const idx = matchPreset(value[axis], presets);
-    const inPreset = idx !== -1 && !customOpen;
-    presetBtns.forEach((b, i) => b.classList.toggle('active', inPreset && i === idx));
-    customBtn.classList.toggle('active', !inPreset);
-    row.style.display = inPreset ? 'none' : 'flex';
-    slider.value = String(value[axis]);
-    valSpan.textContent = `${value[axis]}${unit}`;
+  const card = document.createElement('div');
+  card.className = 'card';
+
+  const chips = document.createElement('div');
+  chips.className = 'chips';
+
+  let customOpen = value[axis].kind === 'custom';
+  const presetButtons: HTMLButtonElement[] = [];
+  let slider: SliderCard | null = null;
+
+  /** 当前生效的数值 */
+  function resolved(): number {
+    return choiceValue(value[axis], presets, limit);
   }
 
+  /** 保存设置并重新测量弹窗高度，滑块显隐会改变内容高度 */
   async function commit(): Promise<void> {
     await saveSettings(settings);
     refreshHeight();
   }
 
-  presetBtns.forEach((btn, i) => {
-    btn.addEventListener('click', async () => {
-      value[axis] = presets[i];
+  /** 同步档位高亮、勾选与滑块显隐 */
+  function refresh(): void {
+    const choice = value[axis];
+    const index = choice.kind === 'preset' ? choice.index : -1;
+    const inPreset = index !== -1 && !customOpen;
+    presetButtons.forEach((button, i) => {
+      button.classList.toggle('active', inPreset && i === index);
+    });
+    if (customButton) customButton.classList.toggle('active', !inPreset);
+    if (slider) {
+      slider.root.style.display = inPreset ? 'none' : 'flex';
+      slider.set(resolved());
+    }
+  }
+
+  for (let i = 0; i < presets.length; i += 1) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'chip';
+    button.textContent = labels[i] ?? String(presets[i]);
+    button.addEventListener('click', () => {
+      value[axis] = { kind: 'preset', index: i };
       customOpen = false;
-      await commit();
+      void commit();
       refresh();
     });
-  });
+    presetButtons.push(button);
+    chips.appendChild(button);
+  }
 
-  customBtn.addEventListener('click', () => {
+  const customButton = document.createElement('button');
+  customButton.type = 'button';
+  customButton.className = 'chip';
+  customButton.textContent = '自定义';
+  customButton.addEventListener('click', () => {
+    const current = value[axis];
+    if (current.kind !== 'custom') {
+      const index = current.kind === 'preset' ? current.index : middlePresetIndex(presets.length);
+      value[axis] = { kind: 'custom', value: presets[index] ?? limit.min };
+      void commit();
+    }
     customOpen = true;
     refresh();
     refreshHeight();
   });
+  chips.appendChild(customButton);
 
-  slider.addEventListener('input', async () => {
-    value[axis] = parseFloat(slider.value);
-    valSpan.textContent = `${value[axis]}${unit}`;
-    await commit();
+  card.appendChild(chips);
+
+  slider = sliderCard({
+    min: limit.min,
+    max: axisMax(axis, desc.behavior),
+    step: axisStep(axis),
+    value: resolved(),
+    format: (v) => `${Number(v.toFixed(1))}${unit}`,
+    onInput: (v) => {
+      value[axis] = { kind: 'custom', value: v };
+      void commit();
+    },
   });
+  card.appendChild(slider.root);
 
   refresh();
+  return [title, card];
 }

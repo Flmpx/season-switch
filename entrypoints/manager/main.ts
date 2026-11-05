@@ -5,7 +5,6 @@
 
 import { registry } from '../envir/particle';
 import type { ElementDescriptor } from '../envir/particle/elements';
-import { initEffects } from './effects';
 import { setRefreshHandler } from './refresh';
 import { createShell, type ManagerRoute, type Shell } from './shell';
 import { renderDetailView } from './views/detail';
@@ -88,8 +87,6 @@ async function start(): Promise<void> {
 
   shell = createShell(root, go);
   setRefreshHandler(() => render(parseRoute()));
-
-  initEffects(document.body);
 
   chrome.runtime.onMessage.addListener((message: { type?: string } | null) => {
     if (message?.type === 'manager:new') go('new');

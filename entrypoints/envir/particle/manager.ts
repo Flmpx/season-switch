@@ -6,11 +6,11 @@
 import { Particle, TwinklingParticle } from './particle';
 import { createElement } from './factory';
 import type { SeasonWeights } from '../../../lib/season-weights';
-import type { ParticleValue } from '../../../lib/settings';
+import type { ResolvedValue } from './config';
 import type { ElementRender } from './elements';
 import { registry } from './registry';
 import { seasonWeightFor } from './elements';
-import { getTwinkleTarget } from './target';
+import { getTwinkleTarget, isVisible } from './target';
 
 /* 闪烁粒子生成不需要季节权重 */
 const ZERO_WEIGHTS: SeasonWeights = { spring: 0, summer: 0, autumn: 0, winter: 0 };
@@ -75,19 +75,21 @@ export class ParticleManager {
     }
   }
 
-  /* 按各元素的数目生成飘落粒子，仅季节权重大于 0 时生成 */
+  /* 按各元素的数目生成飘落粒子，仅季节权重大于 0 且在出现时段内时生成 */
   spawnStep(
     dt: number,
+    hour: number,
     weights: SeasonWeights,
     width: number,
     height: number,
-    configs: Record<string, ParticleValue>,
+    configs: Record<string, ResolvedValue>,
   ): void {
     for (const desc of registry.list()) {
       if (desc.behavior !== 'fall') continue;
       const cfg = configs[desc.id];
       if (!cfg) continue;
       if (seasonWeightFor(desc, weights) <= 0) continue;
+      if (!isVisible(desc.visible, hour)) continue;
 
       this.accumulators[desc.id] = (this.accumulators[desc.id] ?? 0) + (dt * cfg.count) / 60;
       while (this.accumulators[desc.id] >= 1) {
@@ -111,7 +113,7 @@ export class ParticleManager {
     intensity: number,
     width: number,
     height: number,
-    configs: Record<string, ParticleValue>,
+    configs: Record<string, ResolvedValue>,
   ): void {
     for (const desc of registry.list()) {
       if (desc.behavior !== 'twinkle') continue;
@@ -147,12 +149,12 @@ export class ParticleManager {
   }
 
   /* 每帧更新并绘制所有粒子，逐粒子 try/catch 做故障隔离 */
-  step(dt: number, width: number, height: number, intensity: number): void {
+  step(dt: number, width: number, intensity: number): void {
     this.enforceCap();
     for (let i = this.fallParticles.length - 1; i >= 0; i--) {
       const p = this.fallParticles[i];
       try {
-        p.update(dt, height);
+        p.update(dt);
       } catch (err) {
         this.handleParticleError(`update:${p.type}`, err);
         this.fallParticles.splice(i, 1);

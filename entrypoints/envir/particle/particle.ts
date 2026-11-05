@@ -21,6 +21,7 @@ export interface ParticleInit {
   wobblePhase: number; // 摆动相位
   wobbleSpeed: number; // 摆动频率
   wobbleAmp: number; // 摆幅（像素）
+  bottom: number; // 下落终点（像素），取元素区域下边界
 }
 
 /* 粒子基类：通用属性与更新/绘制 */
@@ -38,6 +39,7 @@ export abstract class Particle {
   wobblePhase: number; // 摆动相位
   wobbleSpeed: number; // 摆动频率
   wobbleAmp: number; // 摆幅
+  bottom: number; // 下落终点
 
   /* 用入参初始化所有字段 */
   constructor(init: ParticleInit) {
@@ -54,15 +56,16 @@ export abstract class Particle {
     this.wobblePhase = init.wobblePhase;
     this.wobbleSpeed = init.wobbleSpeed;
     this.wobbleAmp = init.wobbleAmp;
+    this.bottom = init.bottom;
   }
 
-  /* 摆动 + 下落 + 着陆渐隐 */
-  update(dt: number, height: number): void {
+  /* 摆动 + 下落 + 到区域下边界后着陆渐隐 */
+  update(dt: number): void {
     this.wobblePhase += this.wobbleSpeed * dt;
     this.x += Math.sin(this.wobblePhase) * this.wobbleAmp * dt;
     this.y += this.speedY * dt;
     this.rotation += this.rotSpeed * dt;
-    const groundY = height - this.size;
+    const groundY = this.bottom - this.size;
     if (this.y >= groundY) {
       this.y = groundY;
       this.speedY = 0;

@@ -5,7 +5,7 @@
 
 import { FallingParticle, TwinklingParticle, type Particle } from './particle';
 import type { ElementDescriptor, Season } from './elements';
-import type { ParticleValue } from '../../../lib/settings';
+import type { ResolvedValue } from './config';
 import type { SeasonWeights } from '../../../lib/season-weights';
 
 /* 区间随机 */
@@ -58,24 +58,27 @@ function resolveColor(desc: ElementDescriptor, weights: SeasonWeights): string {
 
 /**
  * 按描述符与当前值构造一个粒子实例
- * 当前值作为基准，速度/大小/不透明度在该基准 ±jitter 内随机
+ * 出生位置落在外观设定的区域内，速度/大小/不透明度在该基准 ±jitter 内随机
  */
 export function createElement(
   desc: ElementDescriptor,
   width: number,
   height: number,
-  value: ParticleValue,
+  value: ResolvedValue,
   weights: SeasonWeights,
 ): Particle {
   const j = desc.motion.jitter;
+  const rx = desc.region.x * width;
+  const ry = desc.region.y * height;
+  const rw = desc.region.w * width;
+  const rh = desc.region.h * height;
 
   if (desc.behavior === 'twinkle') {
-    const regionY = desc.target?.region === 'top-third' ? height / 3 : height;
     return new TwinklingParticle({
       type: desc.id,
       render: desc.render,
-      x: Math.random() * width,
-      y: Math.random() * regionY,
+      x: rx + Math.random() * rw,
+      y: ry + Math.random() * rh,
       size: jittered(value.size, j),
       color: desc.color ?? '#FFFAD6',
       speedY: 0,
@@ -85,6 +88,7 @@ export function createElement(
       wobblePhase: 0,
       wobbleSpeed: 0,
       wobbleAmp: 0,
+      bottom: ry + rh,
       twinklePhase: Math.random() * Math.PI * 2,
       twinkleSpeed: desc.motion.twinkleSpeed,
       baseOpacity: clamp01(jittered(desc.motion.opacity, j)),
@@ -94,8 +98,8 @@ export function createElement(
   return new FallingParticle({
     type: desc.id,
     render: desc.render,
-    x: Math.random() * width,
-    y: -20 - Math.random() * height,
+    x: rx + Math.random() * rw,
+    y: ry - 20 - rand(0, 80),
     size: jittered(value.size, j),
     speedY: jittered(value.speed, j),
     rotation: Math.random() * Math.PI * 2,
@@ -105,5 +109,6 @@ export function createElement(
     wobblePhase: Math.random() * Math.PI * 2,
     wobbleSpeed: desc.motion.wobbleSpeed,
     wobbleAmp: desc.motion.wobbleAmp,
+    bottom: ry + rh,
   });
 }

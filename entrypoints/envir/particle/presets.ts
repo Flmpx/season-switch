@@ -8,11 +8,11 @@ import type { ElementBehavior, ElementDescriptor } from './elements';
 /* 可调的三个轴 */
 export type Axis = 'speed' | 'size' | 'count';
 
-/* 速度档位名称（对应 speedPresets 顺序） */
+/* 速度档位名称（对应 presets.speed 顺序） */
 export const SPEED_LABELS = ['慢', '中', '快'] as const;
-/* 大小档位名称（对应 sizePresets 顺序） */
+/* 大小档位名称（对应 presets.size 顺序） */
 export const SIZE_LABELS = ['小', '中', '大'] as const;
-/* 数目档位名称（对应 countPresets 顺序） */
+/* 数目档位名称（对应 presets.count 顺序） */
 export const COUNT_LABELS = ['微量', '少量', '中等', '大量'] as const;
 
 /* 某轴在该行为下是否可见（twinkle 没有速度） */
@@ -34,11 +34,9 @@ export function axisTitle(axis: Axis): string {
   return '数目';
 }
 
-/* 取某轴的档位值数组 */
+/* 取某轴的档位值数组，用户元素可自带任意档位 */
 export function axisPresets(axis: Axis, desc: ElementDescriptor): number[] {
-  if (axis === 'speed') return desc.speedPresets;
-  if (axis === 'size') return desc.sizePresets;
-  return desc.countPresets;
+  return desc.presets[axis];
 }
 
 /* 某轴的单位 */
@@ -57,10 +55,5 @@ export function axisStep(axis: Axis): number {
 export function axisMax(axis: Axis, behavior: ElementBehavior): number {
   if (axis === 'speed') return 200;
   if (axis === 'size') return 120;
-  return behavior === 'twinkle' ? 300 : 1800;
-}
-
-/* 返回值对应的档位下标，未命中返回 -1（即"自定义"） */
-export function matchPreset(value: number, presets: number[]): number {
-  return presets.findIndex((p) => p === value);
+  return behavior === 'twinkle' ? 300 : 360;
 }

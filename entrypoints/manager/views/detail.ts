@@ -32,12 +32,10 @@ const COMPARE_KEYS = [
   'behavior',
   'seasons',
   'color',
-  'speedPresets',
-  'sizePresets',
-  'countPresets',
+  'presets',
   'motion',
-  'target',
-  'defaults',
+  'region',
+  'visible',
 ] as const;
 
 /* 计算内置元素相对基线的覆盖内容 */
@@ -152,6 +150,7 @@ export function renderDetailView(id: string): HTMLElement | null {
 
   const form = createElementForm(state, {
     lockedRender: isBuiltin,
+    lockedBasics: isBuiltin,
     onChange: (next) => {
       state = next;
       title.textContent = next.label || '未命名';
