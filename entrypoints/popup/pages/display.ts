@@ -53,8 +53,8 @@ export function renderDisplayPage(settings: Settings): HTMLElement {
     if (value === 'custom-intensity') {
       slider = sliderCard({
         min: 0,
-        max: 100,
-        step: 1,
+        max: 200,
+        step: 5,
         value: settings.customIntensity,
         format: (v) => `${v}%`,
         onInput: (v) => {

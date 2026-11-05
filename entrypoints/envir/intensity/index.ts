@@ -12,13 +12,13 @@ export const INTENSITY_MAP: Record<string, number> = {
   light: 0.7, // 浅
   medium: 1.0, // 中（默认）
   deep: 1.4, // 深
-  'custom-intensity': 0.5, // 自定义（实际值由 customIntensity 决定）
+  'custom-intensity': 1.0, // 自定义（实际值由 customIntensity 决定）
 };
 
-/* 将显示程度设置转换为强度系数（自定义 0-100 → 0-2） */
+/* 将显示程度设置转换为强度系数（自定义 0-200 → 0-2，100 等于「中」） */
 export function getIntensityValue(settings: Settings): number {
   if (settings.intensity === 'custom-intensity') {
-    return settings.customIntensity / 50;
+    return settings.customIntensity / 100;
   }
   return INTENSITY_MAP[settings.intensity] ?? 1.0;
 }

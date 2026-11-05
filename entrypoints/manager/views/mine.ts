@@ -165,7 +165,7 @@ export function renderMineView(): HTMLElement {
 
   root.append(
     topbar,
-    section('内置粒子', builtins, '内置元素缺失'),
+    section('内置粒子', builtins, '内置粒子缺失'),
     section('自定义粒子', users, '还没有自定义粒子'),
   );
   return root;

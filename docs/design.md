@@ -83,8 +83,8 @@ flowchart TD
 | `entrypoints/content.ts` | 内容脚本入口与协调者：注入三层固定 DOM（色调 / 亮度 / 粒子），`await registry.init()` 后每帧驱动 `spawnStep` / `maintainTwinkles` / `step`，订阅设置与元素库变更。自身不含粒子物理。 |
 | `envir/particle/registry.ts` | 元素注册表：内置 → 用户库 → 内置覆盖三层合并，订阅 `chrome.storage.onChanged` 自动重建，对外提供 `list` / `get` / `subscribe` / `isReady`。 |
 | `envir/particle/elements.ts` + `elements.json` | 描述符契约与内置数据，另有 `NUMERIC_LIMITS`（全部数值字段的合法区间）与 `clampDescriptor`（越界夹取）。 |
-| `envir/particle/presets.ts` | 速度 / 大小 / 数目三根轴的档位标签、单位、步长、滑块上限，以及 `matchPreset`（当前值等于某档 → 点亮该档，否则「自定义」）。 |
-| `envir/particle/config.ts` | 把描述符的 `defaults` 与 `settings.particles[id]` 合成「当前生效值」，并再夹一次区间。 |
+| `envir/particle/presets.ts` | 速度 / 大小 / 数量三根轴的档位标签、单位、步长、滑块上限，以及 `axisPresets`（读描述符里的档位数组）。 |
+| `envir/particle/config.ts` | 把档位选择与 `settings.particles[id]` 合成「当前生效值」（`resolveParticleValue`），并再夹一次区间。 |
 | `envir/particle/target.ts` | 星光按时段的数量曲线，含 `TWINKLE_FLOOR` 保底。 |
 | `envir/particle/factory.ts` | 按描述符造粒子：抖动、随机取色（按季节权重选调色板）、区域落位。 |
 | `envir/particle/particle.ts` | 粒子数据类：位置 / 速度 / 相位，外加一个指向 `render` 的指针。 |
@@ -205,8 +205,8 @@ sequenceDiagram
 
 ## 7. 特例与注意事项
 
-- **星光（star）是 `twinkle` 行为**：静态不动，没有速度轴（`axisVisible` 返回 `false`），弹窗自动隐藏「速度」；「数目」含义是**峰值颗数**而非「个/分钟」。
-- **跨午夜时段**：`visibleFrom = 19`、`visibleTo = 5`。为避免 19:00 整"一颗都没有"，`getTwinkleTarget` 用 `TWINKLE_FLOOR = 0.25` 保底，入夜与黎明都保留约 25% 峰值数量。
+- **星光（star）是 `twinkle` 行为**：静态不动，没有速度轴（`axisVisible` 返回 `false`），弹窗自动隐藏「速度」；「数量」含义是**峰值颗数**而非「个/分钟」。
+- **跨午夜时段**：`visible.from = 19`、`visible.to = 5`、`wrap = true`。为避免 19:00 整"一颗都没有"，`getTwinkleTarget` 用 `TWINKLE_FLOOR = 0.25` 保底，入夜与黎明都保留约 25% 峰值数量。
 - **只有内置叶子按季节取色**：颜色由 `palettes` 按季节权重加权随机；其他元素只用 `seasons` 决定"出不出现"。用户元素同样可以填 `palettes`，但管理页目前没有开放该字段。
 - **绘制约定**：SVG 路径在 `[-1, 1]` 空间、按 `size` 缩放；图片高度 = `size`、宽度 = `size × aspect`；emoji / 文字用 `fillText`，字号 = `size`。四种外观都居中绘制，emoji 与文字也支持旋转。
 - **描边宽度补偿**：`lineWidth = widthPx / (size × scale)`，粒子放大缩小时描边的视觉粗细保持不变。

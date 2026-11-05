@@ -5,7 +5,7 @@
 
 import { pushPage, popPage } from '../nav';
 import { cardRow, pageShell } from '../ui';
-import { registry, resolveParticleValue } from '../../envir/particle';
+import { axisUnit, registry, resolveParticleValue } from '../../envir/particle';
 import type { Settings } from '../../../lib/settings';
 import { renderElementPage } from './element';
 import { iconNode } from '../../../lib/icons';
@@ -59,7 +59,7 @@ export function renderParticlePage(settings: Settings): HTMLElement {
       cardRow({
         icon: desc.icon,
         label: desc.label,
-        desc: `${behavior} · ${value.size}px · 数量 ${value.count}`,
+        desc: `${behavior} · ${value.size}px · 数量 ${value.count}${axisUnit('count', desc.behavior)}`,
         right: 'chevron',
         onClick: () => pushPage(renderElementPage(desc.id, settings)),
       }),

@@ -191,7 +191,7 @@ export function createElementForm(
 
     if (options.lockedBasics) {
       basics.body.appendChild(
-        hint('内置元素的基础信息（名称、图标、行为）不可修改，仅可调整下方参数'),
+        hint('内置元素的基础信息（名称、图标、行为）不可修改，仅可调整出现、运动与档位'),
       );
       return;
     }
@@ -313,7 +313,7 @@ export function createElementForm(
 
   function imageEditor(): HTMLElement {
     const wrap = h('div', 'stack');
-    const status = hint('支持 PNG / JPEG / WebP / GIF / SVG，单图上限 512KB');
+    const status = hint('支持 PNG / JPEG / WebP / GIF / SVG，单图上限 512KB；GIF 在部分站点只显示首帧');
     const thumb = h('img', 'thumb');
 
     if (state.render.kind === 'image' && state.render.assetId) {
@@ -448,7 +448,7 @@ export function createElementForm(
 
   /* 出现区域：按钮打开遮罩框选，当前比例挂在按钮的悬浮说明里 */
   function regionControl(): HTMLElement {
-    const pick = button('框选区域', 'ghost', () => void pickRegion());
+    const pick = button('框选范围', 'ghost', () => void pickRegion());
     pick.classList.add('has-tip');
     pick.dataset.tip = regionSummary();
     return actions(pick);
@@ -476,6 +476,21 @@ export function createElementForm(
     return state.visible.wrap ? `${from} 到次日 ${to}` : `${from} 到 ${to}`;
   }
 
+  /* 时段行的悬浮说明：左右圆点含义 + 当前区间 */
+  function timeTipText(): string {
+    return state.visible.wrap
+      ? `选「是」时左侧圆点是消失时刻、右侧是出现时刻，时段跨过零点；当前 ${timeSummary()}`
+      : `左侧是出现时刻，右侧是消失时刻；当前 ${timeSummary()}`;
+  }
+
+  /* 时段行的标签节点，拖动轨道后要同步它的悬浮说明 */
+  let timeLabel: HTMLElement | null = null;
+
+  /* 拖动圆点后重算悬浮说明，避免显示拖动前的旧区间 */
+  function updateTimeTip(): void {
+    if (timeLabel) timeLabel.dataset.tip = timeTipText();
+  }
+
   /* 出现时段：两个圆点共用一条 0-24 轨道，跨午夜时左右含义对调 */
   function timeControl(): HTMLElement {
     const wrap = state.visible.wrap;
@@ -496,6 +511,7 @@ export function createElementForm(
         if (wrap ? index === 1 : index === 0) state.visible.from = value;
         else state.visible.to = value;
         notify();
+        updateTimeTip();
       },
     );
   }
@@ -516,20 +532,17 @@ export function createElementForm(
       );
     }
 
+    const timeRow = row('时段', timeControl(), timeTipText());
+    timeLabel = timeRow.querySelector<HTMLElement>('.field-label');
+
     appear.body.append(
       row(
         '出现区域',
         regionControl(),
-        '拖动方框选择粒子在页面上的出现范围，方框占整个窗口的比例就是区域比例',
+        '拖动方框选择粒子在页面上的出现范围，方框占整个窗口的比例就是区域比例，与网页窗口同比例映射',
       ),
       subTitle('出现时段'),
-      row(
-        '时段',
-        timeControl(),
-        state.visible.wrap
-          ? `选「是」时左侧圆点是消失时刻、右侧是出现时刻，时段跨过零点；当前 ${timeSummary()}`
-          : `左侧是出现时刻，右侧是消失时刻；当前 ${timeSummary()}`,
-      ),
+      timeRow,
       row(
         '跨午夜',
         segGroup(
@@ -621,7 +634,7 @@ export function createElementForm(
 
     const countLimit = countLimitOf(state.behavior);
     const speedNote =
-      state.behavior === 'twinkle' ? '（闪烁元素不使用速度档位，留作切回飘落时使用）' : '（px/s）';
+      state.behavior === 'twinkle' ? '（闪烁元素不使用速度档位，切回飘落后生效）' : '（px/s）';
 
     presets.body.append(
       subTitle(`速度档位${speedNote}`),
@@ -630,8 +643,8 @@ export function createElementForm(
       presetTrack(['小', '中', '大'], state.presets.size, [4, 8, 14], specOf(NUMERIC_LIMITS.size)),
       subTitle(
         state.behavior === 'twinkle'
-          ? '数目档位（闪烁：峰值颗数）'
-          : '数目档位（飘落：个/分钟）',
+          ? '数量档位（闪烁：峰值颗数）'
+          : '数量档位（飘落：个/分钟）',
       ),
       presetTrack(['微量', '少量', '中等', '大量'], state.presets.count, [10, 20, 50, 120], specOf(countLimit)),
       hint('弹窗里按这里的档位选择，选哪一档就用哪一档的值'),

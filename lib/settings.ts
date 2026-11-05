@@ -23,7 +23,7 @@ export interface Settings {
   timeOfDay: string; // 时间：dawn/morning/noon/afternoon/dusk/evening/midnight/custom-time/system-time
   customHour: number; // 0-24，自定义时间时使用，允许半小时
   intensity: string; // 显示程度：misty/light/medium/deep/custom-intensity
-  customIntensity: number; // 自定义显示程度 0-100
+  customIntensity: number; // 自定义显示程度 0-200，100 等于档位「中」
   particles: Record<string, ParticleValue>; // 每个元素的当前值，键为元素 id
 }
 
@@ -38,7 +38,7 @@ export const DEFAULT_SETTINGS: Settings = {
   timeOfDay: 'system-time', // 跟随系统时间
   customHour: new Date().getHours(), // 默认当前小时
   intensity: 'medium', // 默认中等
-  customIntensity: 50, // 自定义档位默认值
+  customIntensity: 100, // 自定义档位默认等于「中」
   particles: {}, // 空表示全部用档位中间值
 };
 
@@ -69,6 +69,12 @@ function sanitizeParticles(raw: unknown): Record<string, ParticleValue> {
   return out;
 }
 
+/* 把可能越界的数值夹到范围内，非法值回退默认 */
+function clampNumber(value: unknown, min: number, max: number, fallback: number): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
+  return Math.min(max, Math.max(min, value));
+}
+
 /* 读取设置，缺失字段回退默认值，粒子配置逐项净化 */
 export async function loadSettings(): Promise<Settings> {
   const data = await chrome.storage.local.get('settings');
@@ -76,6 +82,9 @@ export async function loadSettings(): Promise<Settings> {
   return {
     ...DEFAULT_SETTINGS,
     ...stored,
+    customMonth: clampNumber(stored.customMonth, 1, 12, DEFAULT_SETTINGS.customMonth),
+    customHour: clampNumber(stored.customHour, 0, 24, DEFAULT_SETTINGS.customHour),
+    customIntensity: clampNumber(stored.customIntensity, 0, 200, DEFAULT_SETTINGS.customIntensity),
     particles: sanitizeParticles(stored.particles),
   };
 }

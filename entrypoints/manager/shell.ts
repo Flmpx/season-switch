@@ -43,7 +43,7 @@ export function createShell(root: HTMLElement, onRoute: (route: ManagerRoute) =>
             `<button class="nav-item" type="button" data-route="${r.id}"><span class="nav-icon">${iconSvg(r.icon, 18)}</span><span>${r.label}</span></button>`,
         ).join('')}
       </nav>
-      <div class="sidebar-foot">本地粒子元素与内置粒子元素</div>
+      <div class="sidebar-foot">自定义粒子与内置粒子</div>
     </aside>
     <main class="content" id="manager-content"></main>
   `;

@@ -31,7 +31,7 @@ export function axisLabels(axis: Axis): readonly string[] {
 export function axisTitle(axis: Axis): string {
   if (axis === 'speed') return '速度';
   if (axis === 'size') return '大小';
-  return '数目';
+  return '数量';
 }
 
 /* 取某轴的档位值数组，用户元素可自带任意档位 */
