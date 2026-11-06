@@ -8,7 +8,7 @@
 | 界面 | 入口 | 定位 |
 | --- | --- | --- |
 | **popup 弹窗**（宽 `340px`，高自适应，上限 `600px`） | 点击扩展图标 | 高频微调：季节 / 时间 / 显示程度 / 每个元素的速度·大小·数量 |
-| **管理页**（`manager.html`，独立标签页） | popup 粒子页右上角「＋」 | 造元素：新建 / 我的粒子 / 详情 / 导入导出 JSON |
+| **管理页**（`manager.html`，独立标签页） | popup 粒子页右上角「＋」，或主页「我的粒子」 | 造元素：新建 / 我的粒子 / 详情 / 导入导出 JSON |
 
 分工原则：**轻量调节留在弹窗，凡是需要填名称、传图片、调抖动这类"重活"全部放到管理页**。340px 宽的弹窗里塞不下一张表单，硬塞只会让两边都难用。
 
@@ -72,6 +72,7 @@
 - **只有悬停变色**：卡片行、选项胶囊悬停时底色略深（`#f7f9fc` / `#eff2f7`），不使用自绘光斑或点击特效。
 - **开关**：设置页两行开关（光晕、亮度随时间变化），点整行即切换并立刻保存，没有保存按钮；开关由 `switchRow` 生成，`aria-checked` 同步。
 - **切页与高度**：页面在 `.pages` 容器里横向平移，容器高度由 `nav.ts` 按当前页内容重算，`0.3s` 过渡，超过 `600px` 改为页内滚动。
+- **返回时的文字同步**：页面在 DOM 里被复用，所以上级页的说明文字可能是旧的。每页用 `setPageRefresh` 登记一个刷新函数，`popPage()` 在归位动画开始前调用它；刷新函数先比对快照（主页看季节 / 时段 / 显示程度 / 元素个数，粒子列表看各元素解析后的数值），没变就直接返回，因此「什么都没改」时返回既不重建也不闪烁。
 - **滚动条**：内容超高时显示 `6px` 细滚动条，配色跟随主题（不再是默认白条）。
 
 ### 2.5 模块划分
@@ -82,7 +83,7 @@
 | --- | --- |
 | `popup/index.html` | 弹窗入口：`.nav-stack > .pages#pages` 容器，页面由 JS 挂载 |
 | `popup/main.ts` | 入口：`registry.init()` → 加载设置 → 渲染主页 |
-| `popup/nav.ts` | 导航栈：`initNav` / `pushPage` / `popPage` / `refreshHeight` |
+| `popup/nav.ts` | 导航栈：`initNav` / `pushPage` / `popPage` / `refreshHeight` / `setPageRefresh`（登记「回到本页时怎么重建」） |
 | `popup/ui.ts` | 公共控件：`pageShell` / `cardRow` / `setRowActive` / `sliderCard` / `switchRow` |
 | `popup/style.css` | 全部样式（白卡片主题、导航栈、卡片行、胶囊、滑块、开关） |
 | `popup/pages/main.ts` | 主页：季节 / 时间 / 显示程度 / 粒子 / 我的粒子 / 设置 六个入口 |
@@ -91,7 +92,7 @@
 | `popup/pages/time.ts` | 时间设置页 |
 | `popup/pages/display.ts` | 显示程度设置页 |
 | `popup/pages/settings.ts` | 全局设置页：光晕、亮度随时间变化两个开关 |
-| `popup/pages/particle.ts` | 粒子元素列表；页头右侧「＋」打开管理页 |
+| `popup/pages/particle.ts` | 粒子元素列表（说明行如「飘落 · 8px · 数量 50个/分钟」）；页头右侧「＋」打开管理页 |
 | `popup/pages/element.ts` | 单个元素的三根轴（档位 + 自定义滑块） |
 
 各页面只从 `lib/settings` 读写配置、从 `nav` 取导航能力、从 `envir/particle` 只读元素元数据，互不耦合。
@@ -193,7 +194,7 @@ hash 路由，直接改地址即可切换、刷新后保持：
 
 ### 3.8 图标
 
-界面里的图标全部来自 `lib/icons.ts` 的 21 个线性图标（`leaf`、`snow`、`sparkle`、`clock`、`sun`、`sprout`、`calendar`、`monitor`、`sunrise`、`sunset`、`moon`、`star`、`cloud`、`cloudsun`、`mist`、`level`、`plus`、`list`、`image`、`text`、`emoji`），是 `24×24` 内联 SVG（`stroke: currentColor`），颜色跟随文字，也避开了部分站点的 CSP。元素描述符里的 `icon` 既可以是图标名，也可以是一个字符（用户自己的 emoji 会原样显示）。
+界面里的图标全部来自 `lib/icons.ts` 的 22 个线性图标（`leaf`、`snow`、`sparkle`、`clock`、`sun`、`sprout`、`calendar`、`monitor`、`sunrise`、`sunset`、`moon`、`star`、`cloud`、`cloudsun`、`mist`、`level`、`plus`、`list`、`image`、`text`、`emoji`、`settings`），是 `24×24` 内联 SVG（`stroke: currentColor`），颜色跟随文字，也避开了部分站点的 CSP。元素描述符里的 `icon` 既可以是图标名，也可以是一个字符（用户自己的 emoji 会原样显示）。
 
 ### 3.9 交互
 

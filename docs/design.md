@@ -100,9 +100,9 @@ flowchart TD
 | `lib/element-store.ts` | 用户元素库的增删改查、校验、导入导出，以及内置元素的覆盖字段（overrides）。 |
 | `lib/asset-store.ts` | 图片以 dataURL 存 `chrome.storage.local`，按内容哈希去重，单张上限 512 KB。 |
 | `lib/season-weights.ts` | 月份 → 四季权重插值（3 月 = 春 0.7 + 夏 0.3）。 |
-| `lib/icons.ts` | 21 个 `24×24` 内联 SVG 线性图标，界面里替代 emoji。 |
+| `lib/icons.ts` | 22 个 `24×24` 内联 SVG 线性图标，界面里替代 emoji。 |
 | `envir/intensity` / `light` / `halo` | 显示程度、时段亮度、夏季镜头炫光；后两者受设置页的「亮度随时间变化」「光晕」开关控制。 |
-| `popup/` | 快速设置弹窗：季节 / 时间 / 显示程度 / 每个元素的三根轴。 |
+| `popup/` | 快速设置弹窗：季节 / 时间 / 显示程度 / 每个元素的三根轴，外加「我的粒子」与「设置」（光晕、亮度随时间变化两个开关）。 |
 | `manager/` | 管理页（独立标签页）：新建 / 我的粒子 / 详情，含实时预览、区域框选与 JSON 导入导出。 |
 | `manager/region-modal.ts` | 出现区域的框选遮罩（管理页内，shadow DOM 隔离）。 |
 | `manager/fields.ts` | 表单控件工厂，其中 `createTrack` 是单圆点/多圆点共用的自绘滑块。 |
@@ -191,6 +191,7 @@ sequenceDiagram
 - **改设置**（popup 或管理页详情）→ `settings` 键变化 → 内容脚本 `applySettings` 重算权重、显示程度、各元素生效值。
 - **改元素库**（新建 / 编辑 / 删除 / 导入）→ `userLibrary` 键变化 → `registry.rebuild` → 内容脚本 `sync()` 立即丢弃失配的在飞粒子、补载图片资产（失败的允许重试）、重算配置；管理页与弹窗各取所需。
 - **改单元素**（详情页）对用户元素写 `userLibrary.elements`，对内置元素只写 `userLibrary.overrides`，因此内置元素不会被"复制"一份。
+- **弹窗内部**（不经过存储事件）：页面 DOM 在导航栈里被复用，说明文字可能是旧值。每页用 `nav.setPageRefresh` 登记刷新函数，`popPage()` 在归位动画前调用；刷新函数先比对快照（主页看季节 / 时段 / 显示程度 / 元素个数，粒子列表看各元素解析后的生效值），无变化则什么都不做。
 
 ### 5.3 每帧
 
