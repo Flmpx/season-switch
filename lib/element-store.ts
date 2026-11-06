@@ -66,9 +66,6 @@ export function validateElement(input: Partial<UserElement>): ValidationResult {
   const errors: string[] = [];
   if (!input.label || !input.label.trim()) errors.push('缺少名称');
   if (input.behavior !== 'fall' && input.behavior !== 'twinkle') errors.push('缺少行为类型');
-  if (input.behavior === 'fall' && (!input.seasons || input.seasons.length === 0)) {
-    errors.push('飘落元素需要至少一个出现季节');
-  }
 
   const render: ElementRender | undefined = input.render;
   if (!render) {

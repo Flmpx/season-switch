@@ -182,7 +182,14 @@ class AtmosphereRenderer {
 
     this.ctx.clearRect(0, 0, this.width, this.height);
     this.particleManager.spawnStep(dt, this.currentHour, this.weights, this.width, this.height, this.configs);
-    this.particleManager.maintainTwinkles(this.currentHour, this.intensity, this.width, this.height, this.configs);
+    this.particleManager.maintainTwinkles(
+      this.currentHour,
+      this.intensity,
+      this.width,
+      this.height,
+      this.configs,
+      this.weights,
+    );
     this.particleManager.step(dt, this.width, this.intensity);
   };
 

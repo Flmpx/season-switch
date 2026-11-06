@@ -83,7 +83,7 @@
     "label": "星光",
     "icon": "star",
     "behavior": "twinkle",
-    "seasons": [],
+    "seasons": ["spring", "summer", "autumn", "winter"],
     "render": {
       "kind": "svg",
       "paths": [

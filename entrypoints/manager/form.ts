@@ -83,11 +83,6 @@ function specOf(limit: NumericLimit, unit?: string): SliderSpec {
   return { min: limit.min, max: limit.max, step: limit.step, unit };
 }
 
-/** 按行为取数量区间：飘落按个/分钟，闪烁按峰值 */
-function countLimitOf(behavior: ElementBehavior): NumericLimit {
-  return behavior === 'twinkle' ? NUMERIC_LIMITS.countTwinkle : NUMERIC_LIMITS.countFall;
-}
-
 /**
  * 归一化出现时段
  * 不跨午夜要求 from ≤ to，跨午夜要求 from > to，否则交换
@@ -507,46 +502,81 @@ export function createElementForm(
 
   function renderAppear(): void {
     appear.body.replaceChildren();
+    if (state.behavior === 'fall') renderFallAppear();
+    else renderTwinkleAppear();
+  }
 
-    if (state.behavior === 'fall') {
-      appear.body.appendChild(
-        row(
-          '出现季节',
-          multiGroup<Season>(SEASON_OPTIONS, state.seasons, (v) => {
-            state.seasons = v;
-            notify();
-          }),
-          '决定该季节是否出现；只有内置叶子会随季节变色',
-        ),
-      );
-    }
+  /** 时段轨道，两种行为完全一致 */
+  function timeRow(): HTMLElement {
+    const el = row('时段', timeControl(), timeTipText());
+    timeLabel = el.querySelector<HTMLElement>('.field-label');
+    return el;
+  }
 
-    const timeRow = row('时段', timeControl(), timeTipText());
-    timeLabel = timeRow.querySelector<HTMLElement>('.field-label');
+  /** 跨午夜开关，两种行为完全一致 */
+  function wrapControl(): HTMLElement {
+    return segGroup(
+      [
+        { value: 'no', label: '否' },
+        { value: 'yes', label: '是' },
+      ],
+      state.visible.wrap ? 'yes' : 'no',
+      (v) => {
+        state.visible.wrap = v === 'yes';
+        normalizeVisible(state.visible);
+        notify();
+        renderAppear();
+      },
+    );
+  }
 
+  /** 飘落元素的出现设置：季节、区域、时段、跨午夜 */
+  function renderFallAppear(): void {
     appear.body.append(
+      row(
+        '出现季节',
+        multiGroup<Season>(SEASON_OPTIONS, state.seasons, (v) => {
+          state.seasons = v;
+          notify();
+        }),
+        '决定该季节是否出现；只有内置叶子会随季节变色',
+      ),
       row(
         '出现区域',
         regionControl(),
         '拖动方框选择粒子在页面上的出现范围，方框占整个窗口的比例就是区域比例，与网页窗口同比例映射',
       ),
       subTitle('出现时段'),
-      timeRow,
+      timeRow(),
       row(
         '跨午夜',
-        segGroup(
-          [
-            { value: 'no', label: '否' },
-            { value: 'yes', label: '是' },
-          ],
-          state.visible.wrap ? 'yes' : 'no',
-          (v) => {
-            state.visible.wrap = v === 'yes';
-            normalizeVisible(state.visible);
-            notify();
-            renderAppear();
-          },
-        ),
+        wrapControl(),
+        '选「是」后左右两个圆点的含义对调，用于 19 点出现、次日 5 点消失这类时段',
+      ),
+    );
+  }
+
+  /** 闪烁元素的出现设置：与飘落一致，季节说明不提变色 */
+  function renderTwinkleAppear(): void {
+    appear.body.append(
+      row(
+        '出现季节',
+        multiGroup<Season>(SEASON_OPTIONS, state.seasons, (v) => {
+          state.seasons = v;
+          notify();
+        }),
+        '决定该季节是否出现',
+      ),
+      row(
+        '出现区域',
+        regionControl(),
+        '拖动方框选择粒子在页面上的出现范围，方框占整个窗口的比例就是区域比例，与网页窗口同比例映射',
+      ),
+      subTitle('出现时段'),
+      timeRow(),
+      row(
+        '跨午夜',
+        wrapControl(),
         '选「是」后左右两个圆点的含义对调，用于 19 点出现、次日 5 点消失这类时段',
       ),
     );
@@ -557,20 +587,25 @@ export function createElementForm(
 
   function renderMotion(): void {
     motion.body.replaceChildren();
+    if (state.behavior === 'fall') renderFallMotion();
+    else renderTwinkleMotion();
+  }
 
+  /** 飘落元素的运动设置：摆动与旋转都会生效 */
+  function renderFallMotion(): void {
     motion.body.append(
       row('随机抖动', slider(state.motion.jitter, specOf(NUMERIC_LIMITS.jitter), (v) => {
         state.motion.jitter = v;
         notify();
-      }), '速度/大小/不透明度在该比例内随机'),
+      }), '速度、大小、不透明度在该比例内随机'),
       row('摆动频率', slider(state.motion.wobbleSpeed, specOf(NUMERIC_LIMITS.wobbleSpeed), (v) => {
         state.motion.wobbleSpeed = v;
         notify();
-      }), '越大摆动越快'),
+      }), '越大摆动越快，0 为不摆动'),
       row('摆幅', slider(state.motion.wobbleAmp, specOf(NUMERIC_LIMITS.wobbleAmp, ' px'), (v) => {
         state.motion.wobbleAmp = v;
         notify();
-      })),
+      }), '左右摆动的幅度'),
       row('旋转速度', slider(state.motion.rotationSpeed, specOf(NUMERIC_LIMITS.rotationSpeed, ' 弧度/秒'), (v) => {
         state.motion.rotationSpeed = v;
         notify();
@@ -578,17 +613,26 @@ export function createElementForm(
       row('不透明度', slider(state.motion.opacity, specOf(NUMERIC_LIMITS.opacity), (v) => {
         state.motion.opacity = v;
         notify();
-      })),
+      }), '越小越淡'),
     );
+  }
 
-    if (state.behavior === 'twinkle') {
-      motion.body.appendChild(
-        row('闪烁频率', slider(state.motion.twinkleSpeed, specOf(NUMERIC_LIMITS.twinkleSpeed), (v) => {
-          state.motion.twinkleSpeed = v;
-          notify();
-        }), '明暗交替的快慢'),
-      );
-    }
+  /** 闪烁元素的运动设置：位置固定，只有闪烁频率影响明暗 */
+  function renderTwinkleMotion(): void {
+    motion.body.append(
+      row('随机抖动', slider(state.motion.jitter, specOf(NUMERIC_LIMITS.jitter), (v) => {
+        state.motion.jitter = v;
+        notify();
+      }), '大小、不透明度在该比例内随机'),
+      row('不透明度', slider(state.motion.opacity, specOf(NUMERIC_LIMITS.opacity), (v) => {
+        state.motion.opacity = v;
+        notify();
+      }), '闪烁时最亮的状态'),
+      row('闪烁频率', slider(state.motion.twinkleSpeed, specOf(NUMERIC_LIMITS.twinkleSpeed), (v) => {
+        state.motion.twinkleSpeed = v;
+        notify();
+      }), '明暗交替的快慢'),
+    );
   }
 
   const presets = group('档位', false);
@@ -617,22 +661,40 @@ export function createElementForm(
 
   function renderPresets(): void {
     presets.body.replaceChildren();
+    if (state.behavior === 'fall') renderFallPresets();
+    else renderTwinklePresets();
+  }
 
-    const countLimit = countLimitOf(state.behavior);
-    const speedNote =
-      state.behavior === 'twinkle' ? '（闪烁元素不使用速度档位，切回飘落后生效）' : '（px/s）';
-
+  /** 飘落元素的档位：速度、大小、每分钟数量 */
+  function renderFallPresets(): void {
     presets.body.append(
-      subTitle(`速度档位${speedNote}`),
+      subTitle('速度档位（px/s）'),
       presetTrack(['慢', '中', '快'], state.presets.speed, [14, 28, 50], specOf(NUMERIC_LIMITS.speed)),
       subTitle('大小档位（px）'),
       presetTrack(['小', '中', '大'], state.presets.size, [4, 8, 14], specOf(NUMERIC_LIMITS.size)),
-      subTitle(
-        state.behavior === 'twinkle'
-          ? '数量档位（闪烁：峰值颗数）'
-          : '数量档位（飘落：个/分钟）',
+      subTitle('数量档位（飘落：个/分钟）'),
+      presetTrack(
+        ['微量', '少量', '中等', '大量'],
+        state.presets.count,
+        [10, 20, 50, 120],
+        specOf(NUMERIC_LIMITS.countFall),
       ),
-      presetTrack(['微量', '少量', '中等', '大量'], state.presets.count, [10, 20, 50, 120], specOf(countLimit)),
+      hint('弹窗里按这里的档位选择，选哪一档就用哪一档的值'),
+    );
+  }
+
+  /** 闪烁元素的档位：只有大小与峰值颗数 */
+  function renderTwinklePresets(): void {
+    presets.body.append(
+      subTitle('大小档位（px）'),
+      presetTrack(['小', '中', '大'], state.presets.size, [4, 8, 14], specOf(NUMERIC_LIMITS.size)),
+      subTitle('数量档位（闪烁：峰值颗数）'),
+      presetTrack(
+        ['微量', '少量', '中等', '大量'],
+        state.presets.count,
+        [10, 20, 50, 120],
+        specOf(NUMERIC_LIMITS.countTwinkle),
+      ),
       hint('弹窗里按这里的档位选择，选哪一档就用哪一档的值'),
     );
   }

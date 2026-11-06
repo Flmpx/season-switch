@@ -48,6 +48,7 @@ export function createPreview(): Preview {
   let desc: ElementDescriptor | null = null;
   let sprite: ElementRender | null = null;
   let color = '#ffffff';
+  let lastBehavior: string | null = null; // 上次预览的行为，切换时重置动画相位
   let rotation = 0;
   let elapsed = 0;
   let lastTime = 0;
@@ -66,19 +67,20 @@ export function createPreview(): Preview {
     elapsed += dt;
 
     const motion = desc?.motion;
-    rotation += dt * (motion ? motion.rotationSpeed : 0);
+    const falling = desc?.behavior !== 'twinkle';
+    if (falling) rotation += dt * (motion ? motion.rotationSpeed : 0);
 
-    const wobbleSpeed = motion ? Math.max(0.15, motion.wobbleSpeed) : 0;
-    const amp = motion ? Math.min(MAX_DRIFT, motion.wobbleAmp * 0.5) : 0;
+    const wobbleSpeed = falling && motion ? motion.wobbleSpeed : 0;
+    const amp = falling && motion ? Math.min(MAX_DRIFT, motion.wobbleAmp * 0.5) : 0;
     const dx = Math.sin(elapsed * wobbleSpeed) * amp * 0.35;
     const dy = Math.cos(elapsed * wobbleSpeed) * amp * 0.55;
 
     let opacity = motion ? motion.opacity : 1;
-    if (motion && desc?.behavior === 'twinkle') {
-      const speed = Math.max(0.2, motion.twinkleSpeed || 1.9);
-      opacity *= 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(elapsed * speed * 3));
-    } else {
+    if (falling) {
       opacity *= 0.9 + 0.1 * Math.sin(elapsed * 1.3);
+    } else {
+      const speed = motion ? motion.twinkleSpeed : 1.9;
+      opacity *= 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(elapsed * speed));
     }
 
     if (!ctx) return;
@@ -104,6 +106,11 @@ export function createPreview(): Preview {
   return {
     root,
     update(next, nextColor) {
+      if (next.behavior !== lastBehavior) {
+        lastBehavior = next.behavior;
+        rotation = 0;
+        elapsed = 0;
+      }
       desc = next;
       sprite =
         next.render.kind === 'image'

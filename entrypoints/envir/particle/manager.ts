@@ -103,18 +103,23 @@ export class ParticleManager {
     }
   }
 
-  /** 按当前时段与显示程度维持各闪烁元素的目标数量 */
+  /** 按当前时段与显示程度维持各闪烁元素的目标数量，仅季节权重大于 0 时维持 */
   maintainTwinkles(
     currentHour: number,
     intensity: number,
     width: number,
     height: number,
     configs: Record<string, ResolvedValue>,
+    weights: SeasonWeights,
   ): void {
     for (const desc of registry.list()) {
       if (desc.behavior !== 'twinkle') continue;
       const cfg = configs[desc.id];
       if (!cfg) continue;
+      if (seasonWeightFor(desc, weights) <= 0) {
+        this.twinkleParticles = this.twinkleParticles.filter((p) => p.type !== desc.id);
+        continue;
+      }
 
       const maxCount = Math.round(cfg.count * Math.min(intensity, 1.5));
       const target = getTwinkleTarget(desc, currentHour, maxCount);
