@@ -169,7 +169,7 @@ class AtmosphereRenderer {
     const r = Math.round(spring * t.spring.r + summer * t.summer.r + autumn * t.autumn.r + winter * t.winter.r);
     const g = Math.round(spring * t.spring.g + summer * t.summer.g + autumn * t.autumn.g + winter * t.winter.g);
     const b = Math.round(spring * t.spring.b + summer * t.summer.b + autumn * t.autumn.b + winter * t.winter.b);
-    const a = Math.min(0.15, 0.04 * this.intensity);
+    const a = Math.min(0.15, 0.075 * this.intensity);
     this.overlay.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${a})`;
   }
 

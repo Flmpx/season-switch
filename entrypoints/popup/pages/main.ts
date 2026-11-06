@@ -3,7 +3,7 @@
  * Licensed under MIT (see LICENSE).
  */
 
-import { pushPage } from '../nav';
+import { pushPage, refreshHeight, setPageRefresh } from '../nav';
 import { cardRow, pageShell } from '../ui';
 import { openManager } from '../open-manager';
 import { renderSeasonPage } from './season';
@@ -113,25 +113,56 @@ const ITEMS: MainItem[] = [ // 主页入口：前四项改效果，后两项进�
 ];
 
 /**
+ * 渲染主页各行说明只依赖的设置字段，用于判断返回时是否需要重建
+ */
+function snapshotOf(settings: Settings): string {
+  return JSON.stringify([
+    settings.season,
+    settings.customMonth,
+    settings.timeOfDay,
+    settings.customHour,
+    settings.intensity,
+    settings.customIntensity,
+    registry.list().length,
+  ]);
+}
+
+/**
  * 渲染主页：六项入口，说明文字显示当前取值
+ * 返回本页时若设置已变，重建卡片让说明文字跟上
  */
 export function renderMainPage(settings: Settings): HTMLElement {
   const shell = pageShell('Season Switch', false);
+  let snapshot = snapshotOf(settings);
 
-  for (const item of ITEMS) {
-    const card = document.createElement('div');
-    card.className = item.split ? 'card split' : 'card';
-    card.appendChild(
-      cardRow({
-        icon: item.icon,
-        label: item.label,
-        desc: item.desc(settings),
-        right: 'chevron',
-        onClick: () => item.activate(settings),
+  function paint(): void {
+    shell.body.replaceChildren(
+      ...ITEMS.map((item) => {
+        const card = document.createElement('div');
+        card.className = item.split ? 'card split' : 'card';
+        card.appendChild(
+          cardRow({
+            icon: item.icon,
+            label: item.label,
+            desc: item.desc(settings),
+            right: 'chevron',
+            onClick: () => item.activate(settings),
+          }),
+        );
+        return card;
       }),
     );
-    shell.body.appendChild(card);
   }
 
+  function refresh(): void {
+    const next = snapshotOf(settings);
+    if (next === snapshot) return;
+    snapshot = next;
+    paint();
+    refreshHeight();
+  }
+
+  paint();
+  setPageRefresh(shell.page, refresh);
   return shell.page;
 }

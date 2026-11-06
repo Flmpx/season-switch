@@ -5,7 +5,13 @@
 
 const MAX_HEIGHT = 600; // 与 .page 的 max-height 一致，即弹窗高度上限
 
-let stack: HTMLElement[] = []; // 导航栈：管理页面层级切换与高度自适应
+/** 导航栈里的一页：元素加可选的刷新函数 */
+interface StackEntry {
+  el: HTMLElement; // 页面元素
+}
+
+const refreshers = new WeakMap<HTMLElement, () => void>(); // 页面到刷新函数的映射
+let stack: StackEntry[] = []; // 导航栈：管理页面层级切换与高度自适应
 let pagesEl: HTMLElement | null = null; // 导航容器
 
 /** 初始化导航容器 */
@@ -13,20 +19,25 @@ export function initNav(container: HTMLElement): void {
   pagesEl = container;
 }
 
+/** 为一页登记刷新函数，返回该页时数据有变就调用它重建内容 */
+export function setPageRefresh(page: HTMLElement, refresh: () => void): void {
+  refreshers.set(page, refresh);
+}
+
 /** 测量栈顶页面的自然高度，限制在 MAX_HEIGHT 内 */
 function measureTopHeight(): number {
   if (!pagesEl || stack.length === 0) return 0;
   const top = stack[stack.length - 1];
-  return Math.min(top.scrollHeight, MAX_HEIGHT);
+  return Math.min(top.el.scrollHeight, MAX_HEIGHT);
 }
 
 /** 按栈下标相对当前栈顶，设置每个页面的横向位移 */
 function setPageTransforms(): void {
   if (!pagesEl) return;
   const current = stack.length - 1;
-  stack.forEach((page, i) => {
+  stack.forEach((entry, i) => {
     const offset = i - current;
-    page.style.transform = `translateX(${offset * 100}%)`;
+    entry.el.style.transform = `translateX(${offset * 100}%)`;
   });
 }
 
@@ -49,7 +60,7 @@ function applyHeight(animate: boolean): void {
 export function pushPage(page: HTMLElement, animate = true): void {
   if (!pagesEl) return;
   pagesEl.appendChild(page);
-  stack.push(page);
+  stack.push({ el: page });
 
   if (animate) {
     page.style.transition = 'none';
@@ -67,20 +78,24 @@ export function pushPage(page: HTMLElement, animate = true): void {
   }
 }
 
-/** 弹出栈顶页面：当前页右滑出、下层页归位 */
+/** 弹出栈顶页面：当前页右滑出、下层页归位并按需刷新内容 */
 export function popPage(): void {
   if (!pagesEl || stack.length <= 1) return;
   const top = stack.pop()!;
-  top.style.transform = 'translateX(100%)';
+  top.el.style.transform = 'translateX(100%)';
   setPageTransforms();
+
+  const previous = stack[stack.length - 1];
+  if (previous) refreshers.get(previous.el)?.();
+
   applyHeight(true);
-  const remove = () => top.remove();
+  const remove = () => top.el.remove();
   const onEnd = (e: TransitionEvent) => {
-    if (e.target !== top || e.propertyName !== 'transform') return;
-    top.removeEventListener('transitionend', onEnd);
+    if (e.target !== top.el || e.propertyName !== 'transform') return;
+    top.el.removeEventListener('transitionend', onEnd);
     remove();
   };
-  top.addEventListener('transitionend', onEnd);
+  top.el.addEventListener('transitionend', onEnd);
   window.setTimeout(remove, 400);
 }
 

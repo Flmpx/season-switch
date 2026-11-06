@@ -13,7 +13,7 @@ export class LensFlare {
   /** 根据季节权重与时段更新光晕的显示与透明度 */
   update(weights: SeasonWeights, intensity: number, currentHour: number): void {
     const isDaytime = currentHour >= 6 && currentHour <= 18;
-    const show = weights.summer > 0.3 && isDaytime;
+    const show = weights.summer > 0.2 && isDaytime;
 
     if (show) {
       if (!this.el) {
