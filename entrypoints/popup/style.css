@@ -267,6 +267,50 @@ body {
   background: #dbe6fb;
 }
 
+/* 开关行：整行可点，右侧是开关 */
+.switch-row {
+  cursor: pointer;
+}
+
+/* 开关本体：轨道 + 圆钮 */
+.switch {
+  flex: 0 0 auto;
+  position: relative;
+  width: 44px;
+  height: 26px;
+  border-radius: 13px;
+  background: #d9dee6;
+  transition: background 0.2s ease;
+}
+
+/* 打开时的轨道颜色 */
+.card.on .switch {
+  background: var(--accent);
+}
+
+/* 开关圆钮 */
+.switch-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(31, 35, 40, 0.25);
+  transition: transform 0.2s ease;
+}
+
+/* 打开时圆钮移到右侧 */
+.card.on .switch-knob {
+  transform: translateX(18px);
+}
+
+/* 应用类入口与效果类入口之间的分组间距 */
+.card.split {
+  margin-top: 8px;
+}
+
 /* 滑块卡片：轨道与数值并排 */
 .slider-card {
   display: flex;

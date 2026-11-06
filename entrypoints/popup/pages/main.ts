@@ -5,10 +5,12 @@
 
 import { pushPage } from '../nav';
 import { cardRow, pageShell } from '../ui';
+import { openManager } from '../open-manager';
 import { renderSeasonPage } from './season';
 import { renderTimePage } from './time';
 import { renderDisplayPage } from './display';
 import { renderParticlePage } from './particle';
+import { renderSettingsPage } from './settings';
 import { registry } from '../../envir/particle';
 import type { Settings } from '../../../lib/settings';
 
@@ -43,10 +45,11 @@ const INTENSITY_LABELS: Record<string, string> = { // 显示程度取值的显�
 
 /** 主页面的一项入口 */
 interface MainItem {
-  icon: string; // 圆形图标里的字符
+  icon: string; // 圆形图标里的图形
   label: string; // 行标题
   desc: (settings: Settings) => string; // 行说明，展示当前取值
-  open: (settings: Settings) => HTMLElement; // 点击后渲染的子页面
+  activate: (settings: Settings) => void; // 点击后的动作
+  split?: boolean; // 是否与上方效果类入口分组
 }
 
 /** 季节当前取值的说明文字 */
@@ -67,29 +70,64 @@ function intensityDesc(settings: Settings): string {
   return INTENSITY_LABELS[settings.intensity] ?? settings.intensity;
 }
 
-const ITEMS: MainItem[] = [ // 主页四个入口
-  { icon: 'leaf', label: '季节', desc: seasonDesc, open: renderSeasonPage }, // 季节设置
-  { icon: 'clock', label: '时间', desc: timeDesc, open: renderTimePage }, // 时间设置
-  { icon: 'sun', label: '显示程度', desc: intensityDesc, open: renderDisplayPage }, // 显示程度设置
-  { icon: 'sparkle', label: '粒子', desc: () => `${registry.list().length} 种粒子`, open: renderParticlePage }, // 粒子设置
+const ITEMS: MainItem[] = [ // 主页入口：前四项改效果，后两项进管理页与全局设置
+  {
+    icon: 'leaf',
+    label: '季节',
+    desc: seasonDesc,
+    activate: (settings) => pushPage(renderSeasonPage(settings)),
+  },
+  {
+    icon: 'clock',
+    label: '时间',
+    desc: timeDesc,
+    activate: (settings) => pushPage(renderTimePage(settings)),
+  },
+  {
+    icon: 'sun',
+    label: '显示程度',
+    desc: intensityDesc,
+    activate: (settings) => pushPage(renderDisplayPage(settings)),
+  },
+  {
+    icon: 'sparkle',
+    label: '粒子',
+    desc: () => `${registry.list().length} 种粒子的参数`,
+    activate: (settings) => pushPage(renderParticlePage(settings)),
+  },
+  {
+    icon: 'list',
+    label: '我的粒子',
+    desc: () => '编辑、删除与导入导出',
+    activate: () => {
+      void openManager('mine');
+    },
+    split: true,
+  },
+  {
+    icon: 'settings',
+    label: '设置',
+    desc: () => '光晕与亮度',
+    activate: (settings) => pushPage(renderSettingsPage(settings)),
+  },
 ];
 
 /**
- * 渲染主页：四个设置入口，说明文字显示当前取值
+ * 渲染主页：六项入口，说明文字显示当前取值
  */
 export function renderMainPage(settings: Settings): HTMLElement {
-  const shell = pageShell('设置', false);
+  const shell = pageShell('Season Switch', false);
 
   for (const item of ITEMS) {
     const card = document.createElement('div');
-    card.className = 'card';
+    card.className = item.split ? 'card split' : 'card';
     card.appendChild(
       cardRow({
         icon: item.icon,
         label: item.label,
         desc: item.desc(settings),
         right: 'chevron',
-        onClick: () => pushPage(item.open(settings)),
+        onClick: () => item.activate(settings),
       }),
     );
     shell.body.appendChild(card);

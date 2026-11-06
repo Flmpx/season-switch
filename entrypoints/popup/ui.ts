@@ -42,6 +42,21 @@ export interface SliderCard {
   set: (value: number) => void; // 同步显示值
 }
 
+/** 开关行配置 */
+export interface SwitchRowOptions {
+  icon: string; // 图标名或一个字符
+  label: string; // 主文字
+  desc?: string; // 次要文字
+  checked: boolean; // 初始是否打开
+  onChange: (checked: boolean) => void; // 切换回调
+}
+
+/** 开关行实例 */
+export interface SwitchRow {
+  root: HTMLElement; // 卡片容器
+  set: (checked: boolean) => void; // 同步开关状态
+}
+
 /**
  * 生成页壳，back 为 true 时页头带返回按钮
  */
@@ -166,6 +181,71 @@ export function sliderCard(options: SliderCardOptions): SliderCard {
     set(next: number) {
       input.value = String(next);
       value.textContent = options.format(next);
+    },
+  };
+}
+
+/**
+ * 生成开关行：整行可点，右侧是滑动开关
+ * 开关只负责显示状态，真实值由调用方写入设置
+ */
+export function switchRow(options: SwitchRowOptions): SwitchRow {
+  const card = document.createElement('div');
+  card.className = 'card';
+
+  const row = document.createElement('button');
+  row.type = 'button';
+  row.className = 'card-row switch-row';
+  row.setAttribute('role', 'switch');
+
+  const icon = document.createElement('span');
+  icon.className = 'icon';
+  icon.appendChild(iconNode(options.icon, 20));
+
+  const text = document.createElement('span');
+  text.className = 'text';
+
+  const label = document.createElement('span');
+  label.className = 'label';
+  label.textContent = options.label;
+  text.appendChild(label);
+
+  if (options.desc) {
+    const desc = document.createElement('span');
+    desc.className = 'desc';
+    desc.textContent = options.desc;
+    text.appendChild(desc);
+  }
+
+  const knob = document.createElement('span');
+  knob.className = 'switch-knob';
+  const toggle = document.createElement('span');
+  toggle.className = 'switch';
+  toggle.appendChild(knob);
+
+  row.append(icon, text, toggle);
+  card.appendChild(row);
+
+  let checked = options.checked;
+
+  function sync(): void {
+    card.classList.toggle('on', checked);
+    row.setAttribute('aria-checked', checked ? 'true' : 'false');
+  }
+
+  row.addEventListener('click', () => {
+    checked = !checked;
+    sync();
+    options.onChange(checked);
+  });
+
+  sync();
+
+  return {
+    root: card,
+    set(next: boolean) {
+      checked = next;
+      sync();
     },
   };
 }

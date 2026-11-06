@@ -24,6 +24,8 @@ export interface Settings {
   customHour: number; // 0-24，自定义时间时使用，允许半小时
   intensity: string; // 显示程度：内置档位或自定义
   customIntensity: number; // 自定义显示程度 0-200，100 等于档位「中」
+  halo: boolean; // 是否显示夏季光晕
+  timeBrightness: boolean; // 网页亮度是否随时间变化
   particles: Record<string, ParticleValue>; // 每个元素的当前值，键为元素 id
 }
 
@@ -37,6 +39,8 @@ export const DEFAULT_SETTINGS: Settings = { // 全局默认设置
   customHour: new Date().getHours(), // 默认当前小时
   intensity: 'medium', // 默认中等
   customIntensity: 100, // 自定义档位默认等于「中」
+  halo: true, // 默认显示光晕
+  timeBrightness: true, // 默认亮度随时间变化
   particles: {}, // 空表示全部用档位中间值
 };
 
@@ -83,6 +87,9 @@ export async function loadSettings(): Promise<Settings> {
     customMonth: clampNumber(stored.customMonth, 1, 12, DEFAULT_SETTINGS.customMonth),
     customHour: clampNumber(stored.customHour, 0, 24, DEFAULT_SETTINGS.customHour),
     customIntensity: clampNumber(stored.customIntensity, 0, 200, DEFAULT_SETTINGS.customIntensity),
+    halo: typeof stored.halo === 'boolean' ? stored.halo : DEFAULT_SETTINGS.halo,
+    timeBrightness:
+      typeof stored.timeBrightness === 'boolean' ? stored.timeBrightness : DEFAULT_SETTINGS.timeBrightness,
     particles: sanitizeParticles(stored.particles),
   };
 }

@@ -154,11 +154,12 @@ class AtmosphereRenderer {
       this.currentHour = TIME_OF_DAY_HOURS[settings.timeOfDay] ?? 12;
     }
 
-    this.timeBrightness = getTimeBrightness(settings, this.currentHour);
+    this.timeBrightness = settings.timeBrightness ? getTimeBrightness(settings, this.currentHour) : 1.0;
 
     this.updateOverlay();
     updateBrightnessOverlay(this.brightnessOverlay, this.timeBrightness);
-    this.lensFlare.update(this.weights, this.intensity, this.currentHour);
+    if (settings.halo) this.lensFlare.update(this.weights, this.intensity, this.currentHour);
+    else this.lensFlare.remove();
   }
 
   /** 按四季权重混合出季节色调并写入覆盖层 */

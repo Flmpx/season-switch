@@ -89,6 +89,7 @@ async function start(): Promise<void> {
 
   chrome.runtime.onMessage.addListener((message: { type?: string } | null) => {
     if (message?.type === 'manager:new') go('new');
+    if (message?.type === 'manager:mine') go('mine');
   });
 
   render(parseRoute());

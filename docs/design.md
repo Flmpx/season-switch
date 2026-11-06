@@ -101,7 +101,7 @@ flowchart TD
 | `lib/asset-store.ts` | 图片以 dataURL 存 `chrome.storage.local`，按内容哈希去重，单张上限 512 KB。 |
 | `lib/season-weights.ts` | 月份 → 四季权重插值（3 月 = 春 0.7 + 夏 0.3）。 |
 | `lib/icons.ts` | 21 个 `24×24` 内联 SVG 线性图标，界面里替代 emoji。 |
-| `envir/intensity` / `light` / `halo` | 显示程度、时段亮度、夏季镜头炫光。 |
+| `envir/intensity` / `light` / `halo` | 显示程度、时段亮度、夏季镜头炫光；后两者受设置页的「亮度随时间变化」「光晕」开关控制。 |
 | `popup/` | 快速设置弹窗：季节 / 时间 / 显示程度 / 每个元素的三根轴。 |
 | `manager/` | 管理页（独立标签页）：新建 / 我的粒子 / 详情，含实时预览、区域框选与 JSON 导入导出。 |
 | `manager/region-modal.ts` | 出现区域的框选遮罩（管理页内，shadow DOM 隔离）。 |
@@ -113,12 +113,13 @@ flowchart TD
 
 | 键 | 内容 | 写入方 |
 | --- | --- | --- |
-| `settings` | 季节 / 时间 / 显示程度 + `particles: Record<元素 id, { speed: AxisChoice; size: AxisChoice; count: AxisChoice }>` | popup、管理页详情页 |
+| `settings` | 季节 / 时间 / 显示程度 / 光晕开关 `halo` / 亮度随时间变化 `timeBrightness` + `particles: Record<元素 id, { speed: AxisChoice; size: AxisChoice; count: AxisChoice }>` | popup、管理页详情页 |
 | `userLibrary` | `{ version: 2, elements: 用户元素[], overrides: 内置覆盖 }` | 管理页（新建 / 详情 / 导入） |
 | `asset:<id>` | `{ id, mime, dataUrl, bytes, aspect }`（`bytes` 是文件原始字节数） | 管理页上传图片 |
 
 `AxisChoice` 是 `{ kind: 'preset'; index } | { kind: 'custom'; value }`：前者记住"选中的是第几档"，后者存用户拖出来的连续数值。分开存，元素档位日后调整时不会把旧数值误当成档位。
 `settings.schemaVersion` 与 `userLibrary.version` 都是 `2`；读到旧版本（数值型三件套或 `version: 1`）时整体丢弃、回落到各轴中间档，不写迁移代码。
+`halo` 与 `timeBrightness` 是后加的字段，老设置里没有时按 `true` 补齐，因此不必提升版本号（提升会让用户元素库被判为旧版清空）。
 
 ### 4.2 元素描述符（`ElementDescriptor`）
 
